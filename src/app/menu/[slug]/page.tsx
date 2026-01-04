@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "react-hot-toast";
 
+export const runtime = 'edge';
+
 // --- Types ---
 interface Restaurant {
     id: string;

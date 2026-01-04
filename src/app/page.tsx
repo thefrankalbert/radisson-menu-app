@@ -15,6 +15,8 @@ import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 
+export const runtime = 'edge';
+
 // Map slugs or names to icons
 const getIconForRestaurant = (slug: string) => {
   if (slug.includes('room-service')) return Bed;
