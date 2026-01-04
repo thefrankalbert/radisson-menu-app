@@ -5,11 +5,11 @@ import { useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
 import { Utensils, Home, CheckCircle2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
 
-export default function OrderConfirmedPage() {
+function OrderConfirmedContent() {
     const { lastVisitedMenuUrl } = useCart();
     const { t } = useLanguage();
     const searchParams = useSearchParams();
@@ -64,7 +64,7 @@ export default function OrderConfirmedPage() {
             {/* Success Animation */}
             <div className="mb-8 relative z-10">
                 <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center shadow-lg border-4 border-white animate-bounce-in">
-                    <CheckCircle2 size={48} className="text-green-500 animate-scale-up" strokeWidth={3} />
+                    <CheckCircle2 size={48} className="text-green-500 animate-scale-up" strokeWidth={3} aria-hidden="true" />
                 </div>
                 <div className="absolute -bottom-2 w-24 h-4 bg-green-500/20 blur-xl rounded-full" />
             </div>
@@ -110,20 +110,32 @@ export default function OrderConfirmedPage() {
             <div className="flex flex-col gap-3 w-full max-w-[280px] relative z-10">
                 <Link
                     href={lastVisitedMenuUrl || "/"}
+                    aria-label="Poursuivre la commande"
                     className="bg-radisson-blue text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-radisson-dark transition-all active:scale-95 shadow-md text-sm border border-transparent"
                 >
-                    <Utensils size={18} />
+                    <Utensils size={18} aria-hidden="true" />
                     {t('complete_order')}
                 </Link>
 
                 <Link
                     href="/"
+                    aria-label="Retourner à l'accueil"
                     className="bg-white text-gray-400 py-3 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-gray-50 hover:text-radisson-blue transition-all active:scale-95 border border-gray-100 text-xs tracking-widest uppercase"
                 >
-                    <Home size={16} />
+                    <Home size={16} aria-hidden="true" />
                     {t('home')}
                 </Link>
             </div>
         </main>
+    );
+}
+
+export default function OrderConfirmedPage() {
+    return (
+        <Suspense fallback={<div className="h-screen bg-radisson-light flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-radisson-gold/20 border-t-radisson-gold rounded-full animate-spin" />
+        </div>}>
+            <OrderConfirmedContent />
+        </Suspense>
     );
 }
