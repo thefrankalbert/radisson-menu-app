@@ -1,4 +1,5 @@
 "use client";
+// Build version: 1.0.4 - Triggering rebuild with env vars
 
 import {
   Bed,
