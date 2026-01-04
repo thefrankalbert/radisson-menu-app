@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from 'swr';
 import { Info } from "lucide-react";
 import { notFound } from "next/navigation";
 import MenuItemCard from "@/components/MenuItemCard";
 import CategoryNav from "@/components/CategoryNav";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/context/LanguageContext";
+import { toast } from "react-hot-toast";
 
 // --- Types ---
 interface Restaurant {
@@ -41,83 +42,90 @@ interface MenuPageProps {
     };
 }
 
+// --- Fetcher optimisé pour SWR ---
+const fetchMenuData = async (slug: string) => {
+    // 1. Fetch Restaurant
+    const { data: resData, error: resError } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+    if (resError || !resData) throw new Error("Restaurant introuvable");
+
+    // 2. Fetch Categories
+    const { data: catData, error: catError } = await supabase
+        .from('categories')
+        .select('*, name_en')
+        .eq('restaurant_id', resData.id)
+        .order('id', { ascending: true });
+
+    // 3. Fetch Items
+    let items: MenuItem[] = [];
+    const categoryIds = catData?.map((c: any) => c.id) || [];
+    if (categoryIds.length > 0) {
+        const { data: itemData, error: itemError } = await supabase
+            .from('menu_items')
+            .select('*, name_en, description_en')
+            .in('category_id', categoryIds);
+
+        if (itemData) items = itemData as MenuItem[];
+    }
+
+    return {
+        restaurant: resData as Restaurant,
+        categories: (catData || []) as Category[],
+        items: items
+    };
+};
+
 export default function MenuDetailPage({ params }: MenuPageProps) {
     const { slug } = params;
     const { t, language } = useLanguage();
 
-    const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [items, setItems] = useState<MenuItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                // 1. Fetch Restaurant
-                const { data: resData, error: resError } = await supabase
-                    .from('restaurants')
-                    .select('*')
-                    .eq('slug', slug)
-                    .single();
-
-                if (resError || !resData) {
-                    setError(true);
-                    return;
-                }
-                setRestaurant(resData);
-
-                // 2. Fetch Categories
-                const { data: catData, error: catError } = await supabase
-                    .from('categories')
-                    .select('*, name_en')
-                    .eq('restaurant_id', resData.id);
-
-                if (catData) setCategories(catData);
-
-                // 3. Fetch Items
-                const categoryIds = catData?.map((c: any) => c.id) || [];
-                if (categoryIds.length > 0) {
-                    const { data: itemData, error: itemError } = await supabase
-                        .from('menu_items')
-                        .select('*, name_en, description_en')
-                        .in('category_id', categoryIds);
-
-                    if (itemData) setItems(itemData);
-                }
-            } catch (e) {
-                console.error(e);
-                setError(true);
-            } finally {
-                setLoading(false);
+    // SWR Implementation
+    const { data, error, isLoading } = useSWR(
+        slug ? `menu-${slug}` : null,
+        () => fetchMenuData(slug),
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: true,
+            dedupingInterval: 60000, // 1 minute
+            errorRetryCount: 2,
+            onError: (err) => {
+                console.error("SWR Error:", err);
+                toast.error("Une erreur est survenue lors du chargement du menu.");
             }
         }
-        fetchData();
-    }, [slug]);
+    );
+
+    const restaurant = data?.restaurant;
+    const categories = data?.categories || [];
+    const items = data?.items || [];
 
     if (error) return notFound();
 
     // --- Skeleton Loading State (Luxe & Fast feel) ---
-    if (loading) return (
+    if (isLoading && !data) return (
         <main className="min-h-screen bg-radisson-light pb-24 relative overflow-hidden">
             {/* Skeleton Header */}
             <div className="h-14 w-full bg-white/60 border-b border-gray-100 flex items-center justify-center mb-8">
-                <div className="h-4 w-32 bg-gray-200/50 rounded animate-pulse" />
+                <div className="h-4 w-32 bg-gray-200/40 rounded shimmer" />
             </div>
 
             <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 pt-4 space-y-12">
-                {/* Skeleton Section */}
                 {[1, 2].map((i) => (
-                    <div key={i} className="animate-pulse">
-                        <div className="h-6 w-40 bg-gray-200/80 rounded mb-6" />
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((j) => (
-                                <div key={j} className="h-28 bg-white rounded-2xl border border-gray-100/50 p-4 flex gap-4">
-                                    <div className="flex-1 space-y-3 py-2">
-                                        <div className="h-4 w-3/4 bg-gray-100 rounded" />
-                                        <div className="h-3 w-1/2 bg-gray-50 rounded" />
+                    <div key={i}>
+                        <div className="h-8 w-48 bg-gray-200/50 rounded-lg mb-8 shimmer" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[1, 2, 3, 4].map((j) => (
+                                <div key={j} className="h-32 bg-white rounded-3xl border border-gray-100 p-4 flex gap-4 overflow-hidden relative">
+                                    <div className="flex-1 space-y-4 py-2">
+                                        <div className="h-5 w-3/4 bg-gray-100 rounded-lg shimmer" />
+                                        <div className="h-3 w-1/2 bg-gray-50 rounded-md shimmer" />
+                                        <div className="h-4 w-1/4 bg-gray-100 rounded-md mt-auto shimmer" />
                                     </div>
-                                    <div className="w-20 h-20 bg-gray-100 rounded-xl" />
+                                    <div className="w-24 h-24 bg-gray-50 rounded-2xl shimmer" />
                                 </div>
                             ))}
                         </div>

@@ -16,6 +16,7 @@ export default function CartSummary() {
         <div className="fixed bottom-24 right-6 z-[100]">
             <Link
                 href="/cart"
+                aria-label={`Voir mon panier (${totalItems} articles)`}
                 // Added animate-pulse for heartbeat effect (permanent), removed on hover to allow scale effect
                 // Enhanced hover: scale-110, shadow-2xl.
                 className="relative w-16 h-16 bg-radisson-blue text-white rounded-full shadow-glow flex items-center justify-center transition-all duration-300 border border-white/10 group animate-pulse hover:animate-none hover:scale-110 hover:shadow-2xl active:scale-95"

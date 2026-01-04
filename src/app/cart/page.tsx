@@ -7,6 +7,7 @@ import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Send, Clock, Calendar, Che
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 // Interface from OrdersPage
 interface HistoryItem {
@@ -38,7 +39,7 @@ export default function CartPage() {
             try {
                 setHistory(JSON.parse(savedHistory));
             } catch (e) {
-                console.error("Failed to parse history", e);
+                toast.error("Impossible de charger l'historique.");
             }
         }
     }, [activeTab]); // Refresh when tab changes
@@ -67,16 +68,45 @@ export default function CartPage() {
         }
     };
 
+    const [lastOrderTime, setLastOrderTime] = useState(0);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!tableNumber) return;
+
+        // 1. Validation de base
         if (items.length === 0) return;
+
+        if (!tableNumber || tableNumber.trim().length === 0) {
+            toast.error("Veuillez renseigner votre numéro de table.");
+            return;
+        }
+
+        // 2. Validation Format (Sécurité & Stabilité)
+        const tableRegex = /^[a-zA-Z0-9\s-]+$/;
+        if (!tableRegex.test(tableNumber)) {
+            toast.error("Format de numéro de table invalide.");
+            return;
+        }
+
+        if (tableNumber.length > 10) {
+            toast.error("Le numéro de table est trop long.");
+            return;
+        }
+
+        // 3. Rate Limiting (Sécurité anti-spam)
+        const now = Date.now();
+        if (now - lastOrderTime < 30000) { // 30 secondes entre deux commandes
+            toast.error("Veuillez patienter avant de passer une nouvelle commande.");
+            return;
+        }
+
         if (!restaurantId) {
-            alert("Erreur: Restaurant non identifié.");
+            toast.error("Erreur: Restaurant non identifié.");
             return;
         }
 
         setIsSubmitting(true);
+        setLastOrderTime(now);
 
         try {
             const { data: order, error: orderError } = await supabase
@@ -123,10 +153,10 @@ export default function CartPage() {
             // ----------------------------
 
             clearCart();
+            toast.success("Votre commande a été envoyée avec succès !");
             router.push(`/order-confirmed?orderId=${order.id}`);
         } catch (error) {
-            console.error("Error submitting order:", error);
-            alert(t("error_sending_order") || "Une erreur est survenue.");
+            toast.error(t("error_sending_order") || "Une erreur est survenue lors de l'envoi.");
         } finally {
             setIsSubmitting(false);
         }
@@ -141,22 +171,28 @@ export default function CartPage() {
                 <div className="flex p-1 bg-gray-100/80 rounded-xl mb-8 border border-gray-200">
                     <button
                         onClick={() => setActiveTab('cart')}
+                        aria-label={`Voir mon panier (${totalItems} articles)`}
+                        aria-selected={activeTab === 'cart'}
+                        role="tab"
                         className={`flex-1 py-3 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'cart'
                             ? "bg-white text-radisson-blue shadow-sm scale-[1.02]"
                             : "text-gray-400 hover:text-gray-600"
                             }`}
                     >
-                        <ShoppingCart size={14} className={activeTab === 'cart' ? "text-radisson-gold" : ""} />
+                        <ShoppingCart size={14} className={activeTab === 'cart' ? "text-radisson-gold" : ""} aria-hidden="true" />
                         {t('my_cart') || "PANIER"} ({totalItems})
                     </button>
                     <button
                         onClick={() => setActiveTab('history')}
+                        aria-label="Voir mon historique de commandes"
+                        aria-selected={activeTab === 'history'}
+                        role="tab"
                         className={`flex-1 py-3 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'history'
                             ? "bg-white text-radisson-blue shadow-sm scale-[1.02]"
                             : "text-gray-400 hover:text-gray-600"
                             }`}
                     >
-                        <Clock size={14} className={activeTab === 'history' ? "text-radisson-gold" : ""} />
+                        <Clock size={14} className={activeTab === 'history' ? "text-radisson-gold" : ""} aria-hidden="true" />
                         {t('my_orders') || "HISTORIQUE"}
                     </button>
                 </div>
@@ -179,9 +215,10 @@ export default function CartPage() {
                                 {/* Back Button */}
                                 <Link
                                     href={lastVisitedMenuUrl || "/"}
+                                    aria-label="Retourner au menu du restaurant"
                                     className="inline-flex items-center gap-2 text-radisson-blue font-bold text-[10px] tracking-[0.2em] mb-6 hover:text-radisson-gold transition-colors"
                                 >
-                                    <ArrowLeft size={14} />
+                                    <ArrowLeft size={14} aria-hidden="true" />
                                     {t('back_to_menu').toUpperCase()}
                                 </Link>
 
@@ -201,12 +238,12 @@ export default function CartPage() {
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center bg-gray-50 rounded-xl p-0.5 border border-gray-100">
-                                                    <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-radisson-blue hover:text-red-500 transition-colors shadow-sm active:scale-90">
-                                                        {item.quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} />}
+                                                    <button onClick={() => updateQuantity(item.id, -1)} aria-label={`Retirer un exemplaire de ${item.name}`} className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-radisson-blue hover:text-red-500 transition-colors shadow-sm active:scale-90">
+                                                        {item.quantity === 1 ? <Trash2 size={14} aria-hidden="true" /> : <Minus size={14} aria-hidden="true" />}
                                                     </button>
-                                                    <span className="w-8 text-center font-bold text-radisson-blue text-xs">{item.quantity}</span>
-                                                    <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 rounded-lg bg-radisson-blue flex items-center justify-center text-white hover:bg-radisson-dark transition-colors shadow-sm active:scale-90">
-                                                        <Plus size={14} />
+                                                    <span className="w-8 text-center font-bold text-radisson-blue text-xs" aria-live="polite">{item.quantity}</span>
+                                                    <button onClick={() => updateQuantity(item.id, 1)} aria-label={`Ajouter un exemplaire de ${item.name}`} className="w-8 h-8 rounded-lg bg-radisson-blue flex items-center justify-center text-white hover:bg-radisson-dark transition-colors shadow-sm active:scale-90">
+                                                        <Plus size={14} aria-hidden="true" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -294,7 +331,7 @@ export default function CartPage() {
                                     <Package size={32} className="text-gray-200" />
                                 </div>
                                 <p className="text-gray-400 font-medium italic text-xs md:text-sm">
-                                    Aucune commande dans l'historique.
+                                    Aucune commande dans l&apos;historique.
                                 </p>
                             </div>
                         ) : (

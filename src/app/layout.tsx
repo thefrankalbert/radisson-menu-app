@@ -8,6 +8,8 @@ import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import BottomNav from "@/components/BottomNav";
 import InstallPrompt from "@/components/InstallPrompt";
+import ToastProvider from "@/components/ToastProvider";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -19,6 +21,15 @@ export const metadata: Metadata = {
   title: "Radisson Blu E-Menu",
   description: "Digital menu for Radisson Blu Hotel",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -50,6 +61,8 @@ export default function RootLayout({
             <CartSummary />
             <BottomNav />
             <InstallPrompt />
+            <OfflineIndicator />
+            <ToastProvider />
           </CartProvider>
         </LanguageProvider>
       </body>

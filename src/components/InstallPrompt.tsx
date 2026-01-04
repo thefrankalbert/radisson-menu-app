@@ -51,8 +51,8 @@ export default function InstallPrompt() {
 
     return (
         <div className="fixed bottom-28 left-4 right-4 md:left-auto md:right-8 md:w-80 z-[110] bg-radisson-blue text-white p-4 rounded-2xl shadow-2xl border border-white/20 animate-fade-in-up">
-            <button onClick={() => setShow(false)} className="absolute top-2 right-2 text-white/60 hover:text-white p-1">
-                <X size={16} />
+            <button onClick={() => setShow(false)} aria-label="Fermer la suggestion d'installation" className="absolute top-2 right-2 text-white/60 hover:text-white p-1">
+                <X size={16} aria-hidden="true" />
             </button>
 
             <div className="flex items-center gap-4 pr-6">
@@ -60,9 +60,9 @@ export default function InstallPrompt() {
                     <span className="text-radisson-blue font-black text-xl">R</span>
                 </div>
                 <div>
-                    <h3 className="font-bold text-sm">Installer l'Application</h3>
+                    <h3 className="font-bold text-sm">Installer l&apos;Application</h3>
                     <p className="text-[10px] text-white/80 leading-tight mt-1">
-                        Accédez au menu plus rapidement depuis votre écran d'accueil.
+                        Accédez au menu plus rapidement depuis votre écran d&apos;accueil.
                     </p>
                 </div>
             </div>
@@ -73,15 +73,16 @@ export default function InstallPrompt() {
                         1. Appuyez sur le bouton de partage <Share size={14} />
                     </p>
                     <p className="flex items-center gap-2">
-                        2. Sélectionnez <span className="font-bold">"Sur l'écran d'accueil"</span>
+                        2. Sélectionnez <span className="font-bold">&quot;Sur l&apos;écran d&apos;accueil&quot;</span>
                     </p>
                 </div>
             ) : (
                 <button
                     onClick={handleInstallClick}
+                    aria-label="Installer l'application sur votre appareil"
                     className="mt-4 w-full bg-white text-radisson-blue py-2.5 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
                 >
-                    <Download size={16} />
+                    <Download size={16} aria-hidden="true" />
                     Installer maintenant
                 </button>
             )}

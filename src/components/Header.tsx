@@ -48,8 +48,8 @@ function HeaderContent({ title, showBackButton, variant: propVariant }: HeaderPr
                     {/* Back Button */}
                     {(showBackButton || pathname !== "/") && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2">
-                            <Link href="/" className={`flex items-center gap-1.5 md:gap-2 ${isDark ? "bg-white/10 hover:bg-white/20 text-white border-white/20" : "bg-gray-50 hover:bg-gray-100 text-radisson-blue border-gray-200"} px-3 py-1.5 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold transition-all border active:scale-95 backdrop-blur-md shadow-sm`}>
-                                <ArrowLeft size={14} className="md:size-18" />
+                            <Link href="/" aria-label="Retour à l'accueil" className={`flex items-center gap-1.5 md:gap-2 ${isDark ? "bg-white/10 hover:bg-white/20 text-white border-white/20" : "bg-gray-50 hover:bg-gray-100 text-radisson-blue border-gray-200"} px-3 py-1.5 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold transition-all border active:scale-95 backdrop-blur-md shadow-sm`}>
+                                <ArrowLeft size={14} className="md:size-18" aria-hidden="true" />
                                 <span className="hidden sm:inline">{t("back").toUpperCase()}</span>
                             </Link>
                         </div>
@@ -59,9 +59,10 @@ function HeaderContent({ title, showBackButton, variant: propVariant }: HeaderPr
                     <div className="absolute right-0 top-1/2 -translate-y-1/2">
                         <button
                             onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
+                            aria-label={language === "fr" ? "Switch to English" : "Passer en Français"}
                             className={`flex items-center gap-1.5 md:gap-2 ${isDark ? "bg-white/10 hover:bg-white/20 text-white border-white/20" : "bg-gray-50 hover:bg-gray-100 text-radisson-blue border-gray-200"} px-3 py-1.5 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold transition-all border active:scale-95 backdrop-blur-md shadow-sm`}
                         >
-                            <Globe size={14} className="md:size-18" />
+                            <Globe size={14} className="md:size-18" aria-hidden="true" />
                             <span>{language.toUpperCase()}</span>
                         </button>
                     </div>

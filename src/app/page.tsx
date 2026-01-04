@@ -109,7 +109,7 @@ export default function Home() {
 
       <footer className="mt-20 md:mt-32 py-10 md:py-16 border-t border-gray-100">
         <div className="text-center text-[10px] md:text-xs text-gray-400 uppercase tracking-[0.4em] font-medium opacity-60">
-          Radisson Blu Hotel • N'Djamena
+          Radisson Blu Hotel • N&apos;Djamena
         </div>
       </footer>
     </div>

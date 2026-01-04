@@ -30,7 +30,7 @@ export default function MenuItemCard({ item, restaurantId }: MenuItemProps) {
             name: item.name,
             price: item.price,
             image_url: item.image_url,
-            quantity: 1, // Fix: Explicitly provide quantity as required by CartContext type
+            quantity: 1,
         }, restaurantId);
         setTimeout(() => setIsAnimating(false), 300);
     };
@@ -45,8 +45,8 @@ export default function MenuItemCard({ item, restaurantId }: MenuItemProps) {
                             {item.name}
                         </h3>
                         <div className="flex gap-1 flex-shrink-0 pt-1">
-                            {item.is_vegetarian && <Leaf size={14} className="text-green-500" />}
-                            {item.is_spicy && <Flame size={14} className="text-red-500" />}
+                            {item.is_vegetarian && <Leaf size={14} className="text-green-500" aria-label="Plat végétarien" />}
+                            {item.is_spicy && <Flame size={14} className="text-red-500" aria-label="Plat épicé" />}
                         </div>
                     </div>
 
@@ -57,7 +57,8 @@ export default function MenuItemCard({ item, restaurantId }: MenuItemProps) {
 
                 <div className="mt-auto">
                     <span className="text-radisson-blue font-black text-base md:text-lg">
-                        {item.price?.toLocaleString()} <span className="text-[10px] text-radisson-gold font-bold ml-0.5">FCFA</span>
+                        {item.price?.toLocaleString()} <span className="text-[10px] text-radisson-gold font-bold ml-0.5" aria-hidden="true">FCFA</span>
+                        <span className="sr-only">Franc CFA</span>
                     </span>
                 </div>
             </div>
@@ -82,35 +83,30 @@ export default function MenuItemCard({ item, restaurantId }: MenuItemProps) {
                     {cartItem ? (
                         <div className="flex items-center bg-white rounded-full p-1 shadow-lg border border-gray-100 animate-scale-up">
                             <button
-                                onClick={() => updateQuantity(item.id, cartItem.quantity - 1 >= 0 ? cartItem.quantity - 1 : 0)}
-                                // Actually updateQuantity logic usually takes newQuantity or delta?
-                                // Context says: updateQuantity(id, quantity).
-                                // So I should pass the NEW quantity.
-                                // If current is 1, passing 0 removes it (if logic in context supports it).
-                                // Let's check CartContext logic briefly?
-                                // User provided context code: "if (quantity < 1) return removeFromCart(id);"
-                                // So passing 0 is fine.
+                                onClick={() => updateQuantity(item.id, cartItem.quantity - 1)}
+                                aria-label={`Retirer un exemplaire de ${item.name}`}
                                 className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-radisson-blue hover:bg-red-50 hover:text-red-500 transition-colors active:scale-90"
                             >
-                                <Minus size={14} strokeWidth={3} />
+                                <Minus size={14} strokeWidth={3} aria-hidden="true" />
                             </button>
-                            <span className="w-6 text-center text-xs font-black text-radisson-blue">
+                            <span className="w-6 text-center text-xs font-black text-radisson-blue" aria-live="polite">
                                 {cartItem.quantity}
                             </span>
                             <button
                                 onClick={() => updateQuantity(item.id, cartItem.quantity + 1)}
+                                aria-label={`Ajouter un exemplaire de ${item.name}`}
                                 className="w-7 h-7 rounded-full bg-radisson-blue flex items-center justify-center text-white hover:bg-radisson-dark transition-colors active:scale-90"
                             >
-                                <Plus size={14} strokeWidth={3} />
+                                <Plus size={14} strokeWidth={3} aria-hidden="true" />
                             </button>
                         </div>
                     ) : (
                         <button
                             onClick={handleAdd}
-                            className={`w-10 h-10 rounded-full bg-white text-radisson-blue shadow-lg flex items-center justify-center hover:bg-radisson-blue hover:text-white transition-all active:scale-90 ${isAnimating ? "!bg-radisson-gold !text-white scale-110" : ""
-                                }`}
+                            aria-label={`Ajouter ${item.name} au panier`}
+                            className={`w-10 h-10 rounded-full bg-white text-radisson-blue shadow-lg flex items-center justify-center hover:bg-radisson-blue hover:text-white transition-all active:scale-90 ${isAnimating ? "!bg-radisson-gold !text-white scale-110" : ""}`}
                         >
-                            <Plus size={20} strokeWidth={3} />
+                            <Plus size={20} strokeWidth={3} aria-hidden="true" />
                         </button>
                     )}
                 </div>

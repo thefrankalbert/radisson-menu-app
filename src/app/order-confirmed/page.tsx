@@ -7,6 +7,7 @@ import { Utensils, Home, CheckCircle2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { toast } from "react-hot-toast";
 
 export default function OrderConfirmedPage() {
     const { lastVisitedMenuUrl } = useCart();
@@ -19,7 +20,7 @@ export default function OrderConfirmedPage() {
 
     useEffect(() => {
         if (orderId) {
-            async function fetchOrderDetails() {
+            const fetchOrderDetails = async () => {
                 try {
                     // First fetch order to verify status and get total
                     const { data: orderData, error: orderError } = await supabase
@@ -43,11 +44,11 @@ export default function OrderConfirmedPage() {
 
                     if (items) setOrderItems(items);
                 } catch (e) {
-                    console.error(e);
+                    toast.error("Une erreur est survenue lors de la récupération des détails de la commande.");
                 } finally {
                     setLoading(false);
                 }
-            }
+            };
             fetchOrderDetails();
         } else {
             setLoading(false);
