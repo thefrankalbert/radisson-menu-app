@@ -17,6 +17,13 @@ const nextConfig = {
             },
         ],
     },
+    // Désactiver le cache webpack en production pour éviter l'erreur de limite de 25Mo sur Cloudflare
+    webpack: (config, { dev }) => {
+        if (!dev) {
+            config.cache = false;
+        }
+        return config;
+    },
 };
 
 export default withPWA(nextConfig);
