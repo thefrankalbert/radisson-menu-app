@@ -15,6 +15,12 @@ const nextConfig = {
                 port: '',
                 pathname: '/storage/v1/object/public/**',
             },
+            {
+                protocol: 'https',
+                hostname: 'images.unsplash.com',
+                port: '',
+                pathname: '/**',
+            },
         ],
     },
     // Désactiver le cache webpack en production pour éviter l'erreur de limite de 25Mo sur Cloudflare

@@ -52,7 +52,7 @@ export default function BottomNav() {
     // Let's just implement the UI structure requested first.
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe pt-2">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pb-safe pt-2">
             <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
                 <Link href="/" aria-label="Aller à la page d'accueil" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${pathname === "/" ? "text-radisson-blue" : "text-gray-400 hover:text-gray-600"}`}>
                     <Home size={24} strokeWidth={pathname === "/" ? 2.5 : 2} aria-hidden="true" />
@@ -78,7 +78,7 @@ export default function BottomNav() {
                 {/* History Link - forcing tab switch via query param would be ideal but for now just link */}
                 {/* Using a simple state or context would be better but let's stick to Link */}
                 {/* I will make it look like a separate item even if it goes to same page */}
-                <Link href="/cart" aria-label="Voir mon historique de commandes" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${false ? "text-radisson-blue" : "text-gray-400 hover:text-gray-600"}`}>
+                <Link href="/orders" aria-label="Voir mon historique de commandes" className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${pathname === "/orders" ? "text-radisson-blue" : "text-gray-400 hover:text-gray-600"}`}>
                     <History size={24} strokeWidth={2} aria-hidden="true" />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Historique</span>
                 </Link>

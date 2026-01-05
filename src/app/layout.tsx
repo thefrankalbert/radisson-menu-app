@@ -20,8 +20,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Radisson Blu E-Menu",
-  description: "Digital menu for Radisson Blu Hotel",
+  title: "BLU TABLE | N'Djamena",
+  description: "Digital Menu & Gastronomic Experience",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Radisson Menu",
+    title: "Blu Table",
   },
 };
 
@@ -54,13 +54,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${montserrat.className} bg-radisson-light antialiased pb-24`}>
+      <body className={`${montserrat.className} bg-radisson-light antialiased text-[#002C5F]`}>
         <LanguageProvider>
           <CartProvider>
             <MenuVisitedTracker />
             <Header />
             {children}
-            <CartSummary />
             <BottomNav />
             <InstallPrompt />
             <OfflineIndicator />

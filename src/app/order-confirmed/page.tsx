@@ -60,12 +60,9 @@ function OrderConfirmedContent() {
     return (
         <main className="h-screen bg-radisson-light flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">
 
-            {/* Background Decor */}
-            <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-white to-transparent opacity-50 pointer-events-none" />
-
             {/* Success Animation */}
             <div className="mb-8 relative z-10">
-                <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center shadow-lg border-4 border-white animate-bounce-in">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-soft border-4 border-gray-50/50 animate-bounce-in">
                     <CheckCircle2 size={48} className="text-green-500 animate-scale-up" strokeWidth={3} aria-hidden="true" />
                 </div>
                 <div className="absolute -bottom-2 w-24 h-4 bg-green-500/20 blur-xl rounded-full" />
@@ -81,7 +78,7 @@ function OrderConfirmedContent() {
 
             {/* Order Receipt / Summary */}
             {orderId && !loading && orderItems.length > 0 && (
-                <div className="w-full max-w-sm bg-white rounded-2xl shadow-soft border border-gray-100 p-6 mb-8 text-left relative z-10 animate-fade-in-up">
+                <div className="w-full max-w-sm bg-white rounded-2xl shadow-soft border border-gray-50 p-6 mb-8 text-left relative z-10 animate-fade-in-up">
                     <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-50 pb-2">
                         {t('order_summary')}
                     </div>
@@ -103,8 +100,6 @@ function OrderConfirmedContent() {
                             {totalPrice.toLocaleString()} <span className="text-xs text-radisson-blue">FCFA</span>
                         </span>
                     </div>
-                    {/* Receipt Visuals */}
-                    <div className="absolute -bottom-1 left-0 w-full h-2 bg-radial-tooth bg-[length:16px_16px] opacity-10" />
                 </div>
             )}
 
@@ -113,7 +108,7 @@ function OrderConfirmedContent() {
                 <Link
                     href={lastVisitedMenuUrl || "/"}
                     aria-label="Poursuivre la commande"
-                    className="bg-radisson-blue text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-radisson-dark transition-all active:scale-95 shadow-md text-sm border border-transparent"
+                    className="bg-radisson-blue text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-radisson-dark transition-all active:scale-95 shadow-soft text-sm border border-transparent"
                 >
                     <Utensils size={18} aria-hidden="true" />
                     {t('complete_order')}

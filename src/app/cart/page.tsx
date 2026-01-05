@@ -3,7 +3,7 @@
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/lib/supabase";
-import { Minus, Plus, Trash2, ArrowLeft, ShoppingBag, Send, Clock, Calendar, CheckCircle, Package, XCircle, ShoppingCart } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Send, CheckCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,6 @@ import { toast } from "react-hot-toast";
 
 export const runtime = 'edge';
 
-// Interface from OrdersPage
 interface HistoryItem {
     id: string;
     date: string;
@@ -28,35 +27,12 @@ export default function CartPage() {
     const [notes, setNotes] = useState("");
     const [tableNumber, setTableNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [history, setHistory] = useState<HistoryItem[]>([]);
-    const [activeTab, setActiveTab] = useState<'cart' | 'history'>('cart');
 
-    // Load History
+    // Load Table Number only
     useEffect(() => {
-        const savedHistory = localStorage.getItem('order_history');
-        if (savedHistory) {
-            try {
-                setHistory(JSON.parse(savedHistory));
-            } catch (e) {
-                console.error("Failed to load history");
-                toast.error("Impossible de charger l'historique.");
-            }
-        }
+        const savedTable = localStorage.getItem('table_number');
+        if (savedTable) setTableNumber(savedTable);
     }, []);
-
-    const handleClearHistory = () => {
-        if (window.confirm(t('confirm_clear_history') || "Effacer tout l'historique ?")) {
-            localStorage.removeItem('order_history');
-            setHistory([]);
-            toast.success("Historique effacé");
-        }
-    };
-
-    const handleDeleteOrder = (id: string) => {
-        const newHistory = history.filter(o => o.id !== id);
-        setHistory(newHistory);
-        localStorage.setItem('order_history', JSON.stringify(newHistory));
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -66,7 +42,6 @@ export default function CartPage() {
             return;
         }
 
-        // --- VALIDATION & RATE LIMITING ---
         const lastOrderTime = localStorage.getItem('last_order_time');
         const now = Date.now();
         if (lastOrderTime && now - parseInt(lastOrderTime) < 30000) {
@@ -93,7 +68,6 @@ export default function CartPage() {
                 .insert({
                     restaurant_id: currentRestaurantId,
                     table_number: tableNumber,
-                    notes: notes,
                     total_price: totalPrice,
                     status: 'pending'
                 })
@@ -115,7 +89,6 @@ export default function CartPage() {
 
             if (itemsError) throw itemsError;
 
-            // Save to local history
             const newOrder: HistoryItem = {
                 id: order.id,
                 date: new Date().toISOString(),
@@ -125,7 +98,9 @@ export default function CartPage() {
                 status: 'sent'
             };
 
-            const updatedHistory = [newOrder, ...history];
+            const currentHistJSON = localStorage.getItem('order_history');
+            const currentHist = currentHistJSON ? JSON.parse(currentHistJSON) : [];
+            const updatedHistory = [newOrder, ...currentHist];
             localStorage.setItem('order_history', JSON.stringify(updatedHistory));
             localStorage.setItem('last_order_time', now.toString());
 
@@ -140,229 +115,131 @@ export default function CartPage() {
         }
     };
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
     return (
-        <main className="min-h-screen bg-radisson-light pb-32 animate-fade-in pt-20">
-            <div className="max-w-3xl mx-auto px-6">
+        <main className="min-h-screen bg-[#F5F5F5] pb-32 animate-fade-in pt-20">
+            <div className="max-w-md mx-auto px-4">
 
-                {/* --- TABS --- */}
-                <div className="flex bg-white/50 backdrop-blur-md p-1 rounded-2xl border border-gray-100 mb-8 shadow-soft">
-                    <button
-                        onClick={() => setActiveTab('cart')}
-                        aria-selected={activeTab === 'cart'}
-                        className={`flex-1 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'cart'
-                            ? "bg-radisson-blue text-white shadow-lg scale-[1.02]"
-                            : "text-gray-400 hover:text-radisson-blue hover:bg-white/50"}`}
-                    >
-                        <ShoppingCart size={14} className={activeTab === 'cart' ? "text-radisson-gold" : ""} aria-hidden="true" />
-                        {t('my_cart') || "PANIER"} ({totalItems})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('history')}
-                        aria-selected={activeTab === 'history'}
-                        className={`flex-1 py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'history'
-                            ? "bg-radisson-blue text-white shadow-lg scale-[1.02]"
-                            : "text-gray-400 hover:text-radisson-blue hover:bg-white/50"}`}
-                    >
-                        <Clock size={14} className={activeTab === 'history' ? "text-radisson-gold" : ""} aria-hidden="true" />
-                        {t('my_orders') || "HISTORIQUE"}
-                    </button>
-                </div>
+                <h1 className="text-xl font-bold text-gray-800 mb-6 text-center uppercase tracking-widest">
+                    {t('my_cart')}
+                </h1>
 
-                {/* --- TAB CONTENT: CART --- */}
-                {activeTab === 'cart' && (
-                    <>
-                        {items.length === 0 ? (
-                            <div className="bg-white rounded-3xl p-16 text-center border border-gray-100 shadow-soft animate-fade-in-up">
-                                <div className="w-20 h-20 bg-radisson-light rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <ShoppingBag size={40} className="text-gray-200" />
+                {items.length === 0 ? (
+                    <div className="bg-white rounded-sm p-12 text-center shadow-sm border border-gray-200">
+                        <ShoppingBag size={32} className="text-gray-300 mx-auto mb-4" />
+                        <h2 className="text-lg font-bold text-gray-700 mb-2">{t('cart_empty')}</h2>
+                        <Link
+                            href="/"
+                            className="text-sm font-bold text-blue-600 hover:underline uppercase tracking-wider"
+                        >
+                            {t('back_to_menu')}
+                        </Link>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit}>
+                        {/* TICKET DE CAISSE REALISTE */}
+                        <div className="bg-white shadow-sm border border-gray-200 p-6 rounded-sm relative mx-auto">
+
+                            {/* HEADER TICKET */}
+                            <div className="text-center border-b-2 border-dashed border-gray-200 pb-4 mb-4">
+                                <h2 className="text-xl font-black text-gray-900 tracking-tighter mb-1">BLU TABLE</h2>
+                                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.2em]">Radisson Blu N&apos;Djamena</p>
+                                <div className="mt-3 flex justify-between text-[10px] font-mono text-gray-500">
+                                    <span>{new Date().toLocaleDateString('fr-FR')}</span>
+                                    <span>{new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <h2 className="text-xl font-bold text-radisson-blue mb-2">{t('cart_empty')}</h2>
-                                <p className="text-gray-400 mb-8 text-sm italic">{t('discover_menus')}</p>
-                                <Link
-                                    href="/"
-                                    className="inline-block bg-radisson-blue text-white px-8 py-3 rounded-xl font-bold text-xs tracking-widest hover:bg-radisson-dark transition-all active:scale-95 shadow-md"
-                                >
-                                    {t('back_to_menu').toUpperCase()}
-                                </Link>
                             </div>
-                        ) : (
-                            <div className="space-y-6 animate-fade-in-up">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h2 className="text-xs font-black text-radisson-blue uppercase tracking-[0.2em]">{t('your_selection')}</h2>
-                                    <span className="text-[10px] font-bold text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100">{totalItems} ARTICLES</span>
-                                </div>
 
-                                <div className="bg-white rounded-3xl shadow-soft border border-gray-100 overflow-hidden">
-                                    <div className="divide-y divide-gray-50">
-                                        {items.map((item) => (
-                                            <div key={item.id} className="p-4 md:p-6 flex items-center justify-between gap-4 group hover:bg-gray-50/50 transition-colors">
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-radisson-blue text-sm mb-0.5">{item.name}</h3>
-                                                    <p className="text-radisson-gold font-black text-xs">{item.price.toLocaleString()} <span className="text-[8px] opacity-70">FCFA</span></p>
-                                                </div>
-                                                <div className="flex items-center bg-gray-50 rounded-full p-1 border border-gray-100">
-                                                    <button
-                                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-radisson-blue hover:text-red-500 transition-colors active:scale-90"
-                                                    >
-                                                        <Minus size={14} />
-                                                    </button>
-                                                    <span className="w-8 text-center font-bold text-radisson-blue text-xs" aria-live="polite">{item.quantity}</span>
-                                                    <button
-                                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                        className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-radisson-blue hover:text-green-600 transition-colors active:scale-90"
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
-                                                </div>
+                            {/* LISTE COMPACTE */}
+                            <div className="space-y-3 font-mono text-xs md:text-sm text-gray-800">
+                                {items.map((item) => (
+                                    <div key={item.id} className="flex flex-col">
+                                        <div className="flex justify-between items-baseline w-full">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="font-bold">{item.quantity}x</span>
+                                                <span className="uppercase">{item.name}</span>
                                             </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="bg-radisson-blue p-6 flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{t('total_to_pay')}</span>
-                                        <div className="text-right">
-                                            <span className="text-xl font-black text-white">{totalPrice.toLocaleString()}</span>
-                                            <span className="text-[10px] text-radisson-gold font-bold ml-1 uppercase">FCFA</span>
+                                            <div className="flex-1 border-b border-dotted border-gray-300 mx-2 relative top-[-4px] opacity-30"></div>
+                                            <span className="font-bold">{(item.price * item.quantity).toLocaleString()}</span>
                                         </div>
-                                    </div>
-                                </div>
 
-                                {/* Formulaire de commande */}
-                                <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-                                    <div className="bg-white rounded-3xl p-6 shadow-soft border border-gray-100">
-                                        <div className="space-y-5">
-                                            <div>
-                                                <label htmlFor="table" className="block text-[10px] font-black text-radisson-blue uppercase tracking-widest mb-2">
-                                                    {t('table_room_number')} <span className="text-radisson-gold">*</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="table"
-                                                    required
-                                                    value={tableNumber}
-                                                    onChange={(e) => setTableNumber(e.target.value)}
-                                                    placeholder="Ex: 12 ou Terrasse-1"
-                                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-radisson-blue/20 transition-all text-sm text-radisson-blue font-bold"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label htmlFor="notes" className="block text-[10px] font-black text-radisson-blue uppercase tracking-widest mb-2">
-                                                    {t('instructions')}
-                                                </label>
-                                                <textarea
-                                                    id="notes"
-                                                    rows={2}
-                                                    value={notes}
-                                                    onChange={(e) => setNotes(e.target.value)}
-                                                    placeholder="Allergies, cuisson, etc..."
-                                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-radisson-gold/20 transition-all text-sm text-radisson-blue font-medium"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full bg-radisson-blue text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs shadow-glow hover:bg-radisson-dark transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
-                                    >
-                                        {isSubmitting ? (
-                                            <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                            <>
-                                                {t('checkout')}
-                                                <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                            </>
-                                        )}
-                                    </button>
-                                </form>
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* --- TAB CONTENT: HISTORY --- */}
-                {activeTab === 'history' && (
-                    <div className="animate-fade-in">
-                        <div className="flex justify-end mb-4">
-                            {history.length > 0 && (
-                                <button
-                                    onClick={handleClearHistory}
-                                    className="text-[10px] font-bold text-red-300 uppercase tracking-widest hover:text-red-500 transition-colors flex items-center gap-1"
-                                >
-                                    <Trash2 size={12} />
-                                    Tout effacer
-                                </button>
-                            )}
-                        </div>
-
-                        {history.length === 0 ? (
-                            <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-soft">
-                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Package size={32} className="text-gray-200" />
-                                </div>
-                                <p className="text-gray-400 font-medium italic text-xs md:text-sm">
-                                    Aucune commande dans l&apos;historique.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-6">
-                                {history.map((order) => (
-                                    <div key={order.id} className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden animate-fade-in-up group relative">
-                                        <button
-                                            onClick={() => handleDeleteOrder(order.id)}
-                                            className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-1 z-10"
-                                        >
-                                            <XCircle size={18} />
-                                        </button>
-                                        <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/30 pr-12">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar size={14} className="text-radisson-gold" />
-                                                <span className="text-[10px] font-bold text-radisson-blue uppercase tracking-widest">
-                                                    {formatDate(order.date)}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 bg-green-50 text-green-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border border-green-100">
-                                                <CheckCircle size={10} />
-                                                ENVOYÉE
-                                            </div>
-                                        </div>
-                                        <div className="p-4 space-y-3">
-                                            {order.items.map((item, idx) => (
-                                                <div key={idx} className="flex justify-between items-center">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-black text-radisson-gold">x{item.quantity}</span>
-                                                        <span className="text-radisson-blue font-medium">{item.name}</span>
-                                                    </div>
-                                                    <span className="text-gray-400 text-xs font-bold">{(item.price * item.quantity).toLocaleString()} FCFA</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="p-4 bg-gray-50/50 flex justify-between items-center border-t border-gray-50">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">TABLE</span>
-                                                <span className="text-radisson-blue font-black text-xs">{order.tableNumber}</span>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-sm font-black text-radisson-blue">{order.totalPrice.toLocaleString()} FCFA</span>
-                                            </div>
+                                        {/* OPTION CONTROLS (DISCRET) */}
+                                        <div className="flex items-center gap-3 mt-1 pl-6 opacity-60 hover:opacity-100 transition-opacity">
+                                            <button type="button" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 hover:bg-gray-100 rounded">
+                                                <Minus size={12} />
+                                            </button>
+                                            <span className="text-[10px] font-bold">{item.quantity}</span>
+                                            <button type="button" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 hover:bg-gray-100 rounded">
+                                                <Plus size={12} />
+                                            </button>
+                                            <button type="button" onClick={() => removeFromCart(item.id)} className="ml-2 text-red-400 hover:text-red-600">
+                                                <Trash2 size={12} />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </div>
+
+                            {/* TOTAL */}
+                            <div className="border-t-2 border-dashed border-gray-200 mt-6 pt-4">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-sm font-bold uppercase tracking-widest text-gray-500">Total</span>
+                                    <span className="text-2xl font-black font-mono text-gray-900 tracking-tight">
+                                        {totalPrice.toLocaleString()} <span className="text-xs text-gray-400 font-sans">FCFA</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* INPUT TABLE MINIMALISTE INTERNE AU TICKET */}
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <div className="flex items-end gap-4">
+                                    <label htmlFor="table" className="text-[10px] font-bold uppercase tracking-widest text-gray-400 whitespace-nowrap pb-2">
+                                        Table / Chambre
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="table"
+                                        required
+                                        value={tableNumber}
+                                        onChange={(e) => setTableNumber(e.target.value)}
+                                        placeholder="N°"
+                                        className="w-full border-b border-gray-300 bg-transparent py-1 text-center font-mono font-bold text-gray-900 focus:border-black focus:outline-none transition-colors rounded-none placeholder:text-gray-200"
+                                    />
+                                </div>
+                                <div className="mt-4">
+                                    <input
+                                        type="text"
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder="Instructions (optionnel)..."
+                                        className="w-full text-xs border-b border-gray-200 bg-transparent py-1 text-gray-600 focus:border-black focus:outline-none transition-colors rounded-none italic"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* DECO SERRATED BOTTOM */}
+                            <div className="absolute -bottom-2 left-0 right-0 h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMiA2IiBwcmVzZXJ2ZUFzcGVjdHJhdGlvPSJub25lIiBzdHlsZT0iZmlsbDojZmZmZmZmOyI+PHBhdGggZD0iTTAgNmw2LTYgNiA2SDB6Ii8+PC9zdmc+')] bg-repeat-x opacity-100"></div>
+                        </div>
+
+                        {/* STICKY BOTTOM BUTTON */}
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+                            <div className="max-w-md mx-auto">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-gray-900 text-white h-12 rounded-lg font-bold text-sm uppercase tracking-widest hover:bg-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <span>Valider la commande</span>
+                                            <Send size={14} className="" />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 )}
             </div>
         </main>

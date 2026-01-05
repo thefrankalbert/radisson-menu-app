@@ -2,12 +2,13 @@
 
 import useSWR from 'swr';
 import { Info } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, useSearchParams } from "next/navigation";
 import MenuItemCard from "@/components/MenuItemCard";
 import CategoryNav from "@/components/CategoryNav";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "react-hot-toast";
+import { useEffect } from "react";
 
 export const runtime = 'edge';
 
@@ -104,12 +105,35 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
     const restaurant = data?.restaurant;
     const categories = data?.categories || [];
     const items = data?.items || [];
+    const searchParams = useSearchParams();
+    const section = searchParams.get('section');
+
+    useEffect(() => {
+        if (section && categories.length > 0) {
+            // Find category ID by name (case insensitive)
+            const category = categories.find((c: any) =>
+                c.name.toLowerCase() === section.toLowerCase() ||
+                (c.name_en && c.name_en.toLowerCase() === section.toLowerCase())
+            );
+
+            if (category) {
+                // Short delay to ensure DOM is rendered after loading
+                const timer = setTimeout(() => {
+                    const element = document.getElementById(`cat-${category.id}`);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [section, categories]);
 
     if (error) return notFound();
 
     // --- Skeleton Loading State (Luxe & Fast feel) ---
     if (isLoading && !data) return (
-        <main className="min-h-screen bg-radisson-light pb-24 relative overflow-hidden">
+        <main className="min-h-screen bg-radisson-light pb-12 relative overflow-hidden">
             {/* Skeleton Header */}
             <div className="h-14 w-full bg-white/60 border-b border-gray-100 flex items-center justify-center mb-8">
                 <div className="h-4 w-32 bg-gray-200/40 rounded shimmer" />
@@ -119,15 +143,16 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                 {[1, 2].map((i) => (
                     <div key={i}>
                         <div className="h-8 w-48 bg-gray-200/50 rounded-lg mb-8 shimmer" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 gap-4">
                             {[1, 2, 3, 4].map((j) => (
-                                <div key={j} className="h-32 bg-white rounded-3xl border border-gray-100 p-4 flex gap-4 overflow-hidden relative">
-                                    <div className="flex-1 space-y-4 py-2">
-                                        <div className="h-5 w-3/4 bg-gray-100 rounded-lg shimmer" />
-                                        <div className="h-3 w-1/2 bg-gray-50 rounded-md shimmer" />
-                                        <div className="h-4 w-1/4 bg-gray-100 rounded-md mt-auto shimmer" />
+                                <div key={j} className="h-28 bg-white rounded-2xl border border-gray-100 p-3 flex items-center gap-4 overflow-hidden relative">
+                                    <div className="w-24 h-24 bg-gray-50 rounded-xl flex-shrink-0 shimmer" />
+                                    <div className="flex-1 flex flex-col justify-center space-y-3">
+                                        <div className="h-4 w-3/4 bg-gray-100 rounded shimmer" />
+                                        <div className="h-3 w-full bg-gray-50 rounded shimmer" />
+                                        <div className="h-4 w-1/4 bg-orange-50 rounded shimmer mt-1" />
                                     </div>
-                                    <div className="w-24 h-24 bg-gray-50 rounded-2xl shimmer" />
+                                    <div className="w-10 h-10 rounded-full bg-gray-50 flex-shrink-0 shimmer" />
                                 </div>
                             ))}
                         </div>
@@ -152,46 +177,50 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
     const navCategories = categories.map((c) => ({ id: c.id, name: getTranslatedText(c.name, c.name_en) }));
 
     return (
-        <main className="min-h-screen bg-radisson-light pb-24 pt-32 md:pt-56 animate-fade-in relative">
+        <main className="min-h-screen bg-radisson-light pb-8 pt-16 animate-fade-in relative">
             {/* Category Quick Nav Bar - Sticky Client Component */}
             {navCategories.length > 0 && <CategoryNav categories={navCategories} />}
 
-            <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 pt-0">
+            <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 pt-6">
                 {/* Categories Section */}
                 {categories && categories.length > 0 ? (
-                    categories.map((category) => {
-                        const categoryName = getTranslatedText(category.name, category.name_en);
-                        return (
-                            <section key={category.id} id={`cat-${category.id}`} className="mb-8 md:mb-16 lg:mb-20 scroll-mt-24 md:scroll-mt-32">
-                                <div className="flex items-center gap-3 md:gap-6 mb-4 md:mb-8">
-                                    <h2 className="text-base md:text-2xl lg:text-3xl font-bold text-radisson-blue uppercase tracking-[0.2em] whitespace-nowrap">
-                                        {categoryName}
-                                    </h2>
-                                    <div className="h-[0.5px] md:h-[1px] w-full bg-radisson-gold/30" />
-                                </div>
+                    <div className="space-y-12 mb-12">
+                        {categories.map((category) => {
+                            const categoryName = getTranslatedText(category.name, category.name_en);
+                            return (
+                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-32">
+                                    <div className="flex items-center gap-3 md:gap-6 mb-4">
+                                        <h2 className="text-base md:text-xl font-bold text-[#002C5F] uppercase tracking-[0.2em] whitespace-nowrap">
+                                            {categoryName}
+                                        </h2>
+                                        <div className="h-[1px] w-full bg-radisson-gold/20" />
+                                    </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                    {getItemsForCategory(category.id).length > 0 ? (
-                                        getItemsForCategory(category.id).map((item) => (
-                                            <MenuItemCard
-                                                key={item.id}
-                                                item={{
-                                                    ...item,
-                                                    name: getTranslatedText(item.name, item.name_en),
-                                                    description: getTranslatedText(item.description, item.description_en)
-                                                }}
-                                                restaurantId={restaurant?.id || ""}
-                                            />
-                                        ))
-                                    ) : (
-                                        <div className="col-span-full bg-white rounded-2xl p-10 text-center text-gray-400 italic text-sm shadow-sm border border-gray-100">
-                                            {t('menu_empty')}
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
-                        )
-                    })
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {getItemsForCategory(category.id).length > 0 ? (
+                                            getItemsForCategory(category.id).map((item, index) => (
+                                                <MenuItemCard
+                                                    key={item.id}
+                                                    item={{
+                                                        ...item,
+                                                        name: getTranslatedText(item.name, item.name_en),
+                                                        description: getTranslatedText(item.description, item.description_en)
+                                                    }}
+                                                    restaurantId={restaurant?.id || ""}
+                                                    priority={index < 4}
+                                                    category={categoryName}
+                                                />
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full bg-white rounded-2xl p-10 text-center text-gray-400 italic text-sm shadow-soft border border-gray-100">
+                                                {t('menu_empty')}
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+                            )
+                        })}
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center">
                         <Info className="text-radisson-gold mb-4 md:size-16" size={48} />
@@ -200,6 +229,13 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                     </div>
                 )}
             </div>
+
+            {/* Simple Footer */}
+            <footer className="py-6 border-t border-gray-50 mt-8">
+                <p className="text-center text-[10px] text-gray-400 uppercase tracking-widest font-medium">
+                    Blu Table by Radisson Blu N&apos;Djamena
+                </p>
+            </footer>
         </main>
     );
 }

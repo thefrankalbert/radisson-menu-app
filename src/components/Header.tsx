@@ -1,106 +1,76 @@
 "use client";
 
-import Image from "next/image";
-import { Globe, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { usePathname, useParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { supabase } from "@/lib/supabase";
 
-function HeaderContent({ title, showBackButton, variant: propVariant }: HeaderProps) {
+function HeaderContent({ title }: HeaderProps) {
     const pathname = usePathname();
+    const params = useParams();
     const { language, setLanguage, t } = useLanguage();
+    const [restaurantName, setRestaurantName] = useState<string>("");
 
-    // Auto-detect variant based on route if not provided
-    const variant = propVariant || (pathname === "/" ? "dark" : "light");
-    const isDark = variant === "dark";
+    const isHome = pathname === "/";
+    const isMenuPage = pathname.startsWith("/menu/");
 
-    // Map slugs to official titles
-    const menuTitles: Record<string, string> = {
-        "menu-room-service": "Room Service",
-        "carte-pool-bar": "Pool Bar",
-        "carte-lobby-bar-snacks": "Lobby Bar",
-        "carte-panorama-restaurant": "Menu Panorama",
-        "carte-tapas": "Tapas",
-        "carte-des-boissons": language === "fr" ? "Carte des Boissons" : "Drinks Menu",
-    };
+    // Fetch restaurant name if on menu page
+    useEffect(() => {
+        if (isMenuPage && params?.slug) {
+            const fetchRestaurant = async () => {
+                const { data } = await supabase
+                    .from('restaurants')
+                    .select('name')
+                    .eq('slug', params.slug)
+                    .single();
 
-    // Extract slug from path like /menu/pool-bar
-    const slug = pathname.startsWith('/menu/') ? pathname.split('/').pop() : null;
-    // Calculate Page Title based on slug
-    let dynamicTitle = "";
-    if (pathname === "/cart") {
-        dynamicTitle = t("my_cart").toUpperCase();
-    } else if (pathname === "/order-confirmed") {
-        dynamicTitle = t("confirmed").toUpperCase();
-    } else if (slug) {
-        dynamicTitle = menuTitles[slug] || slug.replace(/carte-|menu-/g, '').replace(/-/g, ' ').toUpperCase();
-    }
+                if (data) {
+                    setRestaurantName(data.name);
+                }
+            };
+            fetchRestaurant();
+        }
+    }, [isMenuPage, params?.slug]);
 
-    // Default titles based on route
-    const displayTitle = title || dynamicTitle || (pathname === "/" ? t("select_menu").toUpperCase() : "ROOM SERVICE");
+    const displayTitle = title || (isMenuPage && restaurantName) || "Blu Table";
 
     return (
-        <header className={`fixed top-0 left-0 right-0 z-50 w-full ${isDark ? "bg-radisson-blue/95 border-none shadow-none text-white" : "bg-white/90 border-b border-gray-100 shadow-soft backdrop-blur-md"} animate-fade-in transition-colors duration-500`}>
+        <header className={`fixed top-0 left-0 right-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm transition-all duration-300`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className={`relative ${isDark ? "py-10 md:py-20 lg:py-24" : "py-6 md:py-10"} flex flex-col items-center justify-center text-center z-10`}>
+                <div className="h-16 md:h-20 flex items-center justify-between">
 
-                    {/* Back Button */}
-                    {(showBackButton || pathname !== "/") && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2">
-                            <Link href="/" aria-label="Retour à l'accueil" className={`flex items-center gap-1.5 md:gap-2 ${isDark ? "bg-white/10 hover:bg-white/20 text-white border-white/20" : "bg-gray-50 hover:bg-gray-100 text-radisson-blue border-gray-200"} px-3 py-1.5 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold transition-all border active:scale-95 backdrop-blur-md shadow-sm`}>
-                                <ArrowLeft size={14} className="md:size-18" aria-hidden="true" />
-                                <span className="hidden sm:inline">{t("back").toUpperCase()}</span>
+                    {/* Left: Spacer (removed Hamburger) or Back */}
+                    <div className="flex-1 flex items-center">
+                        {!isHome && (
+                            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <ArrowLeft size={20} className="text-gray-900" />
                             </Link>
-                        </div>
-                    )}
-
-                    {/* Language Switcher */}
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                        <button
-                            onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
-                            aria-label={language === "fr" ? "Switch to English" : "Passer en Français"}
-                            className={`flex items-center gap-1.5 md:gap-2 ${isDark ? "bg-white/10 hover:bg-white/20 text-white border-white/20" : "bg-gray-50 hover:bg-gray-100 text-radisson-blue border-gray-200"} px-3 py-1.5 md:px-5 md:py-2.5 rounded-full text-[10px] md:text-xs font-bold transition-all border active:scale-95 backdrop-blur-md shadow-sm`}
-                        >
-                            <Globe size={14} className="md:size-18" aria-hidden="true" />
-                            <span>{language.toUpperCase()}</span>
-                        </button>
+                        )}
                     </div>
 
-                    {/* Center Content */}
-                    <div className="flex flex-col items-center">
-                        <div className="relative w-24 md:w-48 lg:w-64 h-10 md:h-16 lg:h-20 mb-4 md:mb-8 transform transition-transform duration-700 hover:scale-105">
-                            <Image
-                                src={isDark ? "/logo-white.svg" : "/logo.svg"}
-                                alt="Radisson Blu Logo"
-                                fill
-                                priority
-                                className="object-contain"
-                            />
-                        </div>
-
-                        <div className={`h-[1px] w-8 md:w-12 lg:w-16 ${isDark ? "bg-radisson-gold/50" : "bg-radisson-gold/50"} mb-4 md:mb-6 opacity-100 shadow-glow`} />
-
-                        <h1 className={`${isDark ? "text-white/95" : "text-radisson-blue"} font-light text-[9px] md:text-sm lg:text-base tracking-[0.4em] md:tracking-[0.5em] uppercase animate-fade-in-up`}>
+                    {/* Center: Title */}
+                    <div className="flex-[2] flex justify-center">
+                        <h1 className="text-gray-900 font-bold text-base md:text-lg tracking-tight">
                             {displayTitle}
                         </h1>
                     </div>
+
+                    {/* Right: Language */}
+                    <div className="flex-1 flex justify-end">
+                        <button
+                            onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
+                            className="p-2 flex items-center gap-1.5 text-xl transition-opacity active:opacity-60"
+                            title={language === "fr" ? "Switch to English" : "Passer en Français"}
+                        >
+                            {language === "fr" ? "🇫🇷" : "🇺🇸"}
+                            <span className="text-[10px] font-bold text-gray-400 hidden sm:inline">{language.toUpperCase()}</span>
+                        </button>
+                    </div>
+
                 </div>
             </div>
-
-            {/* Background Decorative Element for Dark Variant */}
-            {isDark && (
-                <div className="absolute inset-0 opacity-[0.05] pointer-events-none flex items-center justify-center">
-                    <div className="relative w-full h-full max-w-4xl">
-                        <Image
-                            src="/logo-white.svg"
-                            alt=""
-                            fill
-                            className="object-contain scale-150 translate-y-32 blur-[2px]"
-                        />
-                    </div>
-                </div>
-            )}
         </header>
     );
 }
@@ -113,7 +83,7 @@ interface HeaderProps {
 
 export default function Header(props: HeaderProps) {
     return (
-        <Suspense fallback={<div className="h-20 bg-radisson-blue animate-pulse" />}>
+        <Suspense fallback={<div className="h-20 bg-gray-50 animate-pulse" />}>
             <HeaderContent {...props} />
         </Suspense>
     );
