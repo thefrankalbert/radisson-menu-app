@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 
-export const runtime = 'edge';
+
 
 interface HistoryItem {
     id: string;

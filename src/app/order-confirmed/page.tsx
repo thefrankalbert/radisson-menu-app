@@ -9,7 +9,7 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
 
-export const runtime = 'edge';
+
 
 function OrderConfirmedContent() {
     const { lastVisitedMenuUrl } = useCart();

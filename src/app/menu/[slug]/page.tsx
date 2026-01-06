@@ -11,7 +11,7 @@ import { getTranslatedContent } from "@/utils/translation";
 import { toast } from "react-hot-toast";
 import { useEffect } from "react";
 
-export const runtime = 'edge';
+
 
 // --- Types ---
 interface Restaurant {

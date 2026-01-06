@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
-export const runtime = 'edge';
+
 
 interface HistoryItem {
     id: string;

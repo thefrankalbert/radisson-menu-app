@@ -11,7 +11,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import ToastProvider from "@/components/ToastProvider";
 import OfflineIndicator from "@/components/OfflineIndicator";
 
-export const runtime = 'edge';
+
 
 const montserrat = Montserrat({
   subsets: ["latin"],
