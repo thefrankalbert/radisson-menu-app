@@ -177,7 +177,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
     const navCategories = categories.map((c) => ({ id: c.id, name: getTranslatedText(c.name, c.name_en) }));
 
     return (
-        <main className="min-h-screen bg-radisson-light pb-8 pt-16 animate-fade-in relative">
+        <main className="min-h-screen bg-radisson-light pb-24 pt-16 animate-fade-in relative">
             {/* Category Quick Nav Bar - Sticky Client Component */}
             {navCategories.length > 0 && <CategoryNav categories={navCategories} />}
 
@@ -207,7 +207,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                                         description: getTranslatedText(item.description, item.description_en)
                                                     }}
                                                     restaurantId={restaurant?.id || ""}
-                                                    priority={index < 4}
+                                                    priority={index < 4 && categories.indexOf(category) === 0}
                                                     category={categoryName}
                                                 />
                                             ))
@@ -230,12 +230,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                 )}
             </div>
 
-            {/* Simple Footer */}
-            <footer className="py-6 border-t border-gray-50 mt-8">
-                <p className="text-center text-[10px] text-gray-400 uppercase tracking-widest font-medium">
-                    Blu Table by Radisson Blu N&apos;Djamena
-                </p>
-            </footer>
+
         </main>
     );
 }

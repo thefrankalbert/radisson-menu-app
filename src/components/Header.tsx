@@ -43,11 +43,7 @@ function HeaderContent({ title }: HeaderProps) {
 
                     {/* Left: Spacer (removed Hamburger) or Back */}
                     <div className="flex-1 flex items-center">
-                        {!isHome && (
-                            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <ArrowLeft size={20} className="text-gray-900" />
-                            </Link>
-                        )}
+                        {/* Retour supprimé - Cleaner UI */}
                     </div>
 
                     {/* Center: Title */}
@@ -57,16 +53,17 @@ function HeaderContent({ title }: HeaderProps) {
                         </h1>
                     </div>
 
-                    {/* Right: Language */}
-                    <div className="flex-1 flex justify-end">
-                        <button
-                            onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
-                            className="p-2 flex items-center gap-1.5 text-xl transition-opacity active:opacity-60"
-                            title={language === "fr" ? "Switch to English" : "Passer en Français"}
-                        >
-                            {language === "fr" ? "🇫🇷" : "🇺🇸"}
-                            <span className="text-[10px] font-bold text-gray-400 hidden sm:inline">{language.toUpperCase()}</span>
-                        </button>
+                    {/* Right: Language - Display only on Home */}
+                    <div className="flex-1 flex justify-end min-w-[40px]">
+                        {isHome && (
+                            <button
+                                onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
+                                title={language === "fr" ? "Switch to English" : "Passer en Français"}
+                            >
+                                <span className="text-xl filter drop-shadow-sm">{language === "fr" ? "🇫🇷" : "🇺🇸"}</span>
+                            </button>
+                        )}
                     </div>
 
                 </div>

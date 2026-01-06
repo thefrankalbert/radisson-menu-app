@@ -1,16 +1,8 @@
 "use client";
-// Build version: 1.0.5 - Major UI Overhaul: BLU TABLE branding & Fummo Style
 import {
-  Bed,
-  Waves,
-  Armchair,
-  Sun,
-  UtensilsCrossed,
-  Wine,
   ChevronRight,
   Search,
-  ShoppingCart,
-  Filter
+  ShoppingCart
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -19,38 +11,21 @@ import { useEffect, useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import Header from "@/components/Header";
+import { getSafeImageUrl } from "@/lib/imageUtils";
 
 export const runtime = 'edge';
 
-// Map slugs or names to icons for restaurants
-const getIconForRestaurant = (slug: string) => {
-  if (slug.includes('room-service')) return Bed;
-  if (slug.includes('pool-bar')) return Waves;
-  if (slug.includes('lobby-bar')) return Armchair;
-  if (slug.includes('panorama')) return Sun;
-  if (slug.includes('tapas')) return UtensilsCrossed;
-  if (slug.includes('boissons') || slug.includes('drinks')) return Wine;
-  return UtensilsCrossed;
-};
-
-// Map category names to emojis (Fummo Style)
-const getEmojiForCategory = (name: string) => {
-  const n = name.toLowerCase();
-  if (n.includes('pizza')) return "🍕";
-  if (n.includes('burger') || n.includes('sandwich')) return "🍔";
-  if (n.includes('poulet') || n.includes('chicken') || n.includes('aile')) return "🍗";
-  if (n.includes('boisson') || n.includes('drink') || n.includes('cocktail')) return "🍹";
-  if (n.includes('café') || n.includes('coffee') || n.includes('thé')) return "☕";
-  if (n.includes('dessert') || n.includes('sucré') || n.includes('cake')) return "🍰";
-  if (n.includes('glace') || n.includes('ice cream')) return "🍦";
-  if (n.includes('entrée') || n.includes('starter')) return "🥗";
-  if (n.includes('salade') || n.includes('salad')) return "🥗";
-  if (n.includes('plat') || n.includes('main')) return "🍱";
-  if (n.includes('alcool') || n.includes('vin') || n.includes('wine')) return "🍷";
-  if (n.includes('pâte') || n.includes('pasta')) return "🍝";
-  if (n.includes('snack') || n.includes('tapas')) return "🥨";
-  return "🍽️";
-};
+// CURATED CATEGORIES LIST (Clean & Fixed)
+const CURATED_CATEGORIES = [
+  { id: 'starters', fr: "Entrées", en: "Starters", icon: "🥗", dbTerm: "Entrée" },
+  { id: 'burgers', fr: "Burgers", en: "Burgers", icon: "🍔", dbTerm: "Burger" },
+  { id: 'african', fr: "Plats Africains", en: "African Dishes", icon: "🍲", dbTerm: "Chaudron" },
+  { id: 'pizzas', fr: "Pizzas", en: "Pizzas", icon: "🍕", dbTerm: "Pizza" },
+  { id: 'grills', fr: "Grillades", en: "Grills", icon: "🍖", dbTerm: "Grillade" },
+  { id: 'desserts', fr: "Desserts", en: "Desserts", icon: "🍰", dbTerm: "Dessert" },
+  { id: 'drinks', fr: "Boissons", en: "Drinks", icon: "🍹", dbTerm: "Boisson" },
+  { id: 'appetizers', fr: "Apéritifs", en: "Appetizers", icon: "🥜", dbTerm: "Apéritif" },
+];
 
 // Map slugs to descriptions
 const getDescriptionForRestaurant = (slug: string, lang: string) => {
@@ -68,22 +43,9 @@ const getDescriptionForRestaurant = (slug: string, lang: string) => {
   return lang === 'fr' ? "Restaurant & Bar" : "Restaurant & Bar";
 };
 
-// Map slugs to specific Unsplash keywords for context
-const getImageKeywordsForRestaurant = (slug: string) => {
-  if (slug.includes('pool')) return "pool,cocktail,resort,summer";
-  if (slug.includes('lobby')) return "luxury lobby,hotel lounge,coffee";
-  if (slug.includes('panorama') || slug.includes('roof')) return "rooftop dining,fine dining,view,sunset";
-  if (slug.includes('room-service')) return "breakfast in bed,room service tray,hotel room";
-  if (slug.includes('tapas')) return "tapas,finger food,sharing plate";
-  if (slug.includes('drinks') || slug.includes('bar')) return "cocktail,bar,drink";
-  return "restaurant,fine dining,plates";
-};
-
 export default function Home() {
   const [restaurants, setRestaurants] = useState<any[]>([]);
-  const [allCategories, setAllCategories] = useState<any[]>([]);
-  const [menuItems, setMenuItems] = useState<any[]>([]); // New state for menu items
-  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { t, language } = useLanguage();
   const { items, totalItems, totalPrice } = useCart();
@@ -94,24 +56,9 @@ export default function Home() {
       const { data: restoData } = await supabase.from('restaurants').select('*');
       if (restoData) setRestaurants(restoData);
 
-      // Fetch categories
-      const { data: catData } = await supabase
-        .from('categories')
-        .select('name, name_en')
-        .order('name', { ascending: true });
-
-      if (catData) {
-        // Unique categories by name
-        const uniqueCats = Array.from(new Set(catData.map((c: any) => c.name))).map(name => {
-          return catData.find((c: any) => c.name === name);
-        });
-        setAllCategories(uniqueCats);
-      }
-
-      // Fetch all menu items for Deep Search
+      // Deep Search Data
       const { data: itemsData } = await supabase
         .from('menu_items')
-        // We need to join categories -> restaurants to build the link
         .select(`
           id, 
           name, 
@@ -133,37 +80,39 @@ export default function Home() {
     fetchData();
   }, []);
 
-  const handleCategoryClick = async (categoryName: string) => {
+  const handleCategoryClick = async (dbTerm: string) => {
     try {
+      // Flexible search for category name containing the term
       const { data } = await supabase
         .from('categories')
-        .select('restaurant_id, restaurants(slug)')
-        .eq('name', categoryName)
+        .select('name, restaurant_id, restaurants(slug)')
+        .ilike('name', `%${dbTerm}%`)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (data && (data as any).restaurants?.slug) {
         const slug = (data as any).restaurants.slug;
-        router.push(`/menu/${slug}?section=${encodeURIComponent(categoryName)}`);
+        const realName = data.name; // Use the real DB name for the section param
+        router.push(`/menu/${slug}?section=${encodeURIComponent(realName)}`);
+      } else {
+        // Fallback: Just trigger a search or toast? 
+        // For now, let's just log or maybe set search query if no direct category found
+        console.log("No category found for", dbTerm);
+        setSearchQuery(dbTerm); // Fallback to search
       }
     } catch (err) {
       console.error("Error redirecting to category:", err);
     }
   };
 
-  const visibleCategories = showAllCategories ? allCategories : allCategories.slice(0, 8);
-
-  // Filter restaurants/menus based on search
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter(r => {
       const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.slug.toLowerCase().includes(searchQuery.toLowerCase());
-
       return matchesSearch;
     });
   }, [restaurants, searchQuery]);
 
-  // Deep Search Results
   const deepSearchResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
 
@@ -172,11 +121,11 @@ export default function Home() {
       const itemName = (item.name || "").toLowerCase();
       const itemNameEn = (item.name_en || "").toLowerCase();
       return itemName.includes(lowerQuery) || itemNameEn.includes(lowerQuery);
-    }).slice(0, 5); // Limit resultCount
+    }).slice(0, 5);
   }, [menuItems, searchQuery]);
 
   return (
-    <div className="flex-1 w-full bg-radisson-light pt-20 md:pt-24 lg:pt-28 h-auto">
+    <div className="flex-1 w-full bg-radisson-light pt-20 md:pt-24 lg:pt-28 h-auto pb-0">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -194,9 +143,7 @@ export default function Home() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            {/* Filter button removed for cleaner UI */}
 
-            {/* DEEP SEARCH RESULTS DROPDOWN */}
             {deepSearchResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden z-50 animate-fade-in-up">
                 <div className="p-2">
@@ -231,7 +178,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 2. WIDGET "COMMANDES EN COURS" (Conditional) */}
+        {/* 2. WIDGET COMMANDES EN COURS */}
         {items.length > 0 && (
           <div className="mb-8 animate-fade-in-up">
             <Link href="/cart">
@@ -254,49 +201,34 @@ export default function Home() {
           </div>
         )}
 
-        {/* 3. SECTION "SEARCH BY CATEGORY" */}
+        {/* 3. SECTION CATEGORIES - CURATED LIST */}
         <div className="mb-10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest">
               {language === 'fr' ? "Recherche par Catégorie" : "Search by Category"}
             </h2>
-            <button
-              onClick={() => setShowAllCategories(!showAllCategories)}
-              className="text-xs font-bold text-orange-500 hover:underline transition-all"
-            >
-              {language === 'fr'
-                ? (showAllCategories ? "Voir moins" : "Voir tout")
-                : (showAllCategories ? "Show less" : "View All")}
-            </button>
+            {/* View All button removed - Fixed list */}
           </div>
 
           <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
-            {visibleCategories.length > 0 ? visibleCategories.map((cat: any, idx: number) => {
-              const emoji = getEmojiForCategory(cat.name);
-              return (
-                <div
-                  key={idx}
-                  className="flex flex-col items-center justify-center p-3 bg-[#F8F9FA] rounded-[24px] aspect-square shadow-soft border border-gray-100 transition-all cursor-pointer group hover:bg-white hover:scale-[1.02] duration-300"
-                  onClick={() => handleCategoryClick(cat.name)}
-                >
-                  <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center mb-1 transition-transform group-hover:scale-110">
-                    <span className="text-xl md:text-2xl filter drop-shadow-sm">{emoji}</span>
-                  </div>
-                  <span className="text-[11px] font-medium text-gray-600 text-center line-clamp-1 leading-tight mt-1 group-hover:text-radisson-blue">
-                    {language === 'en' && cat.name_en ? cat.name_en : cat.name}
-                  </span>
+            {CURATED_CATEGORIES.map((cat) => (
+              <div
+                key={cat.id}
+                className="flex flex-col items-center justify-center p-3 bg-white rounded-[20px] aspect-square shadow-sm border border-gray-100 transition-all cursor-pointer group hover:bg-gray-50 duration-300"
+                onClick={() => handleCategoryClick(cat.dbTerm)}
+              >
+                <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center mb-1 transition-transform group-hover:scale-110">
+                  <span className="text-xl md:text-2xl filter drop-shadow-sm">{cat.icon}</span>
                 </div>
-              );
-            }) : [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="flex flex-col items-center animate-pulse">
-                <div className="w-full aspect-square bg-gray-50 rounded-2xl mb-2" />
-                <div className="h-2 w-10 bg-gray-50 rounded" />
+                <span className="text-[11px] font-medium text-gray-600 text-center line-clamp-1 leading-tight mt-1 group-hover:text-radisson-blue">
+                  {language === 'en' ? cat.en : cat.fr}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 4. REFONTE DES CARTES MENUS */}
+        {/* 4. CARTES RESTAURANTS */}
         <div className="mb-6">
           <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">
             {language === 'fr' ? "Nos Cartes & Restaurants" : "Our Menus & Restaurants"}
@@ -307,17 +239,15 @@ export default function Home() {
               const description = getDescriptionForRestaurant(restaurant.slug, language);
               const href = `/menu/${restaurant.slug}`;
 
-              // Dynamically fetch images from Unsplash based on keywords
-              const keywords = getImageKeywordsForRestaurant(restaurant.slug);
-              // Use Unsplash Source for context-aware images
-              const bgImage = `https://source.unsplash.com/800x600/?${keywords}`;
+              // Use reliable images
+              const bgImage = getSafeImageUrl(restaurant.slug);
 
               return (
                 <Link
                   key={restaurant.id}
                   href={href}
                   prefetch={true}
-                  className="group bg-white rounded-[24px] shadow-soft border border-gray-100 transition-all duration-500 overflow-hidden flex flex-col active:scale-[0.98] animate-fade-in-up hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)]"
+                  className="group bg-white rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 overflow-hidden flex flex-col active:scale-[0.98] animate-fade-in-up hover:border-gray-200"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Image Section */}
@@ -326,12 +256,11 @@ export default function Home() {
                       src={bgImage}
                       alt={restaurant.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      loading="lazy"
+                      loading="eager"
                     />
-                    {/* No gradient overlay - Pure image */}
                   </div>
 
-                  {/* Content Section (Compact & Clean) */}
+                  {/* Content Section */}
                   <div className="p-4 flex flex-col items-start relative flex-1">
                     <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-[#002C5F] transition-colors line-clamp-1">
                       {restaurant.name}
@@ -342,7 +271,7 @@ export default function Home() {
                     </p>
 
                     <div className="mt-auto w-full flex items-center justify-end">
-                      <div className="w-8 h-8 rounded-full bg-[#F8F9FA] flex items-center justify-center group-hover:bg-[#002C5F] transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-[#002C5F] transition-colors">
                         <ChevronRight size={16} className="text-gray-400 group-hover:text-white" />
                       </div>
                     </div>
@@ -360,14 +289,5 @@ export default function Home() {
         </div>
       </footer>
     </div>
-  );
-}
-
-function Plus({ size }: { size?: number }) {
-  return (
-    <svg width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 5V19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5 12H19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

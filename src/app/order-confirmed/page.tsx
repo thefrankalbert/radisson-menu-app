@@ -76,28 +76,47 @@ function OrderConfirmedContent() {
                 {t('success_msg')}
             </p>
 
-            {/* Order Receipt / Summary */}
+            {/* Order Receipt / Summary - TICKET STYLE */}
             {orderId && !loading && orderItems.length > 0 && (
-                <div className="w-full max-w-sm bg-white rounded-2xl shadow-soft border border-gray-50 p-6 mb-8 text-left relative z-10 animate-fade-in-up">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-50 pb-2">
-                        {t('order_summary')}
+                <div
+                    className="w-full max-w-sm shadow-sm drop-shadow-sm p-6 mb-8 text-left relative z-10 animate-fade-in-up mx-auto"
+                    style={{
+                        background: `
+                            linear-gradient(to bottom, white 0%, white calc(100% - 10px), transparent calc(100% - 10px)),
+                            radial-gradient(circle at 10px bottom, transparent 10px, white 10.5px)
+                        `,
+                        backgroundSize: '100% 100%, 20px 20px',
+                        backgroundPosition: '0 0, bottom left',
+                        backgroundRepeat: 'no-repeat, repeat-x',
+                        paddingBottom: '30px'
+                    }}
+                >
+                    <div className="text-center border-b-2 border-dashed border-gray-200 pb-4 mb-4">
+                        <h2 className="text-xl font-black text-gray-900 tracking-tighter mb-1">BLU TABLE</h2>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            {t('order_summary')}
+                        </div>
                     </div>
-                    <div className="space-y-3 mb-4">
+
+                    <div className="space-y-3 mb-6 font-mono text-sm text-gray-800">
                         {orderItems.map((item) => (
-                            <div key={item.id} className="flex justify-between text-sm">
-                                <span className="text-radisson-blue font-bold">
-                                    {item.quantity}x {item.menu_item?.name}
-                                </span>
-                                <span className="text-gray-500">
-                                    {(item.price_at_order * item.quantity).toLocaleString()} <span className="text-[10px]">FCFA</span>
-                                </span>
+                            <div key={item.id} className="flex flex-col">
+                                <div className="flex justify-between items-baseline w-full">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="font-bold">{item.quantity}x</span>
+                                        <span className="uppercase text-xs md:text-sm">{item.menu_item?.name}</span>
+                                    </div>
+                                    <div className="flex-1 border-b border-dotted border-gray-300 mx-2 relative top-[-4px] opacity-30"></div>
+                                    <span className="font-bold">{(item.price_at_order * item.quantity).toLocaleString()}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <div className="border-t border-gray-50 pt-2 flex justify-between items-center">
-                        <span className="font-bold text-radisson-blue uppercase text-xs">{t('total_to_pay')}</span>
-                        <span className="font-black text-radisson-gold text-lg">
-                            {totalPrice.toLocaleString()} <span className="text-xs text-radisson-blue">FCFA</span>
+
+                    <div className="border-t-2 border-dashed border-gray-200 pt-4 flex justify-between items-end">
+                        <span className="font-bold text-gray-400 uppercase text-xs tracking-widest">{t('total_to_pay')}</span>
+                        <span className="font-black text-gray-900 text-xl font-mono">
+                            {totalPrice.toLocaleString()} <span className="text-[10px] text-gray-400 font-sans">FCFA</span>
                         </span>
                     </div>
                 </div>
@@ -114,14 +133,7 @@ function OrderConfirmedContent() {
                     {t('complete_order')}
                 </Link>
 
-                <Link
-                    href="/"
-                    aria-label="Retourner à l'accueil"
-                    className="bg-white text-gray-400 py-3 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-gray-50 hover:text-radisson-blue transition-all active:scale-95 border border-gray-100 text-xs tracking-widest uppercase"
-                >
-                    <Home size={16} aria-hidden="true" />
-                    {t('home')}
-                </Link>
+
             </div>
         </main>
     );

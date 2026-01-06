@@ -2,7 +2,7 @@ import { Plus, Minus, Leaf, Flame } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useState } from "react";
-import { getSmartImage } from "@/lib/imageUtils";
+import { getSafeImageUrl } from "@/lib/imageUtils";
 
 interface MenuItemProps {
     item: {
@@ -36,13 +36,11 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
         setTimeout(() => setIsAnimating(false), 300);
     };
 
-    // Use Smart Image Matcher if no image_url provided
-    const displayImage = item.image_url && item.image_url.startsWith('http')
-        ? item.image_url
-        : getSmartImage(item.name, category, item.description);
+    // FORCE SAFE IMAGES as requested - ignore potentially broken DB urls
+    const displayImage = getSafeImageUrl(item.name + " " + (category || ""));
 
     return (
-        <div className="group bg-white rounded-2xl p-3 shadow-soft border border-gray-100 flex items-center gap-4 hover:shadow-soft transition-all duration-300 h-28 w-full overflow-hidden relative">
+        <div className="group bg-white rounded-2xl p-3 shadow-sm border border-gray-200 flex items-center gap-4 hover:shadow-md transition-all duration-300 h-28 w-full overflow-hidden relative">
             {/* 1. IMAGE (Left) */}
             <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50">
                 <Image
@@ -52,6 +50,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
                     priority={priority}
                     loading={priority ? undefined : "lazy"}
+                    unoptimized={true}
                 />
             </div>
 

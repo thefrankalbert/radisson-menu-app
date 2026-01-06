@@ -119,12 +119,23 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-    const [language, setLanguageState] = useState<Language>("fr");
+    const [language, setLanguageState] = useState<Language>("en");
 
     useEffect(() => {
+        // 1. Check LocalStorage
         const savedLang = localStorage.getItem("radisson_lang") as Language;
         if (savedLang && (savedLang === "fr" || savedLang === "en")) {
             setLanguageState(savedLang);
+        } else {
+            // 2. Check Browser Language
+            if (typeof navigator !== 'undefined' && navigator.language) {
+                const browserLang = navigator.language.toLowerCase();
+                if (browserLang.startsWith('fr')) {
+                    setLanguageState('fr');
+                } else {
+                    setLanguageState('en');
+                }
+            }
         }
     }, []);
 

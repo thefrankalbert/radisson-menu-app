@@ -28,9 +28,9 @@ export default function CartPage() {
     const [tableNumber, setTableNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Load Table Number only
     useEffect(() => {
-        const savedTable = localStorage.getItem('table_number');
+        // Try to load saved table number
+        const savedTable = localStorage.getItem('saved_table') || localStorage.getItem('table_number');
         if (savedTable) setTableNumber(savedTable);
     }, []);
 
@@ -103,6 +103,8 @@ export default function CartPage() {
             const updatedHistory = [newOrder, ...currentHist];
             localStorage.setItem('order_history', JSON.stringify(updatedHistory));
             localStorage.setItem('last_order_time', now.toString());
+            // Save Table Number for future convenience
+            localStorage.setItem('saved_table', tableNumber);
 
             clearCart();
             toast.success(t('order_sent_success'));
@@ -116,10 +118,11 @@ export default function CartPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#F5F5F5] pb-32 animate-fade-in pt-20">
+        <main className="min-h-screen bg-[#F5F5F5] pb-24 animate-fade-in pt-20">
             <div className="max-w-md mx-auto px-4">
 
-                <h1 className="text-xl font-bold text-gray-800 mb-6 text-center uppercase tracking-widest">
+                {/* TITRE REDUIT */}
+                <h1 className="text-lg font-bold text-gray-800 mb-6 text-center uppercase tracking-widest">
                     {t('my_cart')}
                 </h1>
 
@@ -127,17 +130,26 @@ export default function CartPage() {
                     <div className="bg-white rounded-sm p-12 text-center shadow-sm border border-gray-200">
                         <ShoppingBag size={32} className="text-gray-300 mx-auto mb-4" />
                         <h2 className="text-lg font-bold text-gray-700 mb-2">{t('cart_empty')}</h2>
-                        <Link
-                            href="/"
-                            className="text-sm font-bold text-blue-600 hover:underline uppercase tracking-wider"
-                        >
-                            {t('back_to_menu')}
-                        </Link>
+                        {/* BOUTON RETOUR SUPPRIME */}
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit}>
-                        {/* TICKET DE CAISSE REALISTE */}
-                        <div className="bg-white shadow-sm border border-gray-200 p-6 rounded-sm relative mx-auto">
+                    <form onSubmit={handleSubmit} className="pb-10">
+                        {/* TICKET DE CAISSE REALISTE + ZIGZAG CSS */}
+                        {/* On combine un background blanc pour le haut et le radial gradient pour le bas */}
+                        <div
+                            className="shadow-sm drop-shadow-sm p-6 relative mx-auto mb-0"
+                            style={{
+                                background: `
+                                    linear-gradient(to bottom, white 0%, white calc(100% - 10px), transparent calc(100% - 10px)),
+                                    radial-gradient(circle at 10px bottom, transparent 10px, white 10.5px)
+                                `,
+                                backgroundSize: '100% 100%, 20px 20px',
+                                backgroundPosition: '0 0, bottom left',
+                                backgroundRepeat: 'no-repeat, repeat-x',
+                                paddingBottom: '30px',
+                                // filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' // Optionnel pour l'ombre réaliste qui suit la découpe
+                            }}
+                        >
 
                             {/* HEADER TICKET */}
                             <div className="text-center border-b-2 border-dashed border-gray-200 pb-4 mb-4">
@@ -215,29 +227,25 @@ export default function CartPage() {
                                     />
                                 </div>
                             </div>
-
-                            {/* DECO SERRATED BOTTOM */}
-                            <div className="absolute -bottom-2 left-0 right-0 h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMiA2IiBwcmVzZXJ2ZUFzcGVjdHJhdGlvPSJub25lIiBzdHlsZT0iZmlsbDojZmZmZmZmOyI+PHBhdGggZD0iTTAgNmw2LTYgNiA2SDB6Ii8+PC9zdmc+')] bg-repeat-x opacity-100"></div>
                         </div>
 
-                        {/* STICKY BOTTOM BUTTON */}
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
-                            <div className="max-w-md mx-auto">
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full bg-gray-900 text-white h-12 rounded-lg font-bold text-sm uppercase tracking-widest hover:bg-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isSubmitting ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <>
-                                            <span>Valider la commande</span>
-                                            <Send size={14} className="" />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                        {/* BOUTON VALIDER - DANS LE FLUX NORMAL (mt-6) */}
+                        <div className="mt-6">
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full bg-[#002C5F] text-white h-14 rounded-xl shadow-lg font-black text-sm uppercase tracking-widest hover:bg-[#003B7A] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 active:scale-[0.98]"
+                            >
+                                {isSubmitting ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <CheckCircle size={18} className="text-[#C8A882]" />
+                                        <span>Valider la commande</span>
+                                        <Send size={16} className="ml-1" />
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </form>
                 )}

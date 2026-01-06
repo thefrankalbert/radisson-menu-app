@@ -1,7 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
-import { Clock, CheckCircle, Calendar, Package, XCircle, Trash2, Home, Utensils } from "lucide-react";
+import { CheckCircle, Calendar, Package, XCircle, Trash2, Home, Utensils } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -33,11 +33,11 @@ export default function OrdersPage() {
     }, []);
 
     const handleClearHistory = () => {
-        if (window.confirm(t('confirm_clear_history') || "Effacer tout l'historique ?")) {
-            localStorage.removeItem('order_history');
-            setHistory([]);
-            toast.success("Historique effacé");
-        }
+        if (!window.confirm(t('confirm_clear_history') || "Voulez-vous vraiment effacer tout l'historique ?")) return;
+
+        localStorage.removeItem('order_history');
+        // Force reload as requested to ensure absolute UI refresh
+        window.location.reload();
     };
 
     const handleDeleteOrder = (id: string) => {
@@ -58,10 +58,10 @@ export default function OrdersPage() {
     };
 
     return (
-        <main className="min-h-screen bg-radisson-light pb-32 animate-fade-in pt-20">
+        <main className="min-h-screen bg-radisson-light pb-24 animate-fade-in pt-20">
             <div className="max-w-md mx-auto px-6">
 
-                <h1 className="text-2xl font-black text-[#002C5F] mb-8 text-center uppercase tracking-tight">
+                <h1 className="text-lg font-bold text-gray-800 my-6 text-center uppercase tracking-widest">
                     {t('my_orders') || "Mes Commandes"}
                 </h1>
 
@@ -99,59 +99,71 @@ export default function OrdersPage() {
                         {history.map((order, index) => (
                             <div
                                 key={order.id}
-                                className="bg-white rounded-[24px] shadow-soft border border-gray-100 overflow-hidden animate-fade-in-up group relative pb-4"
-                                style={{ animationDelay: `${index * 100}ms` }}
+                                className="shadow-sm drop-shadow-sm p-6 relative animate-fade-in-up group pr-10"
+                                style={{
+                                    animationDelay: `${index * 100}ms`,
+                                    background: `
+                                        linear-gradient(to bottom, white 0%, white calc(100% - 10px), transparent calc(100% - 10px)),
+                                        radial-gradient(circle at 10px bottom, transparent 10px, white 10.5px)
+                                    `,
+                                    backgroundSize: '100% 100%, 20px 20px',
+                                    backgroundPosition: '0 0, bottom left',
+                                    backgroundRepeat: 'no-repeat, repeat-x',
+                                    paddingBottom: '30px',
+                                    marginBottom: '24px'
+                                }}
                             >
                                 <button
                                     onClick={() => handleDeleteOrder(order.id)}
-                                    className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-1 z-10"
+                                    className="absolute top-2 right-2 text-red-300 hover:text-red-500 transition-colors p-2 z-20"
+                                    title="Supprimer"
                                 >
-                                    <XCircle size={18} />
+                                    <XCircle size={20} />
                                 </button>
-                                <div className="p-4 border-b border-dashed border-gray-200 flex justify-between items-center bg-gray-50/50 pr-12">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar size={14} className="text-radisson-gold" />
-                                        <span className="text-[10px] font-bold text-[#002C5F] uppercase tracking-widest font-mono">
-                                            {formatDate(order.date)}
-                                        </span>
+
+                                {/* Header Ticket */}
+                                <div className="border-b-2 border-dashed border-gray-200 pb-4 mb-4 flex justify-between items-start">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Calendar size={12} className="text-gray-400" />
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">
+                                                {formatDate(order.date)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-100 rounded text-xs font-mono font-bold text-gray-800 w-fit">
+                                            <span className="text-[8px] uppercase tracking-widest text-gray-400">TABLE</span>
+                                            {order.tableNumber}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-1 bg-green-50 text-green-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border border-green-100">
-                                        <CheckCircle size={10} />
-                                        ENVOYÉE
+                                    <div className="flex items-center gap-1 text-green-600 text-[10px] font-black uppercase tracking-widest">
+                                        <CheckCircle size={12} />
+                                        <span>Reçu</span>
                                     </div>
                                 </div>
-                                <div className="p-4 space-y-3">
+
+                                {/* Items */}
+                                <div className="space-y-2 mb-6 font-mono text-xs md:text-sm text-gray-800">
                                     {order.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between items-center text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-mono font-black text-gray-400 text-xs">x{item.quantity}</span>
-                                                <span className="text-[#002C5F] font-bold leading-tight">{item.name}</span>
+                                        <div key={idx} className="flex justify-between items-baseline w-full">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="font-bold">{item.quantity}x</span>
+                                                <span className="uppercase text-[11px] md:text-xs leading-tight">{item.name}</span>
                                             </div>
-                                            <span className="text-[#002C5F] font-mono font-bold">{(item.price * item.quantity).toLocaleString()}</span>
+                                            <div className="flex-1 border-b border-dotted border-gray-300 mx-2 relative top-[-4px] opacity-30"></div>
+                                            <span className="font-bold">{(item.price * item.quantity).toLocaleString()}</span>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mx-4 pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-lg">
-                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">TABLE</span>
-                                        <span className="text-[#002C5F] font-black text-xs font-mono">{order.tableNumber}</span>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-lg font-black text-[#002C5F] font-mono">{order.totalPrice.toLocaleString()} <span className="text-[10px] text-radisson-gold">FCFA</span></span>
-                                    </div>
+
+                                {/* Total */}
+                                <div className="border-t-2 border-dashed border-gray-200 pt-3 flex justify-between items-end">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</span>
+                                    <span className="text-lg font-black text-gray-900 font-mono">
+                                        {order.totalPrice.toLocaleString()} <span className="text-[9px] text-gray-400 font-sans">FCFA</span>
+                                    </span>
                                 </div>
                             </div>
                         ))}
-
-                        <div className="text-center pt-8">
-                            <Link
-                                href="/"
-                                className="inline-flex items-center gap-2 text-gray-400 hover:text-[#002C5F] transition-colors text-xs font-bold uppercase tracking-widest"
-                            >
-                                <Home size={14} />
-                                Retour à l&apos;accueil
-                            </Link>
-                        </div>
                     </div>
                 )}
             </div>
