@@ -32,12 +32,23 @@ export default function OrdersPage() {
         }
     }, []);
 
-    const handleClearHistory = () => {
-        if (!window.confirm(t('confirm_clear_history') || "Voulez-vous vraiment effacer tout l'historique ?")) return;
+    const clearHistory = (e: React.MouseEvent) => {
+        // 1. Bloque tout rechargement de page parasite
+        e.preventDefault();
+        e.stopPropagation();
 
-        localStorage.removeItem('order_history');
-        // Force reload as requested to ensure absolute UI refresh
-        window.location.reload();
+        // 2. Confirmation native (Bloquante)
+        if (window.confirm("Êtes-vous sûr de vouloir effacer tout l'historique ?")) {
+
+            // 3. Nettoyage
+            localStorage.removeItem('order_history');
+
+            // 4. Mise à jour de l'état
+            setHistory([]);
+
+            // 5. Petit feedback visuel (Optionnel)
+            alert("Historique effacé !");
+        }
     };
 
     const handleDeleteOrder = (id: string) => {
@@ -68,7 +79,8 @@ export default function OrdersPage() {
                 <div className="flex justify-end mb-4">
                     {history.length > 0 && (
                         <button
-                            onClick={handleClearHistory}
+                            type="button"
+                            onClick={(e) => clearHistory(e)}
                             className="text-[10px] font-bold text-red-300 uppercase tracking-widest hover:text-red-500 transition-colors flex items-center gap-1"
                         >
                             <Trash2 size={12} />

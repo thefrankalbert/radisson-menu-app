@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import Header from "@/components/Header";
 import { getSafeImageUrl } from "@/lib/imageUtils";
+import { getTranslatedContent } from "@/utils/translation";
 
 export const runtime = 'edge';
 
@@ -162,7 +163,7 @@ export default function Home() {
                       >
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-radisson-blue group-hover:text-orange-500 transition-colors">
-                            {language === 'en' && item.name_en ? item.name_en : item.name}
+                            {getTranslatedContent(language, item.name, item.name_en)}
                           </span>
                           <span className="text-[10px] text-gray-400 font-medium">
                             {restoName}
@@ -263,7 +264,7 @@ export default function Home() {
                   {/* Content Section */}
                   <div className="p-4 flex flex-col items-start relative flex-1">
                     <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-[#002C5F] transition-colors line-clamp-1">
-                      {restaurant.name}
+                      {getTranslatedContent(language, restaurant.name, restaurant.name_en)}
                     </h3>
 
                     <p className="text-gray-500 text-[11px] leading-relaxed font-medium line-clamp-1 mb-3">

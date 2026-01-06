@@ -7,6 +7,7 @@ import MenuItemCard from "@/components/MenuItemCard";
 import CategoryNav from "@/components/CategoryNav";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/context/LanguageContext";
+import { getTranslatedContent } from "@/utils/translation";
 import { toast } from "react-hot-toast";
 import { useEffect } from "react";
 
@@ -166,15 +167,8 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
         return items.filter((item) => item.category_id === categoryId) || [];
     };
 
-    // Robust Translation Helper
-    const getTranslatedText = (frText: string, enText?: string | null) => {
-        if (language === 'en' && enText && enText.trim() !== '') {
-            return enText;
-        }
-        return frText || "";
-    };
 
-    const navCategories = categories.map((c) => ({ id: c.id, name: getTranslatedText(c.name, c.name_en) }));
+    const navCategories = categories.map((c) => ({ id: c.id, name: getTranslatedContent(language, c.name, c.name_en) }));
 
     return (
         <main className="min-h-screen bg-radisson-light pb-24 pt-16 animate-fade-in relative">
@@ -186,7 +180,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                 {categories && categories.length > 0 ? (
                     <div className="space-y-12 mb-12">
                         {categories.map((category) => {
-                            const categoryName = getTranslatedText(category.name, category.name_en);
+                            const categoryName = getTranslatedContent(language, category.name, category.name_en);
                             return (
                                 <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-32">
                                     <div className="flex items-center gap-3 md:gap-6 mb-4">
@@ -203,8 +197,8 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                                     key={item.id}
                                                     item={{
                                                         ...item,
-                                                        name: getTranslatedText(item.name, item.name_en),
-                                                        description: getTranslatedText(item.description, item.description_en)
+                                                        name: getTranslatedContent(language, item.name, item.name_en),
+                                                        description: getTranslatedContent(language, item.description, item.description_en)
                                                     }}
                                                     restaurantId={restaurant?.id || ""}
                                                     priority={index < 4 && categories.indexOf(category) === 0}
