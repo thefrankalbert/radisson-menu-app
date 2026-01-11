@@ -107,6 +107,26 @@ const translations: Translations = {
     come_back_soon: {
         fr: "Revenez très bientôt pour découvrir nos sélections.",
         en: "Check back soon to discover our selections."
+    },
+    order_sent_success: {
+        fr: "✅ Votre commande a été envoyée ! Elle sera préparée sous peu.",
+        en: "✅ Your order has been sent! It will be prepared shortly."
+    },
+    table_required: {
+        fr: "Veuillez indiquer votre numéro de table ou de chambre.",
+        en: "Please provide your table or room number."
+    },
+    error_sending_order: {
+        fr: "Une erreur est survenue lors de l'envoi de votre commande. Veuillez réessayer.",
+        en: "An error occurred while sending your order. Please try again."
+    },
+    item: {
+        fr: "article",
+        en: "item"
+    },
+    items: {
+        fr: "articles",
+        en: "items"
     }
 };
 

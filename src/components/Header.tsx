@@ -48,7 +48,7 @@ function HeaderContent({ title }: HeaderProps) {
 
                     {/* Center: Title */}
                     <div className="flex-[2] flex justify-center">
-                        <h1 className="text-gray-900 font-bold text-base md:text-lg tracking-tight">
+                        <h1 className="text-gray-900 font-bold text-base md:text-lg tracking-tight text-center">
                             {displayTitle}
                         </h1>
                     </div>

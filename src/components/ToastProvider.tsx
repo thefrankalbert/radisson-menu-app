@@ -26,7 +26,7 @@ export default function ToastProvider() {
 
                 // Styles pour les succès
                 success: {
-                    duration: 3000,
+                    duration: 6000,
                     style: {
                         background: '#10b981', // Vert élégant
                         color: '#fff',

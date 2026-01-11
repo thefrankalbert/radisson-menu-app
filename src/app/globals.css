@@ -39,6 +39,15 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Shimmer Animation for Sketelon Screens */
   .shimmer {
     background: linear-gradient(90deg,

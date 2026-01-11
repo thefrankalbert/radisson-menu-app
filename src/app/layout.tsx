@@ -10,6 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import InstallPrompt from "@/components/InstallPrompt";
 import ToastProvider from "@/components/ToastProvider";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import CartConfirmModal from "@/components/CartConfirmModal";
 
 
 
@@ -64,6 +65,7 @@ export default function RootLayout({
             <InstallPrompt />
             <OfflineIndicator />
             <ToastProvider />
+            <CartConfirmModal />
           </CartProvider>
         </LanguageProvider>
       </body>

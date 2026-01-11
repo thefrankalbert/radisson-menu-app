@@ -15,7 +15,7 @@ type CartItem = {
 
 type CartContextType = {
     items: CartItem[];
-    addToCart: (item: CartItem, restaurantId: string) => void;
+    addToCart: (item: CartItem, restaurantId: string, skipConfirm?: boolean) => void;
     removeFromCart: (id: string) => void;
     updateQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
@@ -26,6 +26,9 @@ type CartContextType = {
     restaurantId: string | null;
     lastVisitedMenuUrl: string | null;
     setLastVisitedMenuUrl: (url: string) => void;
+    pendingAddToCart: { item: CartItem; restaurantId: string } | null;
+    confirmPendingAddToCart: () => void;
+    cancelPendingAddToCart: () => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -34,6 +37,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const [items, setItems] = useState<CartItem[]>([]);
     const [currentRestaurantId, setCurrentRestaurantId] = useState<string | null>(null);
     const [lastVisitedMenuUrl, setLastVisitedMenuUrlState] = useState<string | null>(null);
+    const [pendingAddToCart, setPendingAddToCart] = useState<{ item: CartItem; restaurantId: string } | null>(null);
 
     // Chargement initial depuis localStorage
     useEffect(() => {
@@ -61,14 +65,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [items, currentRestaurantId, lastVisitedMenuUrl]);
 
-    const addToCart = (newItem: CartItem, restaurantId: string) => {
-        setItems((prevItems) => {
-            // 1. Vérification Multi-Restaurant
-            if (prevItems.length > 0 && currentRestaurantId && currentRestaurantId !== restaurantId) {
-                // Si on change de restaurant, on vide tout et on commence le nouveau panier
-                const confirmChange = window.confirm("Vous changez de carte de restaurant. Votre panier actuel sera vidé. Continuer ?");
-                if (!confirmChange) return prevItems; // On annule
+    const addToCart = (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false) => {
+        // Vérification Multi-Restaurant avant de modifier le state
+        if (items.length > 0 && currentRestaurantId && currentRestaurantId !== restaurantId && !skipConfirm) {
+            setPendingAddToCart({ item: newItem, restaurantId });
+            return;
+        }
 
+        setItems((prevItems) => {
+            // Si on change de restaurant (skipConfirm = true)
+            if (prevItems.length > 0 && currentRestaurantId && currentRestaurantId !== restaurantId) {
                 setCurrentRestaurantId(restaurantId);
                 return [{ ...newItem, quantity: 1, restaurant_id: restaurantId }];
             }
@@ -88,6 +94,17 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
             return [...prevItems, { ...newItem, quantity: 1, restaurant_id: restaurantId }];
         });
+    };
+
+    const confirmPendingAddToCart = () => {
+        if (pendingAddToCart) {
+            addToCart(pendingAddToCart.item, pendingAddToCart.restaurantId, true);
+            setPendingAddToCart(null);
+        }
+    };
+
+    const cancelPendingAddToCart = () => {
+        setPendingAddToCart(null);
     };
 
     const removeFromCart = (id: string) => {
@@ -133,7 +150,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
                 // Compatibility Aliases
                 restaurantId: currentRestaurantId,
                 lastVisitedMenuUrl,
-                setLastVisitedMenuUrl
+                setLastVisitedMenuUrl,
+                pendingAddToCart,
+                confirmPendingAddToCart,
+                cancelPendingAddToCart
             }}
         >
             {children}

@@ -5,6 +5,7 @@ import { CheckCircle, Calendar, Package, XCircle, Trash2, Home, Utensils } from 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 
 
@@ -18,8 +19,11 @@ interface HistoryItem {
 }
 
 export default function OrdersPage() {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [showClearModal, setShowClearModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         const savedHistory = localStorage.getItem('order_history');
@@ -32,29 +36,28 @@ export default function OrdersPage() {
         }
     }, []);
 
-    const clearHistory = (e: React.MouseEvent) => {
-        // 1. Bloque tout rechargement de page parasite
-        e.preventDefault();
-        e.stopPropagation();
-
-        // 2. Confirmation native (Bloquante)
-        if (window.confirm("Êtes-vous sûr de vouloir effacer tout l'historique ?")) {
-
-            // 3. Nettoyage
-            localStorage.removeItem('order_history');
-
-            // 4. Mise à jour de l'état
-            setHistory([]);
-
-            // 5. Petit feedback visuel (Optionnel)
-            alert("Historique effacé !");
-        }
+    const clearHistory = () => {
+        localStorage.removeItem('order_history');
+        setHistory([]);
+        toast.success(language === 'fr' 
+            ? "Historique effacé avec succès !" 
+            : "History cleared successfully!");
     };
 
-    const handleDeleteOrder = (id: string) => {
-        const newHistory = history.filter(o => o.id !== id);
+    const handleDeleteOrder = () => {
+        if (!orderToDelete) return;
+        const newHistory = history.filter(o => o.id !== orderToDelete);
         setHistory(newHistory);
         localStorage.setItem('order_history', JSON.stringify(newHistory));
+        toast.success(language === 'fr' 
+            ? "Commande supprimée !" 
+            : "Order deleted!");
+        setOrderToDelete(null);
+    };
+
+    const openDeleteModal = (id: string) => {
+        setOrderToDelete(id);
+        setShowDeleteModal(true);
     };
 
     const formatDate = (dateStr: string) => {
@@ -70,6 +73,37 @@ export default function OrdersPage() {
 
     return (
         <main className="min-h-screen bg-radisson-light pb-24 animate-fade-in pt-20">
+            {/* Clear History Modal */}
+            <ConfirmModal
+                isOpen={showClearModal}
+                onClose={() => setShowClearModal(false)}
+                onConfirm={clearHistory}
+                title={language === 'fr' ? "Effacer tout l'historique" : "Clear all history"}
+                message={language === 'fr' 
+                    ? "Êtes-vous sûr de vouloir effacer tout l'historique de vos commandes ? Cette action est irréversible." 
+                    : "Are you sure you want to clear all your order history? This action cannot be undone."}
+                confirmText={language === 'fr' ? "Effacer" : "Clear"}
+                cancelText={language === 'fr' ? "Annuler" : "Cancel"}
+                variant="danger"
+            />
+
+            {/* Delete Order Modal */}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onClose={() => {
+                    setShowDeleteModal(false);
+                    setOrderToDelete(null);
+                }}
+                onConfirm={handleDeleteOrder}
+                title={language === 'fr' ? "Supprimer la commande" : "Delete order"}
+                message={language === 'fr' 
+                    ? "Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible." 
+                    : "Are you sure you want to delete this order? This action cannot be undone."}
+                confirmText={language === 'fr' ? "Supprimer" : "Delete"}
+                cancelText={language === 'fr' ? "Annuler" : "Cancel"}
+                variant="danger"
+            />
+
             <div className="max-w-md mx-auto px-6">
 
                 <h1 className="text-lg font-bold text-gray-800 my-6 text-center uppercase tracking-widest">
@@ -80,11 +114,15 @@ export default function OrdersPage() {
                     {history.length > 0 && (
                         <button
                             type="button"
-                            onClick={(e) => clearHistory(e)}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setShowClearModal(true);
+                            }}
                             className="text-[10px] font-bold text-red-300 uppercase tracking-widest hover:text-red-500 transition-colors flex items-center gap-1"
                         >
                             <Trash2 size={12} />
-                            Tout effacer
+                            {language === 'fr' ? "Tout effacer" : "Clear all"}
                         </button>
                     )}
                 </div>
@@ -126,9 +164,9 @@ export default function OrdersPage() {
                                 }}
                             >
                                 <button
-                                    onClick={() => handleDeleteOrder(order.id)}
+                                    onClick={() => openDeleteModal(order.id)}
                                     className="absolute top-2 right-2 text-red-300 hover:text-red-500 transition-colors p-2 z-20"
-                                    title="Supprimer"
+                                    title={language === 'fr' ? "Supprimer" : "Delete"}
                                 >
                                     <XCircle size={20} />
                                 </button>
