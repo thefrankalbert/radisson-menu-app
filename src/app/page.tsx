@@ -78,42 +78,6 @@ const getSafeImageUrl = (query: string): string => {
 
 // --- END INLINED UTILS ---
 
-// Restaurant Card Image Component with Error Handling
-function RestaurantCardImage({ 
-  src, 
-  alt, 
-  restaurantName 
-}: { 
-  src: string; 
-  alt: string; 
-  restaurantName: string;
-}) {
-  const [imageError, setImageError] = useState(false);
-
-  if (imageError) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-        <div className="flex flex-col items-center justify-center gap-2">
-          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
-            <Utensils size={32} className="text-gray-400" />
-          </div>
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Restaurant</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-      loading="lazy"
-      onError={() => setImageError(true)}
-    />
-  );
-}
-
 // TypeScript Interfaces
 interface Restaurant {
   id: string;
@@ -442,25 +406,14 @@ export default function Home() {
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {items.slice(0, 5).map((item) => {
-                const itemImage = getSafeImageUrl(item.name || "");
                 return (
                   <Link
                     key={item.id}
                     href="/cart"
                     className="flex-shrink-0 bg-white rounded-xl border border-gray-300 shadow-sm hover:shadow-md transition-all p-3 w-32 group"
                   >
-                    <div className="w-full h-20 bg-gray-100 rounded-lg overflow-hidden mb-2">
-                      {itemImage ? (
-                        <img
-                          src={itemImage}
-                          alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Utensils size={24} className="text-gray-300" />
-                        </div>
-                      )}
+                    <div className="w-full h-20 bg-gray-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
+                      <Utensils size={24} className="text-gray-300" />
                     </div>
                     <h3 className="text-[10px] font-bold text-gray-900 line-clamp-2 mb-1 leading-tight">
                       {item.name}
@@ -596,7 +549,6 @@ export default function Home() {
                 const categoryData = getCategoryData(item.categories);
                 const resto = categoryData?.restaurant;
                 const restoSlug = Array.isArray(resto) ? resto[0]?.slug : resto?.slug;
-                const itemImage = getSafeImageUrl(item.name || "");
                 const itemName = getTranslatedContent(language, item.name || "", item.name_en || null);
                 
                 return (
@@ -605,18 +557,8 @@ export default function Home() {
                     href={restoSlug ? `/menu/${restoSlug}` : "#"}
                     className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
                   >
-                    <div className="w-full h-32 bg-gray-100 overflow-hidden">
-                      {itemImage ? (
-                        <img
-                          src={itemImage}
-                          alt={itemName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Utensils size={24} className="text-gray-300" />
-                        </div>
-                      )}
+                    <div className="w-full h-32 bg-gray-100 overflow-hidden flex items-center justify-center">
+                      <Utensils size={32} className="text-gray-300" />
                     </div>
                     <div className="p-3">
                       <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-radisson-blue transition-colors">
@@ -677,7 +619,6 @@ export default function Home() {
               const restaurantName = restaurant.name || "";
               const description = getDescriptionForRestaurant(restaurantSlug, language);
               const href = restaurantSlug ? `/menu/${restaurantSlug}` : "#";
-              const bgImage = getSafeImageUrl(restaurantSlug);
 
               return (
                 <Link
@@ -687,13 +628,13 @@ export default function Home() {
                   style={{ animationDelay: `${(index + 4) * 100}ms` }}
                 >
                   {/* Image Section */}
-                  <div className="relative h-32 md:h-40 overflow-hidden bg-gray-100">
-                    <RestaurantCardImage 
-                      src={bgImage} 
-                      alt={restaurantName}
-                      restaurantName={restaurantName}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="relative h-32 md:h-40 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
+                        <Utensils size={32} className="text-gray-400" />
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Restaurant</span>
+                    </div>
                   </div>
 
                   {/* Content Section */}

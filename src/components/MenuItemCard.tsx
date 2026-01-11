@@ -1,8 +1,6 @@
-import { Plus, Minus, Leaf, Flame } from "lucide-react";
-import Image from "next/image";
+import { Plus, Minus, Leaf, Flame, Utensils } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useState } from "react";
-import { getSafeImageUrl } from "@/lib/imageUtils";
 
 interface MenuItemProps {
     item: {
@@ -36,22 +34,11 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
         setTimeout(() => setIsAnimating(false), 300);
     };
 
-    // FORCE SAFE IMAGES as requested - ignore potentially broken DB urls
-    const displayImage = getSafeImageUrl(item.name + " " + (category || ""));
-
     return (
         <div className="group bg-white rounded-2xl p-3 shadow-sm border border-gray-300 flex items-center gap-4 hover:shadow-md transition-all duration-300 h-28 w-full overflow-hidden relative">
             {/* 1. IMAGE (Left) */}
-            <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50">
-                <Image
-                    src={displayImage}
-                    alt={item.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700"
-                    priority={priority}
-                    loading={priority ? undefined : "lazy"}
-                    unoptimized={true}
-                />
+            <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50 flex items-center justify-center">
+                <Utensils size={32} className="text-gray-400" />
             </div>
 
             {/* 2. INFORMATIONS (Centre - Flex 1) */}

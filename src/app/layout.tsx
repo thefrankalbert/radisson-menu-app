@@ -11,6 +11,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import ToastProvider from "@/components/ToastProvider";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import CartConfirmModal from "@/components/CartConfirmModal";
+import SplashScreen from "@/components/SplashScreen";
 
 
 
@@ -26,11 +27,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/logo.png", sizes: "180x180", type: "image/png" },
     ],
   },
   appleWebApp: {
@@ -56,6 +57,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${montserrat.className} bg-radisson-light antialiased text-[#002C5F]`}>
+        <SplashScreen />
         <LanguageProvider>
           <CartProvider>
             <MenuVisitedTracker />
