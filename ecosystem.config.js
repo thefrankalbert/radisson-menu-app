@@ -29,7 +29,7 @@ module.exports = {
     {
       name: 'radisson-menu-app',
       script: 'npm',
-      args: 'run start:prod',
+      args: 'start',
       cwd: './',
       instances: 1,
       exec_mode: 'fork',
