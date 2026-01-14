@@ -69,8 +69,12 @@ export default function InstallPrompt() {
             </button>
 
             <div className="flex items-center gap-4 pr-6">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <span className="text-[#003366] font-black text-xl">B</span>
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+                    <img
+                        src="/logo.png"
+                        alt="Logo Blu Table"
+                        className="w-10 h-10 object-contain"
+                    />
                 </div>
                 <div>
                     <h3 className="font-bold text-sm">Installer Blu Table</h3>
