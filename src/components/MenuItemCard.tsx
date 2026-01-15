@@ -1,4 +1,4 @@
-import { Plus, Minus, Leaf, Flame, Utensils } from "lucide-react";
+import { Plus, Minus, Leaf, Flame, Utensils, GlassWater } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useState } from "react";
 
@@ -15,12 +15,24 @@ interface MenuItemProps {
     restaurantId: string;
     priority?: boolean;
     category?: string;
+    restaurantSlug?: string;
 }
 
-export default function MenuItemCard({ item, restaurantId, priority = false, category = "" }: MenuItemProps) {
+export default function MenuItemCard({ item, restaurantId, priority = false, category = "", restaurantSlug = "" }: MenuItemProps) {
     const { addToCart, updateQuantity, items } = useCart();
     const cartItem = items.find((i) => i.id === item.id);
     const [isAnimating, setIsAnimating] = useState(false);
+
+    // Détecter si on est sur la page "carte-des-boissons" uniquement
+    const isDrink = () => {
+        if (!restaurantSlug) return false;
+        const slugLower = restaurantSlug.toLowerCase().trim();
+        // Vérifier exactement "carte-des-boissons" (correspondance exacte ou commence par)
+        return slugLower === 'carte-des-boissons' || 
+               slugLower.startsWith('carte-des-boissons') ||
+               slugLower === 'carte des boissons' ||
+               slugLower.startsWith('carte des boissons');
+    };
 
     const handleAdd = () => {
         setIsAnimating(true);
@@ -38,7 +50,11 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
         <div className="group bg-white rounded-2xl p-3 shadow-sm border border-gray-300 flex items-center gap-4 hover:shadow-md transition-all duration-300 h-28 w-full overflow-hidden relative">
             {/* 1. IMAGE (Left) */}
             <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50 flex items-center justify-center">
-                <Utensils size={32} className="text-gray-400" />
+                {isDrink() ? (
+                    <GlassWater size={32} className="text-gray-400" />
+                ) : (
+                    <Utensils size={32} className="text-gray-400" />
+                )}
             </div>
 
             {/* 2. INFORMATIONS (Centre - Flex 1) */}

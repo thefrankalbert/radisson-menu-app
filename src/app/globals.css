@@ -131,20 +131,12 @@ body {
   animation: float 4s ease-in-out infinite;
 }
 
-/* Custom Scrollbar for Premium Feel */
-::-webkit-scrollbar {
-  width: 6px;
+/* Masquer les scrollbars sur toute l'application */
+* {
+  -ms-overflow-style: none;  /* IE et Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 51, 102, 0.1);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 51, 102, 0.2);
+*::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari et Opera */
 }

@@ -42,13 +42,6 @@ export default function CartPage() {
             return;
         }
 
-        const lastOrderTime = localStorage.getItem('last_order_time');
-        const now = Date.now();
-        if (lastOrderTime && now - parseInt(lastOrderTime) < 30000) {
-            toast.error("Veuillez attendre 30 secondes entre chaque commande.");
-            return;
-        }
-
         const tableRegex = /^[a-zA-Z0-9\s-]{1,10}$/;
         if (!tableRegex.test(tableNumber)) {
             toast.error("Numéro de table invalide (max 10 caractères, alphanumérique).");
@@ -102,7 +95,6 @@ export default function CartPage() {
             const currentHist = currentHistJSON ? JSON.parse(currentHistJSON) : [];
             const updatedHistory = [newOrder, ...currentHist];
             localStorage.setItem('order_history', JSON.stringify(updatedHistory));
-            localStorage.setItem('last_order_time', now.toString());
             // Save Table Number for future convenience
             localStorage.setItem('saved_table', tableNumber);
 

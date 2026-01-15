@@ -203,6 +203,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                                     restaurantId={restaurant?.id || ""}
                                                     priority={index < 4 && categories.indexOf(category) === 0}
                                                     category={categoryName}
+                                                    restaurantSlug={slug}
                                                 />
                                             ))
                                         ) : (
