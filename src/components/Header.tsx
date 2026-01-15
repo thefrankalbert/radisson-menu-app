@@ -41,9 +41,17 @@ function HeaderContent({ title }: HeaderProps) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="h-16 md:h-20 flex items-center justify-between">
 
-                    {/* Left: Spacer (removed Hamburger) or Back */}
+                    {/* Left: Logo */}
                     <div className="flex-1 flex items-center">
-                        {/* Retour supprimé - Cleaner UI */}
+                        {isHome && (
+                            <Link href="/" className="flex items-center">
+                                <img
+                                    src="/logo.png"
+                                    alt="BLU TABLE"
+                                    className="h-8 w-8 md:h-10 md:w-10 object-contain"
+                                />
+                            </Link>
+                        )}
                     </div>
 
                     {/* Center: Title */}
