@@ -39,6 +39,28 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Blu Table",
   },
+  openGraph: {
+    title: "BLU TABLE | N'Djamena",
+    description: "Digital Menu & Gastronomic Experience",
+    url: "https://www.theblutable.com",
+    siteName: "BLU TABLE",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "BLU TABLE Logo",
+      },
+    ],
+    locale: "fr_FR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "BLU TABLE | N'Djamena",
+    description: "Digital Menu & Gastronomic Experience",
+    images: ["/logo.png"],
+  },
 };
 
 export const viewport: Viewport = {
