@@ -95,13 +95,6 @@ export default function SplashScreen() {
         <p className="text-sm md:text-base text-gray-500 font-medium animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
           N&apos;Djamena
         </p>
-
-        {/* Loading indicator */}
-        <div className="mt-4 md:mt-8 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-          <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
-            <div className="w-1/3 h-full bg-[#002C5F] rounded-full animate-pulse" />
-          </div>
-        </div>
       </div>
     </div>
   );

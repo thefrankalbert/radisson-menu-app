@@ -3,15 +3,17 @@ import {
   ChevronRight,
   Search,
   ShoppingCart,
-  Utensils
+  Utensils,
+  GlassWater
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import Header from "@/components/Header";
+import { detectSpaceFromURL, type SpaceType } from "@/utils/tableUtils";
 // IMPORTS LOCAL REMOVED TO PREVENT MODULE ERRORS
 // import { getSafeImageUrl } from "@/lib/imageUtils";
 // import { getTranslatedContent } from "@/utils/translation";
@@ -143,32 +145,63 @@ const CURATED_CATEGORIES = [
   { id: 'appetizers', fr: "Apéritifs", en: "Appetizers", icon: "🥜", dbTerm: "Apéritif" },
 ];
 
-// Map slugs to descriptions
-const getDescriptionForRestaurant = (slug: string, lang: string): string => {
-  const descriptions: Record<string, { fr: string, en: string }> = {
-    'room-service': { fr: "Room Service 24/7", en: "24/7 Room Service" },
-    'pool-bar': { fr: "Cocktails & Grillades", en: "Cocktails & Grills" },
-    'lobby-bar': { fr: "Lounge & Snacks + Pool Bar", en: "Lounge & Snacks + Pool Bar" },
-    'panorama': { fr: "Restaurant Gastronomique + Tapas", en: "Fine Dining Restaurant + Tapas" },
-    'tapas-bar': { fr: "Tapas & Finger Food", en: "Tapas & Finger Food" },
-    'drinks': { fr: "Sélection de Boissons", en: "Drinks Selection" },
-    'carte-des-boissons': { fr: "Sélection de Boissons", en: "Drinks Selection" },
+// Map slugs to descriptions and display names
+const getRestaurantInfo = (slug: string, lang: string): { name: string, description: string } => {
+  const slugLower = slug.toLowerCase();
+  
+  if (slugLower.includes('panorama')) {
+    return {
+      name: lang === 'fr' ? 'Panorama Restaurant' : 'Panorama Restaurant',
+      description: lang === 'fr' ? 'Restaurant Gastronomique & Tapas' : 'Fine Dining Restaurant & Tapas'
+    };
+  }
+  
+  if (slugLower.includes('lobby-bar') || slugLower.includes('lobbybar')) {
+    return {
+      name: lang === 'fr' ? 'Lobby Bar' : 'Lobby Bar',
+      description: lang === 'fr' ? 'Lounge & Snacks + Pool' : 'Lounge & Snacks + Pool'
+    };
+  }
+  
+  if (slugLower.includes('carte-des-boissons') || slugLower.includes('boissons')) {
+    return {
+      name: lang === 'fr' ? 'Carte des Boissons' : 'Drinks Menu',
+      description: lang === 'fr' ? 'Lounge & Snacks + Pool Bar' : 'Lounge & Snacks + Pool Bar'
+    };
+  }
+  
+  return {
+    name: lang === 'fr' ? 'Restaurant' : 'Restaurant',
+    description: lang === 'fr' ? 'Restaurant & Bar' : 'Restaurant & Bar'
   };
-
-  const key = Object.keys(descriptions).find(k => slug.includes(k));
-  if (key) return descriptions[key][lang as 'fr' | 'en'] || descriptions[key]['fr'];
-  return "Restaurant & Bar";
 };
 
-// Filter restaurants to show only the 3 main ones
-const getFilteredRestaurants = (restaurants: Restaurant[]): Restaurant[] => {
-  const allowedSlugs = ['panorama', 'lobby-bar', 'carte-des-boissons'];
+// Filter restaurants based on QR code space parameter
+const getFilteredRestaurants = (restaurants: Restaurant[], space: SpaceType): Restaurant[] => {
+  let allowedSlugs: string[] = [];
+  
+  // Selon l'espace détecté, afficher uniquement les restaurants pertinents
+  if (space === 'panorama') {
+    // QR Panorama : Panorama + Carte des Boissons uniquement
+    allowedSlugs = ['panorama', 'carte-des-boissons'];
+  } else if (space === 'lobby-bar') {
+    // QR Lobby Bar : Lobby Bar + Carte des Boissons uniquement
+    allowedSlugs = ['lobby-bar', 'carte-des-boissons'];
+  } else {
+    // Par défaut (pas de QR) : tous les 3
+    allowedSlugs = ['panorama', 'lobby-bar', 'carte-des-boissons'];
+  }
+  
   return restaurants.filter(r => {
     const slug = (r.slug || "").toLowerCase();
     return allowedSlugs.some(allowed => slug.includes(allowed));
   }).sort((a, b) => {
-    // Order: Panorama, Lobby Bar, Carte des Boissons
-    const order = ['panorama', 'lobby-bar', 'carte-des-boissons'];
+    // Order: Panorama/Lobby Bar en premier, puis Carte des Boissons
+    const order = space === 'panorama' 
+      ? ['panorama', 'carte-des-boissons']
+      : space === 'lobby-bar'
+      ? ['lobby-bar', 'carte-des-boissons']
+      : ['panorama', 'lobby-bar', 'carte-des-boissons'];
     const aIndex = order.findIndex(o => a.slug.toLowerCase().includes(o));
     const bIndex = order.findIndex(o => b.slug.toLowerCase().includes(o));
     return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
@@ -193,6 +226,10 @@ export default function Home() {
   const { t, language } = useLanguage();
   const { items, totalItems, totalPrice } = useCart();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Détecter l'espace depuis l'URL (QR code)
+  const space = detectSpaceFromURL();
 
   useEffect(() => {
     let isMounted = true;
@@ -296,7 +333,9 @@ export default function Home() {
           : restaurants?.slug;
         const realName = categoryData.name;
         if (slug) {
-          router.push(`/menu/${slug}?section=${encodeURIComponent(realName)}`);
+          // Préserver le paramètre space si présent
+          const spaceParam = space !== 'default' ? `&space=${space}` : '';
+          router.push(`/menu/${slug}?section=${encodeURIComponent(realName)}${spaceParam}`);
         } else {
           setSearchQuery(dbTerm); // Fallback to search
         }
@@ -311,27 +350,76 @@ export default function Home() {
     }
   };
 
+  // Filtrer les restaurants selon le QR code ET la recherche
   const filteredRestaurants = useMemo(() => {
-    if (!searchQuery.trim()) return restaurants;
+    // D'abord filtrer selon l'espace (QR code)
+    const spaceFiltered = getFilteredRestaurants(restaurants, space);
+    
+    // Ensuite filtrer selon la recherche si nécessaire
+    if (!searchQuery.trim()) return spaceFiltered;
     
     const lowerQuery = searchQuery.toLowerCase();
-    return restaurants.filter(r => {
+    return spaceFiltered.filter(r => {
       const name = r.name?.toLowerCase() || "";
       const slug = r.slug?.toLowerCase() || "";
       return name.includes(lowerQuery) || slug.includes(lowerQuery);
     });
-  }, [restaurants, searchQuery]);
+  }, [restaurants, searchQuery, space]);
+
+  // Filtrer les featured items selon l'espace détecté (QR code)
+  const featuredItems = useMemo(() => {
+    if (space === 'default') return menuItems;
+    
+    const allowedSlugs = space === 'panorama' 
+      ? ['panorama', 'carte-des-boissons']
+      : ['lobby-bar', 'carte-des-boissons'];
+    
+    return menuItems.filter(item => {
+      const categoryData = getCategoryData(item.categories);
+      const resto = categoryData?.restaurant;
+      const restoSlug = Array.isArray(resto) ? resto[0]?.slug : resto?.slug;
+      if (!restoSlug) return false;
+      const slugLower = restoSlug.toLowerCase();
+      return allowedSlugs.some(allowed => slugLower.includes(allowed));
+    });
+  }, [menuItems, space]);
 
   const deepSearchResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
 
     const lowerQuery = searchQuery.toLowerCase();
-    return menuItems.filter(item => {
+    
+    // Filtrer les items selon l'espace détecté (QR code)
+    let filteredItems = menuItems;
+    if (space !== 'default') {
+      const allowedSlugs = space === 'panorama' 
+        ? ['panorama', 'carte-des-boissons']
+        : ['lobby-bar', 'carte-des-boissons'];
+      
+      filteredItems = menuItems.filter(item => {
+        const categoryData = getCategoryData(item.categories);
+        const resto = categoryData?.restaurant;
+        const restoSlug = Array.isArray(resto) ? resto[0]?.slug : resto?.slug;
+        if (!restoSlug) return false;
+        const slugLower = restoSlug.toLowerCase();
+        return allowedSlugs.some(allowed => slugLower.includes(allowed));
+      });
+    }
+    
+    return filteredItems.filter(item => {
       const itemName = (item.name || "").toLowerCase();
       const itemNameEn = (item.name_en || "").toLowerCase();
       return itemName.includes(lowerQuery) || itemNameEn.includes(lowerQuery);
     }).slice(0, 5);
-  }, [menuItems, searchQuery]);
+  }, [menuItems, searchQuery, space]);
+
+  // Helper pour générer les liens avec le paramètre space préservé
+  const getMenuLink = (slug: string, additionalParams: string = '') => {
+    const spaceParam = space !== 'default' 
+      ? (additionalParams ? `&space=${space}` : `?space=${space}`)
+      : '';
+    return `/menu/${slug}${additionalParams}${spaceParam}`;
+  };
 
   return (
     <div className="flex-1 w-full bg-radisson-light pt-20 md:pt-24 lg:pt-28 h-auto pb-0">
@@ -350,7 +438,9 @@ export default function Home() {
                 const categoryName = categoryData?.name;
                 
                 if (slug && categoryName) {
-                  router.push(`/menu/${slug}?section=${encodeURIComponent(categoryName)}`);
+                  // Préserver le paramètre space si présent
+                  const spaceParam = space !== 'default' ? `&space=${space}` : '';
+                  router.push(`/menu/${slug}?section=${encodeURIComponent(categoryName)}${spaceParam}`);
                 }
               }
             }}
@@ -379,8 +469,10 @@ export default function Home() {
                     const restoName = resto?.name || "Restaurant";
                     const restoSlug = resto?.slug || "";
                     const categoryName = categoryData?.name || "";
+                    // Préserver le paramètre space si présent
+                    const spaceParam = space !== 'default' ? `&space=${space}` : '';
                     const href = restoSlug && categoryName 
-                      ? `/menu/${restoSlug}?section=${encodeURIComponent(categoryName)}`
+                      ? `/menu/${restoSlug}?section=${encodeURIComponent(categoryName)}${spaceParam}`
                       : "#";
                     return (
                       <Link
@@ -547,30 +639,39 @@ export default function Home() {
         )}
 
         {/* 2.5. FEATURED ITEMS - Grandes cartes horizontales */}
-        {menuItems.length > 0 && (
+        {featuredItems.length > 0 && (
           <div className="mb-10">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest">
                 {language === 'fr' ? "À la une" : "Featured"}
               </h2>
-              <Link 
-                href={restaurants.length > 0 ? `/menu/${restaurants[0].slug}` : "#"}
-                className="text-[10px] font-bold text-radisson-blue hover:text-radisson-gold transition-colors uppercase tracking-widest"
-              >
-                {language === 'fr' ? "Voir tout" : "View all"} →
-              </Link>
+              {(() => {
+                const firstRestaurant = getFilteredRestaurants(restaurants, space)[0];
+                const spaceParam = space !== 'default' ? `?space=${space}` : '';
+                return (
+                  <Link 
+                    href={firstRestaurant ? `/menu/${firstRestaurant.slug}${spaceParam}` : "#"}
+                    className="text-[10px] font-bold text-radisson-blue hover:text-radisson-gold transition-colors uppercase tracking-widest"
+                  >
+                    {language === 'fr' ? "Voir tout" : "View all"} →
+                  </Link>
+                );
+              })()}
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {menuItems.slice(0, 6).map((item) => {
+              {featuredItems.slice(0, 6).map((item) => {
                 const categoryData = getCategoryData(item.categories);
                 const resto = categoryData?.restaurant;
                 const restoSlug = Array.isArray(resto) ? resto[0]?.slug : resto?.slug;
                 const itemName = getTranslatedContent(language, item.name || "", item.name_en || null);
+              
+                // Préserver le paramètre space dans les liens si présent
+                const spaceParam = space !== 'default' ? `?space=${space}` : '';
                 
                 return (
                   <Link
                     key={item.id}
-                    href={restoSlug ? `/menu/${restoSlug}` : "#"}
+                    href={restoSlug ? `/menu/${restoSlug}${spaceParam}` : "#"}
                     className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
                   >
                     <div className="w-full h-32 bg-gray-100 overflow-hidden flex items-center justify-center">
@@ -630,11 +731,13 @@ export default function Home() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 lg:gap-10 relative z-20">
-            {getFilteredRestaurants(filteredRestaurants.length > 0 ? filteredRestaurants : restaurants).map((restaurant, index) => {
+            {(filteredRestaurants.length > 0 ? filteredRestaurants : getFilteredRestaurants(restaurants, space)).map((restaurant, index) => {
               const restaurantSlug = restaurant.slug || "";
-              const restaurantName = restaurant.name || "";
-              const description = getDescriptionForRestaurant(restaurantSlug, language);
-              const href = restaurantSlug ? `/menu/${restaurantSlug}` : "#";
+              const restaurantInfo = getRestaurantInfo(restaurantSlug, language);
+              const isDrinks = restaurantSlug.toLowerCase().includes('carte-des-boissons') || restaurantSlug.toLowerCase().includes('boissons');
+              // Préserver le paramètre space dans les liens si présent
+              const spaceParam = space !== 'default' ? `?space=${space}` : '';
+              const href = restaurantSlug ? `/menu/${restaurantSlug}${spaceParam}` : "#";
 
               return (
                 <Link
@@ -647,20 +750,24 @@ export default function Home() {
                   <div className="relative h-32 md:h-40 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
-                        <Utensils size={32} className="text-gray-400" />
+                        {isDrinks ? (
+                          <GlassWater size={32} className="text-gray-400" />
+                        ) : (
+                          <Utensils size={32} className="text-gray-400" />
+                        )}
                       </div>
-                      {/* Removed "RESTAURANT" text as per requirements */}
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">RESTAURANT</span>
                     </div>
                   </div>
 
                   {/* Content Section */}
                   <div className="p-4 flex flex-col items-start relative flex-1">
                     <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-radisson-blue transition-colors line-clamp-1">
-                      {getTranslatedContent(language, restaurantName, restaurant.name_en || null)}
+                      {restaurantInfo.name}
                     </h3>
 
-                    <p className="text-gray-500 text-[11px] leading-relaxed font-medium line-clamp-1 mb-3">
-                      {description}
+                    <p className="text-gray-500 text-[11px] leading-relaxed font-medium line-clamp-2 mb-3">
+                      {restaurantInfo.description}
                     </p>
 
                     <div className="mt-auto w-full flex items-center justify-end">

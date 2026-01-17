@@ -66,10 +66,10 @@ function HeaderContent({ title }: HeaderProps) {
                         {isHome && (
                             <button
                                 onClick={() => setLanguage(language === "fr" ? "en" : "fr")}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
+                                className="flex items-center justify-center p-2 transition-opacity hover:opacity-70"
                                 title={language === "fr" ? "Switch to English" : "Passer en Français"}
                             >
-                                <span className="text-xl filter drop-shadow-sm">{language === "fr" ? "🇫🇷" : "🇺🇸"}</span>
+                                <span className="text-xl">{language === "fr" ? "🇫🇷" : "🇺🇸"}</span>
                             </button>
                         )}
                     </div>
