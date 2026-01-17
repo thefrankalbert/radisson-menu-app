@@ -727,7 +727,7 @@ export default function Home() {
         {/* 4. CARTES RESTAURANTS - Only 3 cards: Panorama, Lobby Bar, Carte des Boissons */}
         <div className="mb-6">
           <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">
-            {language === 'fr' ? "Nos Cartes & Restaurants" : "Our Menus & Restaurants"}
+            {language === 'fr' ? "Restaurants" : "Restaurants"}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 lg:gap-10 relative z-20">
