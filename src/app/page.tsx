@@ -148,15 +148,31 @@ const getDescriptionForRestaurant = (slug: string, lang: string): string => {
   const descriptions: Record<string, { fr: string, en: string }> = {
     'room-service': { fr: "Room Service 24/7", en: "24/7 Room Service" },
     'pool-bar': { fr: "Cocktails & Grillades", en: "Cocktails & Grills" },
-    'lobby-bar': { fr: "Lounge & Snacks", en: "Lounge & Snacks" },
-    'panorama': { fr: "Restaurant Gastronomique", en: "Fine Dining Restaurant" },
+    'lobby-bar': { fr: "Lounge & Snacks + Pool Bar", en: "Lounge & Snacks + Pool Bar" },
+    'panorama': { fr: "Restaurant Gastronomique + Tapas", en: "Fine Dining Restaurant + Tapas" },
     'tapas-bar': { fr: "Tapas & Finger Food", en: "Tapas & Finger Food" },
     'drinks': { fr: "Sélection de Boissons", en: "Drinks Selection" },
+    'carte-des-boissons': { fr: "Sélection de Boissons", en: "Drinks Selection" },
   };
 
   const key = Object.keys(descriptions).find(k => slug.includes(k));
   if (key) return descriptions[key][lang as 'fr' | 'en'] || descriptions[key]['fr'];
   return "Restaurant & Bar";
+};
+
+// Filter restaurants to show only the 3 main ones
+const getFilteredRestaurants = (restaurants: Restaurant[]): Restaurant[] => {
+  const allowedSlugs = ['panorama', 'lobby-bar', 'carte-des-boissons'];
+  return restaurants.filter(r => {
+    const slug = (r.slug || "").toLowerCase();
+    return allowedSlugs.some(allowed => slug.includes(allowed));
+  }).sort((a, b) => {
+    // Order: Panorama, Lobby Bar, Carte des Boissons
+    const order = ['panorama', 'lobby-bar', 'carte-des-boissons'];
+    const aIndex = order.findIndex(o => a.slug.toLowerCase().includes(o));
+    const bIndex = order.findIndex(o => b.slug.toLowerCase().includes(o));
+    return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+  });
 };
 
 interface OrderHistoryItem {
@@ -607,14 +623,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 4. CARTES RESTAURANTS */}
+        {/* 4. CARTES RESTAURANTS - Only 3 cards: Panorama, Lobby Bar, Carte des Boissons */}
         <div className="mb-6">
           <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6">
             {language === 'fr' ? "Nos Cartes & Restaurants" : "Our Menus & Restaurants"}
           </h2>
 
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8 lg:gap-10 relative z-20">
-            {(filteredRestaurants.length > 0 ? filteredRestaurants : restaurants).map((restaurant, index) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 lg:gap-10 relative z-20">
+            {getFilteredRestaurants(filteredRestaurants.length > 0 ? filteredRestaurants : restaurants).map((restaurant, index) => {
               const restaurantSlug = restaurant.slug || "";
               const restaurantName = restaurant.name || "";
               const description = getDescriptionForRestaurant(restaurantSlug, language);
@@ -633,7 +649,7 @@ export default function Home() {
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
                         <Utensils size={32} className="text-gray-400" />
                       </div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Restaurant</span>
+                      {/* Removed "RESTAURANT" text as per requirements */}
                     </div>
                   </div>
 

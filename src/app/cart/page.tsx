@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import TableWheelPicker from "@/components/TableWheelPicker";
+import { getTablesForSpace, detectSpaceFromURL, detectSpaceFromSlug, type SpaceType } from "@/utils/tableUtils";
 
 
 
@@ -21,18 +23,42 @@ interface HistoryItem {
 }
 
 export default function CartPage() {
-    const { items, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems, currentRestaurantId } = useCart();
-    const { t } = useLanguage();
+    const { items, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems, currentRestaurantId, lastVisitedMenuUrl } = useCart();
+    const { t, language } = useLanguage();
     const router = useRouter();
     const [notes, setNotes] = useState("");
     const [tableNumber, setTableNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [space, setSpace] = useState<SpaceType>('default');
+    const [availableTables, setAvailableTables] = useState<string[]>([]);
 
+    // Détecter l'espace et générer les tables disponibles
     useEffect(() => {
-        // Try to load saved table number
+        // 1. Essayer de détecter depuis l'URL (paramètre ?space=)
+        const spaceFromURL = detectSpaceFromURL();
+        
+        // 2. Si pas dans l'URL, détecter depuis le dernier menu visité
+        let detectedSpace = spaceFromURL;
+        if (detectedSpace === 'default' && lastVisitedMenuUrl) {
+            // Extraire le slug depuis l'URL (ex: /menu/panorama)
+            const slugMatch = lastVisitedMenuUrl.match(/\/menu\/([^/?]+)/);
+            if (slugMatch) {
+                detectedSpace = detectSpaceFromSlug(slugMatch[1]);
+            }
+        }
+
+        setSpace(detectedSpace);
+        const tables = getTablesForSpace(detectedSpace);
+        setAvailableTables(tables);
+
+        // Initialiser la table sélectionnée
         const savedTable = localStorage.getItem('saved_table') || localStorage.getItem('table_number');
-        if (savedTable) setTableNumber(savedTable);
-    }, []);
+        if (savedTable && tables.includes(savedTable)) {
+            setTableNumber(savedTable);
+        } else if (tables.length > 0) {
+            setTableNumber(tables[0]);
+        }
+    }, [lastVisitedMenuUrl]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,7 +88,8 @@ export default function CartPage() {
                     restaurant_id: currentRestaurantId,
                     table_number: tableNumber,
                     total_price: totalPrice,
-                    status: 'pending'
+                    status: 'pending',
+                    special_instructions: notes.trim() || null // Sauvegarder les instructions spéciales
                 })
                 .select()
                 .single();
@@ -193,28 +220,20 @@ export default function CartPage() {
                                 </div>
                             </div>
 
-                            {/* INPUT TABLE MINIMALISTE INTERNE AU TICKET */}
+                            {/* WHEEL PICKER POUR TABLE */}
                             <div className="mt-8 pt-6 border-t border-gray-100">
-                                <div className="flex items-end gap-4">
-                                    <label htmlFor="table" className="text-[10px] font-bold uppercase tracking-widest text-gray-400 whitespace-nowrap pb-2">
-                                        Table / Chambre
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="table"
-                                        required
-                                        value={tableNumber}
-                                        onChange={(e) => setTableNumber(e.target.value)}
-                                        placeholder="N°"
-                                        className="w-full border-b border-gray-300 bg-transparent py-1 text-center font-mono font-bold text-gray-900 focus:border-black focus:outline-none transition-colors rounded-none placeholder:text-gray-200"
-                                    />
-                                </div>
+                                <TableWheelPicker
+                                    tables={availableTables}
+                                    value={tableNumber}
+                                    onChange={setTableNumber}
+                                    label={language === 'fr' ? "Table" : "Table"}
+                                />
                                 <div className="mt-4">
                                     <input
                                         type="text"
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
-                                        placeholder="Instructions (optionnel)..."
+                                        placeholder={language === 'fr' ? "Instructions (optionnel)..." : "Special instructions (optional)..."}
                                         className="w-full text-xs border-b border-gray-200 bg-transparent py-1 text-gray-600 focus:border-black focus:outline-none transition-colors rounded-none italic"
                                     />
                                 </div>

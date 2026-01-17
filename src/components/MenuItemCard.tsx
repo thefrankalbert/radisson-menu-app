@@ -59,11 +59,11 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
 
             {/* 2. INFORMATIONS (Centre - Flex 1) */}
             <div className="flex-1 flex flex-col justify-center min-w-0 h-full">
-                <div className="flex items-center gap-1.5 mb-1">
-                    <h3 className="text-[15px] font-bold text-[#002C5F] line-clamp-1 leading-tight">
+                <div className="flex items-start gap-1.5 mb-1">
+                    <h3 className="text-[15px] font-bold text-[#002C5F] line-clamp-2 leading-tight flex-1">
                         {item.name}
                     </h3>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-shrink-0 pt-0.5">
                         {item.is_vegetarian && <Leaf size={12} className="text-green-500" />}
                         {item.is_spicy && <Flame size={12} className="text-red-500" />}
                     </div>

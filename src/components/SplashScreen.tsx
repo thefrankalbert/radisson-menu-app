@@ -78,7 +78,7 @@ export default function SplashScreen() {
         pointerEvents: isFading ? 'none' : 'auto'
       }}
     >
-      <div className="flex flex-col items-center justify-center gap-6">
+      <div className="flex flex-col items-center justify-center gap-3 md:gap-6">
         {/* Logo */}
         <div className="relative w-32 h-32 md:w-40 md:h-40 animate-fade-in-up">
           <Image
@@ -91,18 +91,13 @@ export default function SplashScreen() {
           />
         </div>
 
-        {/* Titre */}
-        <h1 className="text-2xl md:text-3xl font-black text-[#002C5F] uppercase tracking-wider animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-          BLU TABLE
-        </h1>
-
         {/* Sous-titre */}
-        <p className="text-sm md:text-base text-gray-500 font-medium animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+        <p className="text-sm md:text-base text-gray-500 font-medium animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
           N&apos;Djamena
         </p>
 
         {/* Loading indicator */}
-        <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.6s" }}>
+        <div className="mt-4 md:mt-8 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
           <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
             <div className="w-1/3 h-full bg-[#002C5F] rounded-full animate-pulse" />
           </div>
