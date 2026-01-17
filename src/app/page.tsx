@@ -309,13 +309,20 @@ export default function Home() {
 
   const handleCategoryClick = async (dbTerm: string) => {
     try {
+      // Déterminer les restaurants autorisés selon l'espace (QR code)
+      let allowedRestaurantSlugs: string[] = [];
+      if (space === 'panorama') {
+        allowedRestaurantSlugs = ['panorama', 'carte-des-boissons'];
+      } else if (space === 'lobby-bar') {
+        allowedRestaurantSlugs = ['lobby-bar', 'carte-des-boissons'];
+      }
+      
       // Flexible search for category name containing the term
       const { data, error } = await supabase
         .from('categories')
         .select('name, restaurant_id, restaurants(slug)')
         .ilike('name', `%${dbTerm}%`)
-        .limit(1)
-        .maybeSingle();
+        .limit(space !== 'default' ? 10 : 1); // Récupérer plus de résultats si filtrage nécessaire
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -326,17 +333,36 @@ export default function Home() {
       }
 
       if (data) {
-        const categoryData = data as unknown as CategoryData;
-        const restaurants = categoryData.restaurants;
-        const slug = Array.isArray(restaurants) 
-          ? restaurants[0]?.slug 
-          : restaurants?.slug;
-        const realName = categoryData.name;
-        if (slug) {
-          // Préserver le paramètre space si présent
-          const spaceParam = space !== 'default' ? `&space=${space}` : '';
-          router.push(`/menu/${slug}?section=${encodeURIComponent(realName)}${spaceParam}`);
+        // Si un espace est détecté, filtrer les résultats
+        let filteredData = data;
+        if (space !== 'default' && allowedRestaurantSlugs.length > 0) {
+          filteredData = data.filter((cat: any) => {
+            const restaurants = cat.restaurants;
+            const slug = Array.isArray(restaurants) 
+              ? restaurants[0]?.slug 
+              : restaurants?.slug;
+            if (!slug) return false;
+            const slugLower = slug.toLowerCase();
+            return allowedRestaurantSlugs.some(allowed => slugLower.includes(allowed));
+          });
+        }
+        
+        if (filteredData.length > 0) {
+          const categoryData = filteredData[0] as unknown as CategoryData;
+          const restaurants = categoryData.restaurants;
+          const slug = Array.isArray(restaurants) 
+            ? restaurants[0]?.slug 
+            : restaurants?.slug;
+          const realName = categoryData.name;
+          if (slug) {
+            // Préserver le paramètre space si présent
+            const spaceParam = space !== 'default' ? `&space=${space}` : '';
+            router.push(`/menu/${slug}?section=${encodeURIComponent(realName)}${spaceParam}`);
+          } else {
+            setSearchQuery(dbTerm); // Fallback to search
+          }
         } else {
+          // Aucune catégorie trouvée dans les restaurants autorisés
           setSearchQuery(dbTerm); // Fallback to search
         }
       } else {
@@ -523,7 +549,7 @@ export default function Home() {
                     <div className="w-full h-20 bg-gray-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
                       <Utensils size={24} className="text-gray-300" />
                     </div>
-                    <h3 className="text-[10px] font-bold text-gray-900 line-clamp-2 mb-1 leading-tight">
+                    <h3 className="text-[10px] font-bold text-gray-900 break-words mb-1 leading-tight">
                       {item.name}
                     </h3>
                     <div className="flex items-center justify-between">
@@ -678,7 +704,7 @@ export default function Home() {
                       <Utensils size={32} className="text-gray-300" />
                     </div>
                     <div className="p-3">
-                      <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-radisson-blue transition-colors">
+                      <h3 className="text-base font-bold text-gray-900 mb-2 break-words group-hover:text-radisson-blue transition-colors">
                         {itemName}
                       </h3>
                       <div className="flex items-center justify-between">
@@ -716,7 +742,7 @@ export default function Home() {
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center mb-1 transition-transform group-hover:scale-110 bg-gray-100 border border-gray-300 group-hover:bg-gray-200 group-hover:border-gray-400">
                   <span className="text-xl md:text-2xl filter drop-shadow-sm">{cat.icon}</span>
                 </div>
-                <span className="text-[11px] font-medium text-gray-600 text-center line-clamp-1 leading-tight mt-1 group-hover:text-radisson-blue">
+                <span className="text-[11px] font-medium text-gray-600 text-center break-words leading-tight mt-1 group-hover:text-radisson-blue">
                   {language === 'en' ? cat.en : cat.fr}
                 </span>
               </div>
@@ -748,7 +774,7 @@ export default function Home() {
                 >
                   {/* Image Section */}
                   <div className="relative h-32 md:h-40 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="flex flex-col items-center justify-center">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
                         {isDrinks ? (
                           <GlassWater size={32} className="text-gray-400" />
@@ -756,17 +782,16 @@ export default function Home() {
                           <Utensils size={32} className="text-gray-400" />
                         )}
                       </div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">RESTAURANT</span>
                     </div>
                   </div>
 
                   {/* Content Section */}
                   <div className="p-4 flex flex-col items-start relative flex-1">
-                    <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-radisson-blue transition-colors line-clamp-1">
+                    <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-radisson-blue transition-colors break-words">
                       {restaurantInfo.name}
                     </h3>
 
-                    <p className="text-gray-500 text-[11px] leading-relaxed font-medium line-clamp-2 mb-3">
+                    <p className="text-gray-500 text-[11px] leading-relaxed font-medium break-words mb-3">
                       {restaurantInfo.description}
                     </p>
 
