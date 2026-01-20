@@ -67,21 +67,48 @@ interface MenuPageProps {
 
 // --- Fetcher optimisé pour SWR ---
 const fetchMenuData = async (slug: string) => {
-    // 1. Fetch Restaurant
-    const { data: resData, error: resError } = await supabase
+    // Configuration pour les QR codes : Panorama et Lobby doivent inclure les boissons
+    const QR_CONFIG: Record<string, string[]> = {
+        'carte-panorama-restaurant': ['carte-panorama-restaurant', 'carte-des-boissons'],
+        'carte-lobby-bar-snacks': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
+    };
+
+    // Déterminer les slugs à charger
+    const slugsToLoad = QR_CONFIG[slug] || [slug];
+
+    // 1. Fetch Restaurants (peut être plusieurs pour Panorama/Lobby + Boissons)
+    const { data: restaurantsData, error: resError } = await supabase
         .from('restaurants')
         .select('*')
-        .eq('slug', slug)
-        .single();
+        .in('slug', slugsToLoad)
+        .eq('is_active', true);
 
-    if (resError || !resData) throw new Error("Restaurant introuvable");
+    if (resError || !restaurantsData || restaurantsData.length === 0) {
+        throw new Error("Restaurant introuvable");
+    }
 
-    // 2. Fetch Categories
+    // Le restaurant principal est celui correspondant au slug scanné
+    const mainRestaurant = restaurantsData.find(r => r.slug === slug) || restaurantsData[0];
+    const restaurantIds = restaurantsData.map(r => r.id);
+    const mainRestaurantId = mainRestaurant.id;
+
+    // 2. Fetch Categories de tous les restaurants concernés
     const { data: catData, error: catError } = await supabase
         .from('categories')
         .select('*, name_en')
-        .eq('restaurant_id', resData.id)
+        .in('restaurant_id', restaurantIds)
         .order('id', { ascending: true });
+
+    // Trier les catégories : d'abord celles du restaurant principal, puis les autres (boissons)
+    if (catData) {
+        catData.sort((a: any, b: any) => {
+            const aIsMain = a.restaurant_id === mainRestaurantId;
+            const bIsMain = b.restaurant_id === mainRestaurantId;
+            if (aIsMain && !bIsMain) return -1;
+            if (!aIsMain && bIsMain) return 1;
+            return 0; // Conserver l'ordre original pour les catégories du même restaurant
+        });
+    }
 
     // 3. Fetch Items
     let items: MenuItem[] = [];
@@ -121,7 +148,7 @@ const fetchMenuData = async (slug: string) => {
     }
 
     return {
-        restaurant: resData as Restaurant,
+        restaurant: mainRestaurant as Restaurant,
         categories: (catData || []) as Category[],
         items: items
     };

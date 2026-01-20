@@ -68,10 +68,14 @@ export default function QRCodesPage() {
 
     const loadCards = async () => {
         try {
+            // Seuls les restaurants Panorama et Lobby sont disponibles pour la génération de QR codes
+            const allowedSlugs = ['carte-panorama-restaurant', 'carte-lobby-bar-snacks'];
+            
             const { data, error } = await supabase
                 .from('restaurants')
                 .select('*')
                 .eq('is_active', true)
+                .in('slug', allowedSlugs)
                 .order('name');
             if (error) throw error;
             setCards(data || []);
@@ -152,7 +156,7 @@ export default function QRCodesPage() {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-black text-[#003058] tracking-tight">Générateur de QR Codes</h1>
-                <p className="text-slate-400 mt-2 font-medium">Créez et personnalisez les QR codes pour vos menus et tables.</p>
+                <p className="text-slate-400 mt-2 font-medium">Créez et personnalisez les QR codes pour Restaurant Panorama et Restaurant Lobby.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
