@@ -13,6 +13,9 @@ function HeaderContent({ title }: HeaderProps) {
     const isMenuPage = pathname.startsWith("/menu/");
     const isVenuePage = pathname.startsWith("/venue/");
     const isAdminPage = pathname.startsWith("/admin");
+    const isSettingsPage = pathname === "/settings";
+    const isOrdersPage = pathname === "/orders";
+    const isCartPage = pathname === "/cart";
 
     // Fetch restaurant name if on menu page
     useEffect(() => {
@@ -32,8 +35,8 @@ function HeaderContent({ title }: HeaderProps) {
         }
     }, [isMenuPage, params?.slug]);
 
-    // Ne pas afficher le header sur la page d'accueil (elle a son propre header) et les pages admin
-    if (isAdminPage || isHomePage) {
+    // Ne pas afficher le header sur la page d'accueil, admin, settings, orders, cart et venue
+    if (isAdminPage || isHomePage || isSettingsPage || isOrdersPage || isCartPage || isVenuePage) {
         return null;
     }
 

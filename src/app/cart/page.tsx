@@ -135,7 +135,7 @@ export default function CartPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#F5F5F5] pb-24 animate-fade-in pt-20">
+        <main className="min-h-screen bg-[#F5F5F5] pb-24 animate-fade-in pt-4">
             <div className="max-w-md mx-auto px-4">
 
                 {/* TITRE REDUIT */}
@@ -173,11 +173,17 @@ export default function CartPage() {
                         >
 
                             {/* HEADER TICKET */}
-                            {/* HEADER TICKET */}
-                            <div className="text-center border-b-2 border-dashed border-gray-200 pb-4 mb-4">
-                                <div className="flex justify-between text-[10px] font-mono text-gray-500">
-                                    <span>{new Date().toLocaleDateString('fr-FR')}</span>
-                                    <span>{new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <div className="border-b-2 border-dashed border-gray-200 pb-4 mb-4">
+                                <div className="flex justify-between items-center text-[10px] font-mono text-gray-500">
+                                    <div className="flex items-center gap-2">
+                                        <span>{new Date().toLocaleDateString('fr-FR')}</span>
+                                        <span>{new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    {tableNumber && (
+                                        <span className="text-gray-400 font-bold">
+                                            {language === 'fr' ? `N° de table ${tableNumber}` : `Table N° ${tableNumber}`}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -254,7 +260,7 @@ export default function CartPage() {
                             <div className="mt-8 pt-6 border-t border-gray-100 space-y-6">
                                 <div>
                                     <label htmlFor="notes" className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-2">
-                                        {language === 'fr' ? 'Souhaits particuliers' : 'Special requests'}
+                                        {language === 'fr' ? 'Suppléments' : 'Supplements'}
                                     </label>
                                     <input
                                         type="text"
@@ -266,16 +272,6 @@ export default function CartPage() {
                                     />
                                 </div>
 
-                                {tableNumber && (
-                                    <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-radisson-blue whitespace-nowrap">
-                                            {language === 'fr' ? 'Ma Table' : 'My Table'}
-                                        </label>
-                                        <div className="flex-1 text-center font-mono font-black text-lg text-gray-900">
-                                            {tableNumber}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </motion.div>
 
@@ -290,16 +286,12 @@ export default function CartPage() {
                                 whileTap={{ scale: 0.98 }}
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full bg-[#002C5F] text-white h-14 rounded-xl shadow-lg font-black text-sm uppercase tracking-widest hover:bg-[#003B7A] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 active:scale-[0.98]"
+                                className="w-full bg-[#002C5F] text-white h-14 rounded-xl shadow-lg font-black text-sm uppercase tracking-widest hover:bg-[#003B7A] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 active:scale-[0.98]"
                             >
                                 {isSubmitting ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
-                                    <>
-                                        <CheckCircle size={18} className="text-[#C8A882]" />
-                                        <span>Valider la commande</span>
-                                        <Send size={16} className="ml-1" />
-                                    </>
+                                    <span>Valider</span>
                                 )}
                             </motion.button>
                         </motion.div>

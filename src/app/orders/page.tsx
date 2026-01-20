@@ -72,7 +72,7 @@ export default function OrdersPage() {
     };
 
     return (
-        <main className="min-h-screen bg-radisson-light pb-24 animate-fade-in pt-20">
+        <main className="min-h-screen bg-radisson-light pb-24 animate-fade-in pt-4">
             {/* Clear History Modal */}
             <ConfirmModal
                 isOpen={showClearModal}

@@ -134,7 +134,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
     const hasVariants = item.price_variants && item.price_variants.length > 0;
 
     return (
-        <div className="group bg-white rounded-2xl p-3 shadow-sm border border-gray-300 flex flex-col hover:shadow-md transition-all duration-300 w-full overflow-hidden relative">
+        <div className="group bg-white rounded-2xl p-3 border border-gray-200 flex flex-col hover:border-gray-300 transition-all duration-300 w-full overflow-hidden relative">
             {/* Ligne principale */}
             <div className="flex items-start gap-4 min-h-24">
                 {/* 1. IMAGE (Left) */}

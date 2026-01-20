@@ -60,17 +60,8 @@ export default function SettingsPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#F8FAFC] pb-24 pt-20">
+        <main className="min-h-screen bg-[#F8FAFC] pb-24 pt-4">
             <div className="max-w-md mx-auto px-6">
-                {/* Header */}
-                <div className="mb-8 text-center">
-                    <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight">
-                        {language === "fr" ? "Paramètres" : "Settings"}
-                    </h1>
-                    <p className="text-sm text-gray-500 font-medium mt-1">
-                        {language === "fr" ? "Personnalisez votre expérience" : "Customize your experience"}
-                    </p>
-                </div>
 
                 <div className="space-y-6">
                     {/* SECTION: Préférences */}
@@ -217,14 +208,14 @@ export default function SettingsPage() {
                     <div className="absolute inset-0 bg-black/50" onClick={() => setShowPrivacyModal(false)} />
                     <div className="relative bg-white w-full max-w-lg max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden">
                         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900">
+                            <h2 className="text-lg font-bold text-gray-900 text-center flex-1">
                                 {language === "fr" ? "Politique de Confidentialité" : "Privacy Policy"}
                             </h2>
-                            <button onClick={() => setShowPrivacyModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                            <button onClick={() => setShowPrivacyModal(false)} className="p-2 hover:bg-gray-100 rounded-full ml-4">
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto max-h-[70vh] space-y-4 text-sm text-gray-600">
+                        <div className="p-6 pb-24 overflow-y-auto max-h-[70vh] space-y-4 text-sm text-gray-600">
                             <h3 className="font-bold text-gray-900">{language === "fr" ? "Collecte des données" : "Data Collection"}</h3>
                             <p>
                                 {language === "fr"
@@ -260,7 +251,7 @@ export default function SettingsPage() {
                                     : "For any questions regarding your personal data:"}
                             </p>
                             <p className="text-[#002C5F] font-medium">
-                                privacy@radissonblu-ndjamena.com
+                                privacy@theblutable.com
                             </p>
                         </div>
                     </div>
@@ -273,17 +264,29 @@ export default function SettingsPage() {
                     <div className="absolute inset-0 bg-black/50" onClick={() => setShowAboutModal(false)} />
                     <div className="relative bg-white w-full max-w-lg max-h-[85vh] rounded-t-3xl sm:rounded-3xl overflow-hidden">
                         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900">
+                            <h2 className="text-lg font-bold text-gray-900 text-center flex-1">
                                 {language === "fr" ? "À propos de Blu Table" : "About Blu Table"}
                             </h2>
-                            <button onClick={() => setShowAboutModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                            <button onClick={() => setShowAboutModal(false)} className="p-2 hover:bg-gray-100 rounded-full ml-4">
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <div className="p-6 overflow-y-auto max-h-[70vh] space-y-4">
+                        <div className="p-6 pb-24 overflow-y-auto max-h-[70vh] space-y-4">
                             <div className="text-center mb-6">
-                                <div className="w-20 h-20 bg-gradient-to-br from-[#002C5F] to-[#004080] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                    <span className="text-3xl">🍽️</span>
+                                <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                                    <img 
+                                        src="/images/about.jpg" 
+                                        alt="Blu Table" 
+                                        className="w-full h-full object-contain"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            const fallback = document.createElement('span');
+                                            fallback.className = 'text-3xl';
+                                            fallback.textContent = '🍽️';
+                                            target.parentElement?.appendChild(fallback);
+                                        }}
+                                    />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900">Blu Table</h3>
                                 <p className="text-sm text-gray-500">by Radisson Blu N&apos;Djamena</p>

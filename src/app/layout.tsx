@@ -17,6 +17,7 @@ import CartConfirmModal from "@/components/CartConfirmModal";
 import SplashScreen from "@/components/SplashScreen";
 import PageTransition from "@/components/layout/PageTransition";
 import TableCapture from "@/components/TableCapture";
+import ClearStorage from "@/components/ClearStorage";
 
 
 
@@ -50,6 +51,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Blu Table",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -68,6 +72,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${montserrat.variable} ${playfair.variable} font-montserrat bg-radisson-light antialiased text-[#002C5F]`}>
+        {/* <ClearStorage /> */}
         <SplashScreen />
         <LanguageProvider>
           <CurrencyProvider>

@@ -244,12 +244,23 @@ export default function VenuePage({ params }: VenuePageProps) {
 
         // Only filter if explicitly requested in config
         if (activeSubmenu?.filterCategory) {
-            cats = cats.filter((c: Category) => c.name.toLowerCase().includes(activeSubmenu.filterCategory!.toLowerCase()));
+            const filterTerm = activeSubmenu.filterCategory.toLowerCase();
+            cats = cats.filter((c: Category) => {
+                const nameLower = c.name.toLowerCase();
+                const nameEnLower = (c.name_en || '').toLowerCase();
+                // Recherche plus flexible : dans le nom FR ou EN
+                return nameLower.includes(filterTerm) || nameEnLower.includes(filterTerm);
+            });
         }
 
         // Only exclude if explicitly requested in config
         if (activeSubmenu?.excludeCategory) {
-            cats = cats.filter((c: Category) => !c.name.toLowerCase().includes(activeSubmenu.excludeCategory!.toLowerCase()));
+            const excludeTerm = activeSubmenu.excludeCategory.toLowerCase();
+            cats = cats.filter((c: Category) => {
+                const nameLower = c.name.toLowerCase();
+                const nameEnLower = (c.name_en || '').toLowerCase();
+                return !nameLower.includes(excludeTerm) && !nameEnLower.includes(excludeTerm);
+            });
         }
 
         // IMPORTANT: By default, we DO NOT restrict items. All categories for the fetched restaurant slug are shown.
@@ -282,10 +293,10 @@ export default function VenuePage({ params }: VenuePageProps) {
     // Loading state
     if (isLoading) {
         return (
-            <main className="min-h-screen bg-[#F8FAFC] pb-12 pt-16 relative overflow-hidden">
+            <main className="min-h-screen bg-[#F8FAFC] pb-12 pt-4 relative overflow-x-hidden">
                 {/* Tabs skeleton */}
                 {venueConfig.submenus.length > 1 && (
-                    <div className="sticky top-16 z-40 bg-white border-b border-gray-100 px-4 py-3">
+                    <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3">
                         <div className="max-w-lg mx-auto">
                             <div className="h-11 bg-gray-100 rounded-xl shimmer" />
                         </div>
@@ -308,10 +319,10 @@ export default function VenuePage({ params }: VenuePageProps) {
     }
 
     return (
-        <main className="min-h-screen bg-[#F8FAFC] pb-24 pt-16 animate-fade-in relative">
+        <main className="min-h-screen bg-[#F8FAFC] pb-24 pt-4 animate-fade-in relative overflow-x-hidden">
             {/* TABS - Remplace le header "Lobby & Pool" ou "Panorama" */}
             {venueConfig.submenus.length > 1 && (
-                <div className="sticky top-16 z-40 bg-white border-b border-gray-100">
+                <div className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100" data-tab-pane>
                     <div className="max-w-lg mx-auto px-4 py-3">
                         <div className="bg-gray-100 p-1 rounded-xl flex items-center relative">
                             {/* Fond glissant pour l'onglet actif */}
@@ -343,7 +354,8 @@ export default function VenuePage({ params }: VenuePageProps) {
             {/* Category Navigation - Scroll horizontal */}
             {navCategories.length > 0 && <CategoryNav categories={navCategories} />}
 
-            <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 pt-4">
+            {/* Padding pour compenser les éléments fixes */}
+            <div className={`max-w-3xl lg:max-w-5xl mx-auto px-4 ${venueConfig.submenus.length > 1 && navCategories.length > 0 ? 'pt-28' : venueConfig.submenus.length > 1 ? 'pt-20' : navCategories.length > 0 ? 'pt-20' : 'pt-4'}`}>
                 {/* Categories Section */}
                 {categories && categories.length > 0 ? (
                     <div className="space-y-8 mb-12">
@@ -352,7 +364,7 @@ export default function VenuePage({ params }: VenuePageProps) {
                             const categoryItems = getItemsForCategory(category.id);
 
                             return (
-                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-36">
+                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-24">
                                     <div className="flex items-center gap-3 mb-3">
                                         <h2 className="text-sm font-bold text-[#002C5F] uppercase tracking-wider whitespace-nowrap">
                                             {categoryName}
@@ -388,19 +400,22 @@ export default function VenuePage({ params }: VenuePageProps) {
                         })}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-16 h-16 bg-[#C5A065]/10 rounded-full flex items-center justify-center mb-4">
-                            <Info className="text-[#C5A065] w-8 h-8" />
+                    // Afficher le message d'erreur seulement si on n'a pas de données du tout OU si on a une erreur explicite
+                    (!data || data.error || (!data.restaurant && !isLoading)) ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-16 h-16 bg-[#C5A065]/10 rounded-full flex items-center justify-center mb-4">
+                                <Info className="text-[#C5A065] w-8 h-8" />
+                            </div>
+                            <h2 className="text-lg font-bold text-[#002C5F] mb-2">
+                                {data?.error ? (language === 'fr' ? 'Erreur de connexion' : 'Connection Error') : (t('installation_progress') || (language === 'fr' ? 'Menu en préparation' : 'Menu coming soon'))}
+                            </h2>
+                            <p className="text-gray-500 text-sm max-w-xs">
+                                {data?.error
+                                    ? `${data.error}. ${language === 'fr' ? 'Vérifiez vos variables Supabase.' : 'Check your Supabase variables.'}`
+                                    : (t('come_back_soon') || (language === 'fr' ? 'Revenez très bientôt' : 'Come back soon'))}
+                            </p>
                         </div>
-                        <h2 className="text-lg font-bold text-[#002C5F] mb-2">
-                            {data?.error ? (language === 'fr' ? 'Erreur de connexion' : 'Connection Error') : (t('installation_progress') || (language === 'fr' ? 'Menu en préparation' : 'Menu coming soon'))}
-                        </h2>
-                        <p className="text-gray-500 text-sm max-w-xs">
-                            {data?.error
-                                ? `${data.error}. ${language === 'fr' ? 'Vérifiez vos variables Supabase.' : 'Check your Supabase variables.'}`
-                                : (t('come_back_soon') || (language === 'fr' ? 'Revenez très bientôt' : 'Come back soon'))}
-                        </p>
-                    </div>
+                    ) : null
                 )}
             </div>
         </main>

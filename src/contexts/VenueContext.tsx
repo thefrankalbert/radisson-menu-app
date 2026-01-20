@@ -47,45 +47,11 @@ export function VenueProvider({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                // Charger les venues
-                const { data: venuesData, error: venuesError } = await supabase
-                    .from('venues')
-                    .select('*')
-                    .eq('is_active', true)
-                    .order('display_order');
-
-                if (venuesError) {
-                    console.warn('Erreur chargement venues:', venuesError);
-                    setVenues([]);
-                } else {
-                    setVenues(venuesData || []);
-                }
-
-                // Charger les zones
-                const { data: zonesData, error: zonesError } = await supabase
-                    .from('zones')
-                    .select('*')
-                    .order('display_order');
-
-                if (zonesError) {
-                    console.warn('Erreur chargement zones:', zonesError);
-                    setZones([]);
-                } else {
-                    setZones(zonesData || []);
-                }
-
-                // Charger les tables
-                const { data: tablesData, error: tablesError } = await supabase
-                    .from('tables')
-                    .select('*')
-                    .eq('is_active', true);
-
-                if (tablesError) {
-                    console.warn('Erreur chargement tables:', tablesError);
-                    setTables([]);
-                } else {
-                    setTables(tablesData || []);
-                }
+                // Les tables venues, zones et tables n'existent pas dans cette base de données
+                // Initialiser avec des tableaux vides pour éviter les erreurs
+                setVenues([]);
+                setZones([]);
+                setTables([]);
 
                 // Définir le venue par défaut si URL contient un slug
                 if (typeof window !== 'undefined') {

@@ -14,6 +14,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-hot-toast";
+import QRScanner from "@/components/QRScanner";
 // IMPORTS LOCAL REMOVED TO PREVENT MODULE ERRORS
 // import { getSafeImageUrl } from "@/lib/imageUtils";
 // import { getTranslatedContent } from "@/utils/translation";
@@ -256,22 +257,86 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  // Aligner la largeur de la section prix avec le titre "Sunday Brunch"
+  useEffect(() => {
+    const alignPriceWidth = () => {
+      const titleElement = document.getElementById('sunday-brunch-title');
+      if (titleElement) {
+        const titleWidth = titleElement.offsetWidth;
+        document.documentElement.style.setProperty('--title-width', `${titleWidth}px`);
+      }
+    };
+    
+    // Attendre que le DOM soit prêt
+    setTimeout(alignPriceWidth, 100);
+    window.addEventListener('resize', alignPriceWidth);
+    return () => window.removeEventListener('resize', alignPriceWidth);
+  }, []);
+
+  // État pour le scanner QR
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const hasCheckedQRRef = useRef(false);
+
   // Active Restaurant Context - avec persistance localStorage
   const [persistedVenue, setPersistedVenue] = useState<string | null>(null);
   
   // Lire depuis URL d'abord, puis localStorage
   const urlVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
+  const urlTable = searchParams.get('table');
+  
+  // Vérifier si on doit ouvrir le scanner QR au chargement (une seule fois)
+  useEffect(() => {
+    if (hasCheckedQRRef.current) return;
+    
+    // Utiliser setTimeout pour éviter l'avertissement React sur setState pendant le rendu
+    const timer = setTimeout(() => {
+      // Vérifier si on vient de la racine sans paramètres
+      if (typeof window === 'undefined') return;
+      
+      const currentPath = window.location.pathname;
+      const hasParams = window.location.search.length > 0;
+      
+      // Si on a déjà des paramètres dans l'URL, ne pas ouvrir le scanner
+      if (urlVenue || urlTable || hasParams) {
+        hasCheckedQRRef.current = true;
+        return;
+      }
+      
+      // Si on est sur la racine sans paramètres
+      if (currentPath === '/' && !hasParams) {
+        // Vérifier si on a déjà un filtre sauvegardé
+        const saved = localStorage.getItem('active_venue_filter');
+        if (!saved || saved === 'null' || saved === '') {
+          // Pas de filtre sauvegardé, ouvrir le scanner QR automatiquement
+          // Utiliser un flag pour éviter les ouvertures multiples
+          const scannerOpened = sessionStorage.getItem('qr_scanner_opened');
+          if (!scannerOpened) {
+            setShowQRScanner(true);
+            sessionStorage.setItem('qr_scanner_opened', 'true');
+          }
+        }
+      }
+      
+      hasCheckedQRRef.current = true;
+    }, 1000); // Délai plus long pour s'assurer que tout est prêt et que ClearStorage a fini
+    
+    return () => clearTimeout(timer);
+  }, []); // Pas de dépendances pour éviter les re-exécutions
   
   // Initialiser depuis localStorage au montage et rediriger si nécessaire
   useEffect(() => {
+    // Attendre que la vérification QR soit terminée pour éviter les conflits
+    if (!hasCheckedQRRef.current) return;
+    
     if (urlVenue) {
       // Si on a un paramètre URL, le sauvegarder dans localStorage
       localStorage.setItem('active_venue_filter', urlVenue);
       setPersistedVenue(urlVenue);
-    } else {
+    } else if (!showQRScanner) {
       // Sinon, lire depuis localStorage et rediriger pour appliquer le filtre
+      // Mais seulement si le scanner QR n'est pas ouvert
       const saved = localStorage.getItem('active_venue_filter');
-      if (saved && saved !== 'null') {
+      if (saved && saved !== 'null' && saved !== '') {
         setPersistedVenue(saved);
         // Rediriger vers la homepage avec le filtre pour que l'URL reflète l'état
         const currentPath = window.location.pathname;
@@ -280,9 +345,18 @@ export default function Home() {
         }
       }
     }
-  }, [urlVenue, router]);
+  }, [urlVenue, router, showQRScanner]);
   
   const activeVenue = urlVenue || persistedVenue;
+
+  // Récupérer le numéro de table depuis l'URL ou localStorage
+  const [tableNumber, setTableNumber] = useState<string>('');
+  const tableFromUrl = searchParams.get('table');
+
+  useEffect(() => {
+    const saved = tableFromUrl || localStorage.getItem('saved_table') || localStorage.getItem('table_number') || '';
+    setTableNumber(saved);
+  }, [tableFromUrl]);
 
   useEffect(() => {
     let isMounted = true;
@@ -453,14 +527,26 @@ export default function Home() {
 
     // Filter categories that actually have items in this venue
     const availableCategoryNames = new Set(
-      filteredMenuItems.map(item => getCategoryData(item.categories)?.name?.toLowerCase())
+      filteredMenuItems.map(item => {
+        const categoryData = getCategoryData(item.categories);
+        return categoryData?.name?.toLowerCase();
+      }).filter(Boolean)
     );
 
-    return CURATED_CATEGORIES.filter(cat =>
-      availableCategoryNames.has(cat.dbTerm.toLowerCase()) ||
-      availableCategoryNames.has(cat.fr.toLowerCase()) ||
-      (cat.id === 'drinks' && activeVenue) // Drinks always available in groups
-    );
+    // Filtrer les catégories selon les items disponibles dans le restaurant actif
+    const categories = CURATED_CATEGORIES.filter(cat => {
+      // Vérifier si la catégorie correspond aux items filtrés
+      const hasMatchingItems = availableCategoryNames.has(cat.dbTerm.toLowerCase()) ||
+        availableCategoryNames.has(cat.fr.toLowerCase()) ||
+        availableCategoryNames.has(cat.en?.toLowerCase() || '');
+      
+      // Les boissons sont toujours disponibles pour Panorama et Lobby
+      const isDrinks = cat.id === 'drinks';
+      
+      return hasMatchingItems || (isDrinks && activeVenue);
+    });
+
+    return categories;
   }, [filteredMenuItems, activeVenue]);
 
   const deepSearchResults = useMemo(() => {
@@ -477,7 +563,9 @@ export default function Home() {
   const featuredItems = menuItems.filter(item => item.is_featured);
 
   return (
-    <div className="flex-1 w-full bg-radisson-light min-h-screen pb-0">
+    <>
+      <QRScanner isOpen={showQRScanner} onClose={() => setShowQRScanner(false)} />
+      <div className="flex-1 w-full bg-radisson-light min-h-screen pb-0">
       {/* STICKY HEADER WITH SEARCH - Appears when scrolling */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isSearchSticky
@@ -486,7 +574,7 @@ export default function Home() {
           }`}
       >
         <div className="bg-white border-b border-gray-100 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="w-full px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
@@ -520,13 +608,18 @@ export default function Home() {
         <div className="relative pt-4">
           {/* Original Header - only visible when not scrolled */}
           <div className={`transition-opacity duration-300 ${isSearchSticky ? 'opacity-0' : 'opacity-100'}`}>
-            <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="w-full px-4 py-3 flex items-center justify-between">
               <div className="w-10" />
               {/* Logo horizontal image */}
               <img
-                src="/images/logo-horizontal.png"
+                src="/images/header.png"
                 alt="Blu Table"
-                className="h-6 object-contain"
+                className="h-6 w-auto max-w-[260px] object-contain"
+                onError={(e) => {
+                  // Fallback si l'image ne charge pas
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/images/header.png";
+                }}
               />
               <Link
                 href="/settings"
@@ -537,7 +630,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="max-w-md mx-auto px-4">
+          <div className="w-full px-4">
 
             {/* 1.1. BANNIÈRE SUNDAY BRUNCH */}
             <div className="mb-6 animate-fade-in w-full">
@@ -566,28 +659,37 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Titre */}
-                  <div className="text-center py-1">
-                    <h2 className="text-white text-[36px] font-playfair font-semibold leading-none text-shadow-elegant whitespace-nowrap">
-                      Sunday Brunch
-                    </h2>
-                  </div>
+                  {/* Titre et Prix - Alignés */}
+                  <div className="flex flex-col items-center gap-3">
+                    {/* Titre */}
+                    <div className="text-center py-1">
+                      <h2 id="sunday-brunch-title" className="text-white text-[36px] font-playfair font-semibold leading-none text-shadow-elegant whitespace-nowrap inline-block">
+                        Sunday Brunch
+                      </h2>
+                    </div>
 
-                  {/* Prix */}
-                  <div className="bg-white/[0.06] backdrop-blur-md rounded-xl border border-white/[0.08] overflow-hidden">
-                    <div className="flex items-center justify-center gap-8 px-4 py-2.5">
-                      <div className="text-center">
-                        <p className="text-[#C5A065] text-[8px] font-bold tracking-[0.2em] uppercase">
-                          {language === 'fr' ? 'Enfant' : 'Child'}
-                        </p>
-                        <p className="text-white text-lg font-bold leading-tight">17 500</p>
-                      </div>
-                      <div className="h-8 w-[1px] bg-gradient-to-b from-transparent via-white/15 to-transparent"></div>
-                      <div className="text-center">
-                        <p className="text-[#C5A065] text-[8px] font-bold tracking-[0.2em] uppercase">
-                          {language === 'fr' ? 'Adulte' : 'Adult'}
-                        </p>
-                        <p className="text-white text-lg font-bold leading-tight">35 000</p>
+                    {/* Prix - Largeur alignée avec le titre */}
+                    <div 
+                      className="bg-white/[0.06] backdrop-blur-md rounded-xl border border-white/[0.08] overflow-hidden"
+                      style={{ 
+                        width: 'var(--title-width, 280px)',
+                        maxWidth: '100%'
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-8 px-4 py-2.5">
+                        <div className="text-center flex-1">
+                          <p className="text-[#C5A065] text-[8px] font-bold tracking-[0.2em] uppercase">
+                            {language === 'fr' ? 'Enfant' : 'Child'}
+                          </p>
+                          <p className="text-white text-lg font-bold leading-tight">17 500</p>
+                        </div>
+                        <div className="h-8 w-[1px] bg-gradient-to-b from-transparent via-white/15 to-transparent"></div>
+                        <div className="text-center flex-1">
+                          <p className="text-[#C5A065] text-[8px] font-bold tracking-[0.2em] uppercase">
+                            {language === 'fr' ? 'Adulte' : 'Adult'}
+                          </p>
+                          <p className="text-white text-lg font-bold leading-tight">35 000</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -662,6 +764,31 @@ export default function Home() {
                 )}
               </form>
             </div>
+
+            {/* Titre de bienvenue et numéro de table */}
+            {tableNumber && (
+              <div className="mb-5 animate-fade-in">
+                <div className="text-left">
+                  {/* Titre */}
+                  <h1 className="text-[#003058] text-xl sm:text-2xl font-bold mb-2 leading-tight">
+                    {language === 'fr' ? (
+                      <>
+                        Découvrez de<br />délicieux plats
+                      </>
+                    ) : (
+                      'Order Easier'
+                    )}
+                  </h1>
+                  
+                  {/* Sous-titre */}
+                  <p className="text-[#003058] text-sm sm:text-base font-normal">
+                    {language === 'fr' 
+                      ? `Vous êtes assis à la table ${tableNumber}` 
+                      : `You are seated at table ${tableNumber}`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* 1.5. APERÇU DU PANIER - Cartes compactes */}
             {items.length > 0 && (
@@ -973,5 +1100,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

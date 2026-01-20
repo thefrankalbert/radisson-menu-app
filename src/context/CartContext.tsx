@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 // Définition des types
 type CartItem = {
@@ -18,7 +19,7 @@ type CartItem = {
 
 type CartContextType = {
     items: CartItem[];
-    addToCart: (item: CartItem, restaurantId: string, skipConfirm?: boolean) => void;
+    addToCart: (item: CartItem, restaurantId: string, skipConfirm?: boolean) => Promise<void>;
     removeFromCart: (id: string) => void;
     updateQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
@@ -30,7 +31,7 @@ type CartContextType = {
     lastVisitedMenuUrl: string | null;
     setLastVisitedMenuUrl: (url: string) => void;
     pendingAddToCart: { item: CartItem; restaurantId: string } | null;
-    confirmPendingAddToCart: () => void;
+    confirmPendingAddToCart: () => Promise<void>;
     cancelPendingAddToCart: () => void;
 };
 
@@ -46,6 +47,71 @@ const getCartItemKey = (item: CartItem): string => {
         key += `-var-${item.selectedVariant.name_fr}`;
     }
     return key;
+};
+
+// Cache pour stocker les slugs des restaurants
+const restaurantSlugCache = new Map<string, string>();
+
+// Fonction pour obtenir le slug d'un restaurant depuis son ID
+const getRestaurantSlug = async (restaurantId: string): Promise<string | null> => {
+    // Vérifier le cache d'abord
+    if (restaurantSlugCache.has(restaurantId)) {
+        return restaurantSlugCache.get(restaurantId) || null;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('restaurants')
+            .select('slug')
+            .eq('id', restaurantId)
+            .single();
+
+        if (error || !data) {
+            console.error('Error fetching restaurant slug:', error);
+            return null;
+        }
+
+        // Mettre en cache
+        restaurantSlugCache.set(restaurantId, data.slug);
+        return data.slug;
+    } catch (error) {
+        console.error('Error fetching restaurant slug:', error);
+        return null;
+    }
+};
+
+// Fonction pour vérifier si deux restaurants sont compatibles (même groupe)
+const areRestaurantsCompatible = async (restaurantId1: string | null, restaurantId2: string): Promise<boolean> => {
+    if (!restaurantId1 || restaurantId1 === restaurantId2) {
+        return true; // Même restaurant ou panier vide
+    }
+
+    const slug1 = await getRestaurantSlug(restaurantId1);
+    const slug2 = await getRestaurantSlug(restaurantId2);
+
+    if (!slug1 || !slug2) {
+        return false; // Si on ne peut pas récupérer les slugs, on refuse par sécurité
+    }
+
+    // Groupes de restaurants compatibles
+    const panoramaGroup = ['carte-panorama-restaurant']; // Panorama et Tapas utilisent le même slug
+    const lobbyGroup = ['carte-lobby-bar-snacks', 'pool-bar']; // Lobby et Pool
+    const drinksSlug = 'carte-des-boissons'; // Boissons
+
+    // Vérifier si les deux restaurants sont dans le même groupe
+    const isInPanoramaGroup = (slug: string) => panoramaGroup.some(s => slug.includes(s));
+    const isInLobbyGroup = (slug: string) => lobbyGroup.some(s => slug.includes(s));
+    const isDrinks = (slug: string) => slug.includes(drinksSlug);
+
+    // Même groupe = compatible
+    if (isInPanoramaGroup(slug1) && isInPanoramaGroup(slug2)) return true;
+    if (isInLobbyGroup(slug1) && isInLobbyGroup(slug2)) return true;
+
+    // Boissons est compatible avec Panorama et Lobby
+    if (isDrinks(slug1) && (isInPanoramaGroup(slug2) || isInLobbyGroup(slug2))) return true;
+    if (isDrinks(slug2) && (isInPanoramaGroup(slug1) || isInLobbyGroup(slug1))) return true;
+
+    return false;
 };
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
@@ -80,23 +146,30 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [items, currentRestaurantId, lastVisitedMenuUrl]);
 
-    const addToCart = (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false) => {
+    const addToCart = async (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false) => {
         // Vérification Multi-Restaurant avant de modifier le state
         if (items.length > 0 && currentRestaurantId && currentRestaurantId !== restaurantId && !skipConfirm) {
-            setPendingAddToCart({ item: newItem, restaurantId });
-            return;
+            // Vérifier si les restaurants sont compatibles
+            const compatible = await areRestaurantsCompatible(currentRestaurantId, restaurantId);
+            if (!compatible) {
+                setPendingAddToCart({ item: newItem, restaurantId });
+                return;
+            }
+            // Si compatibles, on continue sans modal
         }
 
         setItems((prevItems) => {
-            // Si on change de restaurant (skipConfirm = true)
-            if (prevItems.length > 0 && currentRestaurantId && currentRestaurantId !== restaurantId) {
-                setCurrentRestaurantId(restaurantId);
-                return [{ ...newItem, quantity: 1, restaurant_id: restaurantId }];
-            }
-
             // Si c'est le même restaurant ou panier vide
             if (prevItems.length === 0) {
                 setCurrentRestaurantId(restaurantId);
+            } else if (currentRestaurantId && currentRestaurantId !== restaurantId) {
+                // Si on change de restaurant non compatible (skipConfirm = true signifie qu'on a confirmé)
+                // Dans ce cas, on vide le panier seulement si skipConfirm est true
+                if (skipConfirm) {
+                    setCurrentRestaurantId(restaurantId);
+                    return [{ ...newItem, quantity: 1, restaurant_id: restaurantId }];
+                }
+                // Sinon, si les restaurants sont compatibles, on continue avec le panier existant
             }
 
             // 2. Vérification si l'item existe déjà (avec même option/variante)
@@ -112,9 +185,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         });
     };
 
-    const confirmPendingAddToCart = () => {
+    const confirmPendingAddToCart = async () => {
         if (pendingAddToCart) {
-            addToCart(pendingAddToCart.item, pendingAddToCart.restaurantId, true);
+            await addToCart(pendingAddToCart.item, pendingAddToCart.restaurantId, true);
             setPendingAddToCart(null);
         }
     };
