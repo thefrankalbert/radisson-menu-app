@@ -256,8 +256,33 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Active Restaurant Context
-  const activeVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
+  // Active Restaurant Context - avec persistance localStorage
+  const [persistedVenue, setPersistedVenue] = useState<string | null>(null);
+  
+  // Lire depuis URL d'abord, puis localStorage
+  const urlVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
+  
+  // Initialiser depuis localStorage au montage et rediriger si nécessaire
+  useEffect(() => {
+    if (urlVenue) {
+      // Si on a un paramètre URL, le sauvegarder dans localStorage
+      localStorage.setItem('active_venue_filter', urlVenue);
+      setPersistedVenue(urlVenue);
+    } else {
+      // Sinon, lire depuis localStorage et rediriger pour appliquer le filtre
+      const saved = localStorage.getItem('active_venue_filter');
+      if (saved && saved !== 'null') {
+        setPersistedVenue(saved);
+        // Rediriger vers la homepage avec le filtre pour que l'URL reflète l'état
+        const currentPath = window.location.pathname;
+        if (currentPath === '/' && !window.location.search.includes('v=')) {
+          router.replace(`/?v=${saved}`, { scroll: false });
+        }
+      }
+    }
+  }, [urlVenue, router]);
+  
+  const activeVenue = urlVenue || persistedVenue;
 
   useEffect(() => {
     let isMounted = true;
@@ -353,7 +378,8 @@ export default function Home() {
         if (activeVenue) {
           const groupSlugs: Record<string, string[]> = {
             'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
-            'lobby-bar': ['carte-lobby-bar-snacks', 'carte-pool-bar', 'carte-des-boissons'],
+            'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
+            'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
           };
           const allowed = groupSlugs[activeVenue] || [activeVenue];
           const match = data.find(c => {
@@ -386,7 +412,8 @@ export default function Home() {
     if (activeVenue) {
       const groupSlugs: Record<string, string[]> = {
         'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
-        'lobby-bar': ['carte-lobby-bar-snacks', 'carte-pool-bar', 'carte-des-boissons'],
+        'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
+        'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
       };
       const allowed = groupSlugs[activeVenue] || [activeVenue];
       list = restaurants.filter(r => allowed.some(s => r.slug.includes(s)));
@@ -408,7 +435,8 @@ export default function Home() {
 
     const groupSlugs: Record<string, string[]> = {
       'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
-      'lobby-bar': ['carte-lobby-bar-snacks', 'carte-pool-bar', 'carte-des-boissons'],
+      'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
+      'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
     };
 
     const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];

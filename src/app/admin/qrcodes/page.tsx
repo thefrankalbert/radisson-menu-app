@@ -48,7 +48,16 @@ export default function QRCodesPage() {
 
     const generateQRCode = async (card: Restaurant) => {
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const menuUrl = `${baseUrl}/menu/${card.slug}${config.tableNumber ? `?table=${config.tableNumber}` : ''}`;
+        
+        // Mapping des slugs vers les filtres de venue
+        const venueMap: Record<string, string> = {
+            'carte-panorama-restaurant': 'panorama',
+            'carte-lobby-bar-snacks': 'lobby'
+        };
+        
+        const venueFilter = venueMap[card.slug] || '';
+        // Les QR codes pointent maintenant vers la homepage avec le filtre de venue
+        const menuUrl = `${baseUrl}/${venueFilter ? `?v=${venueFilter}` : ''}${config.tableNumber ? `${venueFilter ? '&' : '?'}table=${config.tableNumber}` : ''}`;
 
         try {
             const url = await QRCode.toDataURL(menuUrl, {
@@ -104,7 +113,16 @@ export default function QRCodesPage() {
 
     const getQRUrl = (card: Restaurant, size?: number) => {
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        const menuUrl = `${baseUrl}/menu/${card.slug}${config.tableNumber ? `?table=${config.tableNumber}` : ''}`;
+        
+        // Mapping des slugs vers les filtres de venue
+        const venueMap: Record<string, string> = {
+            'carte-panorama-restaurant': 'panorama',
+            'carte-lobby-bar-snacks': 'lobby'
+        };
+        
+        const venueFilter = venueMap[card.slug] || '';
+        // Les QR codes pointent maintenant vers la homepage avec le filtre de venue
+        const menuUrl = `${baseUrl}/${venueFilter ? `?v=${venueFilter}` : ''}${config.tableNumber ? `${venueFilter ? '&' : '?'}table=${config.tableNumber}` : ''}`;
 
         return `https://api.qrserver.com/v1/create-qr-code/?size=${size || config.size}x${size || config.size}&data=${encodeURIComponent(menuUrl)}&color=${config.color}&bgcolor=${config.bgColor}&margin=2`;
     };
@@ -304,8 +322,16 @@ export default function QRCodesPage() {
                                                 Lien de destination
                                             </p>
                                             <p className="text-xs font-bold text-[#003058] mt-2 truncate max-w-full">
-                                                {typeof window !== 'undefined' ? window.location.origin : ''}/menu/{selectedCard.slug}
-                                                {config.tableNumber && `?table=${config.tableNumber}`}
+                                                {(() => {
+                                                    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+                                                    const venueMap: Record<string, string> = {
+                                                        'carte-panorama-restaurant': 'panorama',
+                                                        'carte-lobby-bar-snacks': 'lobby'
+                                                    };
+                                                    const venueFilter = venueMap[selectedCard.slug] || '';
+                                                    const url = `${baseUrl}/${venueFilter ? `?v=${venueFilter}` : ''}${config.tableNumber ? `${venueFilter ? '&' : '?'}table=${config.tableNumber}` : ''}`;
+                                                    return url;
+                                                })()}
                                             </p>
                                         </div>
                                     </div>

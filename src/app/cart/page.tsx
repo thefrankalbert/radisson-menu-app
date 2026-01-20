@@ -38,8 +38,10 @@ export default function CartPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        // Try to load saved table number
-        const savedTable = localStorage.getItem('saved_table') || localStorage.getItem('table_number');
+        // Récupérer le numéro de table depuis l'URL ou localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const tableFromUrl = urlParams.get('table');
+        const savedTable = tableFromUrl || localStorage.getItem('saved_table') || localStorage.getItem('table_number') || '';
         if (savedTable) setTableNumber(savedTable);
     }, []);
 
@@ -264,20 +266,16 @@ export default function CartPage() {
                                     />
                                 </div>
 
-                                <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                                    <label htmlFor="table" className="text-[10px] font-bold uppercase tracking-widest text-radisson-blue whitespace-nowrap">
-                                        {language === 'fr' ? 'Ma Table' : 'My Table'}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="table"
-                                        required
-                                        value={tableNumber}
-                                        onChange={(e) => setTableNumber(e.target.value)}
-                                        placeholder="N°"
-                                        className="flex-1 border-b-2 border-radisson-gold bg-transparent py-1 text-center font-mono font-black text-lg text-gray-900 focus:border-radisson-blue focus:outline-none transition-colors rounded-none placeholder:text-gray-200"
-                                    />
-                                </div>
+                                {tableNumber && (
+                                    <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                                        <label className="text-[10px] font-bold uppercase tracking-widest text-radisson-blue whitespace-nowrap">
+                                            {language === 'fr' ? 'Ma Table' : 'My Table'}
+                                        </label>
+                                        <div className="flex-1 text-center font-mono font-black text-lg text-gray-900">
+                                            {tableNumber}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
 
