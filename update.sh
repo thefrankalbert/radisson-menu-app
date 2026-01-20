@@ -13,7 +13,23 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_DIR="${APP_DIR:-$HOME/htdocs/www.theblutable.com}"
+# Détecter automatiquement le répertoire Git actuel
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/.git" ]; then
+    APP_DIR="$SCRIPT_DIR"
+else
+    # Si le script n'est pas dans un dépôt Git, chercher le dépôt parent
+    CURRENT_DIR="$SCRIPT_DIR"
+    while [ "$CURRENT_DIR" != "/" ]; do
+        if [ -d "$CURRENT_DIR/.git" ]; then
+            APP_DIR="$CURRENT_DIR"
+            break
+        fi
+        CURRENT_DIR="$(dirname "$CURRENT_DIR")"
+    done
+    # Fallback vers le répertoire par défaut si aucun Git trouvé
+    APP_DIR="${APP_DIR:-$HOME/htdocs/www.theblutable.com/radisson-menu-app}"
+fi
 APP_NAME="radisson-menu-app"
 NODE_VERSION="18"
 GIT_BRANCH="${GIT_BRANCH:-main}"
@@ -69,9 +85,9 @@ if [ ! -d "$APP_DIR" ]; then
     exit 1
 fi
 
+# Changer vers le répertoire de l'application
 cd "$APP_DIR"
-
-log_info "Répertoire de travail: $(pwd)"
+log_info "Répertoire Git détecté: $(pwd)"
 
 # Charger NVM
 log_info "Chargement de NVM..."
@@ -88,10 +104,19 @@ fi
 log_info "Utilisation de Node.js $NODE_VERSION..."
 nvm use $NODE_VERSION || nvm install $NODE_VERSION
 
+# Résoudre le problème de propriété Git si nécessaire
+if git config --global --get safe.directory "$APP_DIR" &> /dev/null; then
+    log_info "Répertoire Git sécurisé configuré"
+else
+    log_warning "Configuration de la sécurité Git pour ce répertoire..."
+    git config --global --add safe.directory "$APP_DIR" || true
+fi
+
 # Vérifier que Git est initialisé
 if [ ! -d ".git" ]; then
     log_warning "Le répertoire n'est pas un dépôt Git. Initialisation..."
     git init
+    git config --global --add safe.directory "$APP_DIR" || true
     git remote add origin https://github.com/thefrankalbert/radisson-menu-app.git || true
 fi
 

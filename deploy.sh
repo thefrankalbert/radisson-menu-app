@@ -13,7 +13,23 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-APP_DIR="${APP_DIR:-$HOME/htdocs/www.theblutable.com}"
+# Détecter automatiquement le répertoire Git actuel ou utiliser le répertoire du script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/.git" ]; then
+    APP_DIR="$SCRIPT_DIR"
+else
+    # Si le script n'est pas dans un dépôt Git, chercher le dépôt parent
+    CURRENT_DIR="$SCRIPT_DIR"
+    while [ "$CURRENT_DIR" != "/" ]; do
+        if [ -d "$CURRENT_DIR/.git" ]; then
+            APP_DIR="$CURRENT_DIR"
+            break
+        fi
+        CURRENT_DIR="$(dirname "$CURRENT_DIR")"
+    done
+    # Fallback vers le répertoire par défaut si aucun Git trouvé
+    APP_DIR="${APP_DIR:-$HOME/htdocs/www.theblutable.com/radisson-menu-app}"
+fi
 APP_NAME="radisson-menu-app"
 NODE_VERSION="18"
 GIT_REPO="https://github.com/thefrankalbert/radisson-menu-app.git"
@@ -45,6 +61,15 @@ if [ ! -d "$APP_DIR" ]; then
 fi
 
 cd "$APP_DIR"
+log_info "Répertoire de travail: $(pwd)"
+
+# Résoudre le problème de propriété Git si nécessaire
+if git config --global --get safe.directory "$APP_DIR" &> /dev/null; then
+    log_info "Répertoire Git sécurisé configuré"
+else
+    log_warning "Configuration de la sécurité Git pour ce répertoire..."
+    git config --global --add safe.directory "$APP_DIR" || true
+fi
 
 # Installer NVM si nécessaire
 log_info "Vérification de NVM..."
