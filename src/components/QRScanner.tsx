@@ -65,21 +65,48 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
                 
                 // Vérifier si c'est une URL valide
                 if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
-                  // Extraire les paramètres de l'URL
+                  // Extraire TOUS les paramètres de l'URL scannée
                   try {
-                    const url = new URL(decodedText);
-                    const venue = url.searchParams.get('v') || url.searchParams.get('restaurant') || url.searchParams.get('venue');
-                    const table = url.searchParams.get('table');
+                    const scannedUrl = new URL(decodedText);
                     
-                    // Construire la nouvelle URL avec les paramètres
-                    const newUrl = new URL(window.location.origin);
-                    if (venue) newUrl.searchParams.set('v', venue);
-                    if (table) newUrl.searchParams.set('table', table);
-                    
-                    onClose(); // Fermer le modal avant la redirection
-                    setTimeout(() => {
-                      router.push(newUrl.toString());
-                    }, 100);
+                    // Si l'URL scannée pointe vers le même domaine, utiliser directement
+                    if (scannedUrl.origin === window.location.origin) {
+                      // Extraire le chemin et tous les paramètres de query
+                      const path = scannedUrl.pathname;
+                      const searchParams = scannedUrl.searchParams;
+                      
+                      // Construire la nouvelle URL avec le chemin et tous les paramètres
+                      const newUrl = new URL(path, window.location.origin);
+                      
+                      // Copier TOUS les paramètres de l'URL scannée
+                      searchParams.forEach((value, key) => {
+                        newUrl.searchParams.set(key, value);
+                      });
+                      
+                      onClose(); // Fermer le modal avant la redirection
+                      setTimeout(() => {
+                        router.push(newUrl.toString());
+                      }, 100);
+                    } else {
+                      // URL d'un autre domaine - extraire seulement les paramètres pertinents
+                      const newUrl = new URL(window.location.origin);
+                      
+                      // Extraire tous les paramètres de query de l'URL scannée
+                      scannedUrl.searchParams.forEach((value, key) => {
+                        // Normaliser les noms de paramètres communs
+                        if (key === 'v' || key === 'venue' || key === 'restaurant') {
+                          newUrl.searchParams.set('v', value);
+                        } else {
+                          // Conserver tous les autres paramètres (table, media queries, etc.)
+                          newUrl.searchParams.set(key, value);
+                        }
+                      });
+                      
+                      onClose();
+                      setTimeout(() => {
+                        router.push(newUrl.toString());
+                      }, 100);
+                    }
                   } catch (e) {
                     // Si l'URL n'est pas valide, essayer de rediriger directement
                     if (decodedText.includes(window.location.origin)) {

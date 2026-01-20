@@ -340,9 +340,12 @@ export default function Home() {
       if (saved && saved !== 'null' && saved !== '') {
         setPersistedVenue(saved);
         // Rediriger vers la homepage avec le filtre pour que l'URL reflète l'état
+        // Préserver tous les paramètres existants
         const currentPath = window.location.pathname;
         if (currentPath === '/' && !window.location.search.includes('v=')) {
-          router.replace(`/?v=${saved}`, { scroll: false });
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('v', saved);
+          router.replace(currentUrl.toString(), { scroll: false });
         }
       }
     }
