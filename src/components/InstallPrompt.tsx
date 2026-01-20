@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Share, X, Download } from "lucide-react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 export default function InstallPrompt() {
     const pathname = usePathname();
@@ -69,8 +70,8 @@ export default function InstallPrompt() {
             </button>
 
             <div className="flex items-center gap-4 pr-6">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <span className="text-[#003366] font-black text-xl">B</span>
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm relative overflow-hidden p-2">
+                    <Image src="/logo.png" alt="Logo" width={40} height={40} className="object-contain" />
                 </div>
                 <div>
                     <h3 className="font-bold text-sm">Installer Blu Table</h3>

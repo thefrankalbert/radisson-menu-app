@@ -4,7 +4,8 @@ import {
   Search,
   ShoppingCart,
   Utensils,
-  Settings
+  Settings,
+  Martini
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -827,6 +828,7 @@ export default function Home() {
                     const categoryData = getCategoryData(item.categories);
                     const resto = categoryData?.restaurant;
                     const restoSlug = Array.isArray(resto) ? resto[0]?.slug : resto?.slug;
+                    const categoryName = categoryData?.name || "";
                     const itemName = getTranslatedContent(language, item.name || "", item.name_en || null);
 
                     return (
@@ -836,7 +838,7 @@ export default function Home() {
                         className="flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group"
                       >
                         <div className="relative h-40 bg-gray-50 overflow-hidden">
-                          {item.image_url ? (
+                          {item.image_url && !item.image_url.includes('placeholder') ? (
                             <img
                               src={item.image_url}
                               alt={itemName}
@@ -844,7 +846,18 @@ export default function Home() {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-radisson-blue/5">
-                              <Utensils size={40} className="text-radisson-blue/20" />
+                              {(categoryName.toLowerCase().includes('boisson') ||
+                                categoryName.toLowerCase().includes('cocktail') ||
+                                categoryName.toLowerCase().includes('vin') ||
+                                categoryName.toLowerCase().includes('bière') ||
+                                categoryName.toLowerCase().includes('drink') ||
+                                categoryName.toLowerCase().includes('beverage') ||
+                                categoryName.toLowerCase().includes('wine') ||
+                                categoryName.toLowerCase().includes('beer')) ? (
+                                <Martini size={40} className="text-radisson-blue/20" />
+                              ) : (
+                                <Utensils size={40} className="text-radisson-blue/20" />
+                              )}
                             </div>
                           )}
                           <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-sm">

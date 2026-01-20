@@ -1,4 +1,4 @@
-import { Plus, Minus, Leaf, Flame, Utensils, ChevronDown } from "lucide-react";
+import { Plus, Minus, Leaf, Flame, Utensils, ChevronDown, Martini } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -139,7 +139,21 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
             <div className="flex items-start gap-4 min-h-24">
                 {/* 1. IMAGE (Left) */}
                 <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50 flex items-center justify-center">
-                    <Utensils size={32} className="text-gray-400" />
+                    {(item.image_url && !item.image_url.includes('placeholder')) ? (
+                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                        (category.toLowerCase().includes('boisson') ||
+                            category.toLowerCase().includes('cocktail') ||
+                            category.toLowerCase().includes('vin') ||
+                            category.toLowerCase().includes('bière') ||
+                            category.toLowerCase().includes('soda') ||
+                            category.toLowerCase().includes('jus') ||
+                            category.toLowerCase().includes('spirit') ||
+                            category.toLowerCase().includes('drink') ||
+                            category.toLowerCase().includes('beverage') ||
+                            category.toLowerCase().includes('wine') ||
+                            category.toLowerCase().includes('beer')) ? <Martini size={32} className="text-gray-400" /> : <Utensils size={32} className="text-gray-400" />
+                    )}
                 </div>
 
                 {/* 2. INFORMATIONS (Centre - Flex 1) */}
@@ -183,9 +197,8 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                                                     setSelectedVariant(variant);
                                                     setShowVariantDropdown(false);
                                                 }}
-                                                className={`w-full px-3 py-2 text-left flex justify-between items-center gap-4 hover:bg-gray-50 transition-colors ${
-                                                    selectedVariant?.id === variant.id ? 'bg-orange-50' : ''
-                                                }`}
+                                                className={`w-full px-3 py-2 text-left flex justify-between items-center gap-4 hover:bg-gray-50 transition-colors ${selectedVariant?.id === variant.id ? 'bg-orange-50' : ''
+                                                    }`}
                                             >
                                                 <span className="text-sm text-gray-700">{getVariantName(variant)}</span>
                                                 <span className="text-sm font-bold text-orange-500">{variant.price.toLocaleString()} FCFA</span>
@@ -244,11 +257,10 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                             <button
                                 key={option.id}
                                 onClick={() => setSelectedOption(option)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                    selectedOption?.id === option.id
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedOption?.id === option.id
                                         ? 'bg-[#002C5F] text-white'
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
+                                    }`}
                             >
                                 {getOptionName(option)}
                             </button>

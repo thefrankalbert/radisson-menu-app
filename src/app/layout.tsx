@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Playfair_Display } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/Header";
 import CartSummary from "@/components/CartSummary";
@@ -15,6 +16,7 @@ import OfflineIndicator from "@/components/OfflineIndicator";
 import CartConfirmModal from "@/components/CartConfirmModal";
 import SplashScreen from "@/components/SplashScreen";
 import PageTransition from "@/components/layout/PageTransition";
+import TableCapture from "@/components/TableCapture";
 
 
 
@@ -71,16 +73,29 @@ export default function RootLayout({
           <CurrencyProvider>
             <VenueProvider>
               <CartProvider>
-              <MenuVisitedTracker />
-              <Header />
-              <PageTransition>
-                {children}
-              </PageTransition>
-              <BottomNav />
-              <InstallPrompt />
-              <OfflineIndicator />
-              <ToastProvider />
-              <CartConfirmModal />
+                <MenuVisitedTracker />
+                <Suspense fallback={null}>
+                  <TableCapture />
+                </Suspense>
+                <Suspense fallback={<div className="h-16 bg-white animate-pulse" />}>
+                  <Header />
+                </Suspense>
+                <PageTransition>
+                  <Suspense fallback={
+                    <div className="min-h-screen bg-radisson-light flex items-center justify-center">
+                      <div className="w-12 h-12 border-4 border-radisson-gold/20 border-t-radisson-gold rounded-full animate-spin" />
+                    </div>
+                  }>
+                    {children}
+                  </Suspense>
+                </PageTransition>
+                <Suspense fallback={<div className="h-16 bg-white" />}>
+                  <BottomNav />
+                </Suspense>
+                <InstallPrompt />
+                <OfflineIndicator />
+                <ToastProvider />
+                <CartConfirmModal />
               </CartProvider>
             </VenueProvider>
           </CurrencyProvider>

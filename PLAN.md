@@ -37,6 +37,12 @@ npm run dev | npm run ios | npm run build | vercel
 - [x] Settings (Établissement, Admins, Notifs)
 - [x] Skeletons & Transitions UI (Performance perçue)
 - [x] Export PDF & PNG haute résolution pour les QR Codes
+### Phase 6 : Client UX & Table Persistence ✅
+- [x] Persistance du numéro de table (localStorage + URL params)
+- [x] Composant LinkWithParams pour maintenir le contexte
+- [x] Icônes Martini pour les boissons (Menu & Featured)
+- [x] Intégration du logo dans InstallPrompt et ConfirmModal
+- [x] Support Suspense pour le build stable
 
 ## 🐛 Audit
 - [x] Test de l'authentification & protection des routes

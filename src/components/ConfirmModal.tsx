@@ -1,7 +1,8 @@
 "use client";
 
-import { X, AlertTriangle } from "lucide-react";
+import { X } from "lucide-react";
 import { useEffect } from "react";
+import Image from "next/image";
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -78,8 +79,8 @@ export default function ConfirmModal({
 
                 {/* Icon */}
                 <div className="flex justify-center mb-4">
-                    <div className={`w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center ${styles.icon}`}>
-                        <AlertTriangle size={32} />
+                    <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center relative overflow-hidden p-3 shadow-inner">
+                        <Image src="/logo.png" alt="Logo" width={60} height={60} className="object-contain" />
                     </div>
                 </div>
 
