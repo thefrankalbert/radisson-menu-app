@@ -53,18 +53,6 @@ export function VenueProvider({ children }: { children: ReactNode }) {
                 setZones([]);
                 setTables([]);
 
-                // Définir le venue par défaut si URL contient un slug
-                if (typeof window !== 'undefined') {
-                    const params = new URLSearchParams(window.location.search);
-                    const venueSlug = params.get('venue');
-                    if (venueSlug && venuesData) {
-                        const venue = venuesData.find(v => v.slug === venueSlug);
-                        if (venue) {
-                            setCurrentVenue(venue);
-                        }
-                    }
-                }
-
             } catch (err) {
                 console.error('Erreur chargement venues:', err);
                 // Ne pas bloquer l'application, juste logger l'erreur

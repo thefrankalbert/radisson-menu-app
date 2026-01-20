@@ -321,6 +321,7 @@ export default function Home() {
     }, 1000); // Délai plus long pour s'assurer que tout est prêt et que ClearStorage a fini
     
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Pas de dépendances pour éviter les re-exécutions
   
   // Initialiser depuis localStorage au montage et rediriger si nécessaire
@@ -421,6 +422,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load order history

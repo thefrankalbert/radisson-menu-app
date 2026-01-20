@@ -131,6 +131,7 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
       }
       setIsScanning(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]); // Seulement dépendre de isOpen pour éviter les re-exécutions
 
   if (!isOpen) return null;
