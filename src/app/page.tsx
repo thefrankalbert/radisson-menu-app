@@ -306,9 +306,11 @@ export default function Home() {
         setShowQRScanner(true);
       } else {
         // Si on a des paramètres, fermer le scanner s'il est ouvert
-        if (showQRScanner) {
-          setShowQRScanner(false);
-        }
+        // Utiliser une fonction de callback pour éviter la dépendance
+        setShowQRScanner((prev) => {
+          if (prev) return false;
+          return prev;
+        });
       }
     }, 600); // Délai pour s'assurer que ClearStorage a fini de nettoyer
     
@@ -316,6 +318,7 @@ export default function Home() {
       clearTimeout(timer);
       scannerCheckRef.current = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlVenue, urlTable]); // Réagir aux changements de paramètres URL
   
   // Initialiser depuis URL - ne plus utiliser localStorage car on le nettoie à la racine

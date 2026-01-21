@@ -161,7 +161,7 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
                   newUrl.searchParams.set('v', decodedText);
                   processAndRedirect(newUrl.toString());
                 }
-              }).catch((error) => {
+              }).catch((error: unknown) => {
                 console.error('Erreur lors de l\'arrêt du scanner:', error);
                 setIsScanning(false);
                 html5QrCodeRef.current = null;
