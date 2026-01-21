@@ -20,6 +20,7 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<any>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
   const router = useRouter();
   const { language } = useLanguage();
 
@@ -32,8 +33,12 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
         html5QrCodeRef.current = null;
       }
       setIsScanning(false);
+      setScanStatus('idle');
       return;
     }
+    
+    // Réinitialiser le statut quand on ouvre le scanner
+    setScanStatus('idle');
 
     const loadScanner = async () => {
       try {
@@ -56,6 +61,9 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
               // QR code scanné avec succès - arrêter immédiatement pour éviter les scans multiples
               if (!html5QrCodeRef.current) return;
               
+              console.log('QR Code scanné:', decodedText);
+              setScanStatus('success');
+              
               const currentScanner = html5QrCodeRef.current;
               html5QrCodeRef.current = null; // Marquer comme null immédiatement
               
@@ -63,16 +71,34 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
                 setIsScanning(false);
                 currentScanner.clear().catch(() => {});
                 
+                // Fonction pour traiter et rediriger
+                const processAndRedirect = (targetUrl: string) => {
+                  console.log('Redirection vers:', targetUrl);
+                  onClose(); // Fermer le modal avant la redirection
+                  
+                  // Utiliser window.location.href pour une redirection complète qui recharge la page
+                  // Cela garantit que tous les paramètres sont bien pris en compte
+                  setTimeout(() => {
+                    window.location.href = targetUrl;
+                  }, 200);
+                };
+                
                 // Vérifier si c'est une URL valide
                 if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
                   // Extraire TOUS les paramètres de l'URL scannée
                   try {
                     const scannedUrl = new URL(decodedText);
+                    console.log('URL scannée analysée:', {
+                      origin: scannedUrl.origin,
+                      pathname: scannedUrl.pathname,
+                      search: scannedUrl.search,
+                      params: Object.fromEntries(scannedUrl.searchParams)
+                    });
                     
                     // Si l'URL scannée pointe vers le même domaine, utiliser directement
                     if (scannedUrl.origin === window.location.origin) {
                       // Extraire le chemin et tous les paramètres de query
-                      const path = scannedUrl.pathname;
+                      const path = scannedUrl.pathname || '/';
                       const searchParams = scannedUrl.searchParams;
                       
                       // Construire la nouvelle URL avec le chemin et tous les paramètres
@@ -83,13 +109,11 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
                         newUrl.searchParams.set(key, value);
                       });
                       
-                      onClose(); // Fermer le modal avant la redirection
-                      setTimeout(() => {
-                        router.push(newUrl.toString());
-                      }, 100);
+                      console.log('URL finale (même domaine):', newUrl.toString());
+                      processAndRedirect(newUrl.toString());
                     } else {
                       // URL d'un autre domaine - extraire seulement les paramètres pertinents
-                      const newUrl = new URL(window.location.origin);
+                      const newUrl = new URL('/', window.location.origin);
                       
                       // Extraire tous les paramètres de query de l'URL scannée
                       scannedUrl.searchParams.forEach((value, key) => {
@@ -102,31 +126,43 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
                         }
                       });
                       
-                      onClose();
-                      setTimeout(() => {
-                        router.push(newUrl.toString());
-                      }, 100);
+                      console.log('URL finale (autre domaine):', newUrl.toString());
+                      processAndRedirect(newUrl.toString());
                     }
                   } catch (e) {
+                    console.error('Erreur lors du parsing de l\'URL:', e);
                     // Si l'URL n'est pas valide, essayer de rediriger directement
                     if (decodedText.includes(window.location.origin)) {
-                      onClose();
-                      setTimeout(() => {
-                        router.push(decodedText);
-                      }, 100);
+                      processAndRedirect(decodedText);
                     } else {
                       console.error('Invalid QR code URL:', decodedText);
-                      onClose();
+                      // Essayer d'extraire les paramètres même si l'URL n'est pas complète
+                      try {
+                        const urlMatch = decodedText.match(/\?(.+)$/);
+                        if (urlMatch) {
+                          const params = new URLSearchParams(urlMatch[1]);
+                          const newUrl = new URL('/', window.location.origin);
+                          params.forEach((value, key) => {
+                            newUrl.searchParams.set(key, value);
+                          });
+                          processAndRedirect(newUrl.toString());
+                        } else {
+                          onClose();
+                        }
+                      } catch {
+                        onClose();
+                      }
                     }
                   }
                 } else {
-                  // Si ce n'est pas une URL, essayer de l'utiliser comme paramètre
-                  onClose();
-                  setTimeout(() => {
-                    router.push(`/?v=${decodedText}`);
-                  }, 100);
+                  // Si ce n'est pas une URL, essayer de l'utiliser comme paramètre venue
+                  console.log('QR code n\'est pas une URL, utilisation comme paramètre v');
+                  const newUrl = new URL('/', window.location.origin);
+                  newUrl.searchParams.set('v', decodedText);
+                  processAndRedirect(newUrl.toString());
                 }
-              }).catch(() => {
+              }).catch((error) => {
+                console.error('Erreur lors de l\'arrêt du scanner:', error);
                 setIsScanning(false);
                 html5QrCodeRef.current = null;
                 onClose();
@@ -138,6 +174,7 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
             }
           );
           setIsScanning(true);
+          setScanStatus('scanning');
         } catch (err) {
           console.error('Error starting camera:', err);
           setIsScanning(false);
@@ -191,11 +228,27 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
           style={{ minHeight: '300px' }}
         />
 
-        {!isScanning && (
+        {scanStatus === 'idle' && !isScanning && (
           <div className="mt-4 text-center text-sm text-gray-500">
             {language === 'fr' 
               ? 'Chargement de la caméra...' 
               : 'Loading camera...'}
+          </div>
+        )}
+        
+        {scanStatus === 'scanning' && isScanning && (
+          <div className="mt-4 text-center text-sm text-blue-600">
+            {language === 'fr' 
+              ? 'Scannez le code QR...' 
+              : 'Scanning QR code...'}
+          </div>
+        )}
+        
+        {scanStatus === 'success' && (
+          <div className="mt-4 text-center text-sm text-green-600 font-semibold">
+            {language === 'fr' 
+              ? '✓ Code QR scanné avec succès! Redirection...' 
+              : '✓ QR code scanned successfully! Redirecting...'}
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-hot-toast";
 import QRScanner from "@/components/QRScanner";
+import ClearStorage from "@/components/ClearStorage";
 // IMPORTS LOCAL REMOVED TO PREVENT MODULE ERRORS
 // import { getSafeImageUrl } from "@/lib/imageUtils";
 // import { getTranslatedContent } from "@/utils/translation";
@@ -275,7 +276,7 @@ export default function Home() {
 
   // État pour le scanner QR
   const [showQRScanner, setShowQRScanner] = useState(false);
-  const hasCheckedQRRef = useRef(false);
+  const scannerCheckRef = useRef(false);
 
   // Active Restaurant Context - avec persistance localStorage
   const [persistedVenue, setPersistedVenue] = useState<string | null>(null);
@@ -284,72 +285,49 @@ export default function Home() {
   const urlVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
   const urlTable = searchParams.get('table');
   
-  // Vérifier si on doit ouvrir le scanner QR au chargement (une seule fois)
+  // Ouvrir automatiquement le scanner QR à chaque fois qu'on est à la racine sans paramètres
   useEffect(() => {
-    if (hasCheckedQRRef.current) return;
+    if (typeof window === 'undefined') return;
+    
+    const currentPath = window.location.pathname;
+    const hasParams = window.location.search.length > 0;
+    
+    // Réinitialiser le flag quand on change de page
+    scannerCheckRef.current = false;
     
     // Utiliser setTimeout pour éviter l'avertissement React sur setState pendant le rendu
     const timer = setTimeout(() => {
-      // Vérifier si on vient de la racine sans paramètres
-      if (typeof window === 'undefined') return;
+      if (scannerCheckRef.current) return;
+      scannerCheckRef.current = true;
       
-      const currentPath = window.location.pathname;
-      const hasParams = window.location.search.length > 0;
-      
-      // Si on a déjà des paramètres dans l'URL, ne pas ouvrir le scanner
-      if (urlVenue || urlTable || hasParams) {
-        hasCheckedQRRef.current = true;
-        return;
-      }
-      
-      // Si on est sur la racine sans paramètres
+      // Si on est sur la racine SANS paramètres, ouvrir le scanner QR automatiquement
       if (currentPath === '/' && !hasParams) {
-        // Vérifier si on a déjà un filtre sauvegardé
-        const saved = localStorage.getItem('active_venue_filter');
-        if (!saved || saved === 'null' || saved === '') {
-          // Pas de filtre sauvegardé, ouvrir le scanner QR automatiquement
-          // Utiliser un flag pour éviter les ouvertures multiples
-          const scannerOpened = sessionStorage.getItem('qr_scanner_opened');
-          if (!scannerOpened) {
-            setShowQRScanner(true);
-            sessionStorage.setItem('qr_scanner_opened', 'true');
-          }
+        console.log('Ouverture automatique du scanner QR sur la racine');
+        setShowQRScanner(true);
+      } else {
+        // Si on a des paramètres, fermer le scanner s'il est ouvert
+        if (showQRScanner) {
+          setShowQRScanner(false);
         }
       }
-      
-      hasCheckedQRRef.current = true;
-    }, 1000); // Délai plus long pour s'assurer que tout est prêt et que ClearStorage a fini
+    }, 600); // Délai pour s'assurer que ClearStorage a fini de nettoyer
     
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Pas de dépendances pour éviter les re-exécutions
+    return () => {
+      clearTimeout(timer);
+      scannerCheckRef.current = false;
+    };
+  }, [urlVenue, urlTable]); // Réagir aux changements de paramètres URL
   
-  // Initialiser depuis localStorage au montage et rediriger si nécessaire
+  // Initialiser depuis URL - ne plus utiliser localStorage car on le nettoie à la racine
   useEffect(() => {
-    // Attendre que la vérification QR soit terminée pour éviter les conflits
-    if (!hasCheckedQRRef.current) return;
-    
     if (urlVenue) {
-      // Si on a un paramètre URL, le sauvegarder dans localStorage
-      localStorage.setItem('active_venue_filter', urlVenue);
+      // Si on a un paramètre URL, l'utiliser directement
       setPersistedVenue(urlVenue);
-    } else if (!showQRScanner) {
-      // Sinon, lire depuis localStorage et rediriger pour appliquer le filtre
-      // Mais seulement si le scanner QR n'est pas ouvert
-      const saved = localStorage.getItem('active_venue_filter');
-      if (saved && saved !== 'null' && saved !== '') {
-        setPersistedVenue(saved);
-        // Rediriger vers la homepage avec le filtre pour que l'URL reflète l'état
-        // Préserver tous les paramètres existants
-        const currentPath = window.location.pathname;
-        if (currentPath === '/' && !window.location.search.includes('v=')) {
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set('v', saved);
-          router.replace(currentUrl.toString(), { scroll: false });
-        }
-      }
+    } else {
+      // Pas de paramètre URL, ne rien faire (le scanner s'ouvrira automatiquement)
+      setPersistedVenue(null);
     }
-  }, [urlVenue, router, showQRScanner]);
+  }, [urlVenue]);
   
   const activeVenue = urlVenue || persistedVenue;
 
@@ -569,6 +547,7 @@ export default function Home() {
 
   return (
     <>
+      <ClearStorage />
       <QRScanner isOpen={showQRScanner} onClose={() => setShowQRScanner(false)} />
       <div className="flex-1 w-full bg-radisson-light min-h-screen pb-0">
       {/* STICKY HEADER WITH SEARCH - Appears when scrolling */}
