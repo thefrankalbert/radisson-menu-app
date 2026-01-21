@@ -2,6 +2,7 @@
 
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import Link from "next/link";
 import { Utensils, Home, CheckCircle2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -14,6 +15,7 @@ import { toast } from "react-hot-toast";
 function OrderConfirmedContent() {
     const { lastVisitedMenuUrl } = useCart();
     const { t } = useLanguage();
+    const { formatPrice } = useCurrency();
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
     const [orderItems, setOrderItems] = useState<any[]>([]);
@@ -107,7 +109,7 @@ function OrderConfirmedContent() {
                                         <span className="uppercase text-xs md:text-sm">{item.menu_item?.name}</span>
                                     </div>
                                     <div className="flex-1 border-b border-dotted border-gray-300 mx-2 relative top-[-4px] opacity-30"></div>
-                                    <span className="font-bold">{(item.price_at_order * item.quantity).toLocaleString()}</span>
+                                    <span className="font-bold">{formatPrice(item.price_at_order * item.quantity)}</span>
                                 </div>
                             </div>
                         ))}
@@ -116,7 +118,7 @@ function OrderConfirmedContent() {
                     <div className="border-t-2 border-dashed border-gray-200 pt-4 flex justify-between items-end">
                         <span className="font-bold text-gray-400 uppercase text-xs tracking-widest">{t('total_to_pay')}</span>
                         <span className="font-black text-gray-900 text-xl font-mono">
-                            {totalPrice.toLocaleString()} <span className="text-[10px] text-gray-400 font-sans">FCFA</span>
+                            {formatPrice(totalPrice)}
                         </span>
                     </div>
                 </div>

@@ -16,6 +16,7 @@ function HeaderContent({ title }: HeaderProps) {
     const isSettingsPage = pathname === "/settings";
     const isOrdersPage = pathname === "/orders";
     const isCartPage = pathname === "/cart";
+    const isOrderConfirmedPage = pathname === "/order-confirmed";
 
     // Fetch restaurant name if on menu page
     useEffect(() => {
@@ -35,8 +36,8 @@ function HeaderContent({ title }: HeaderProps) {
         }
     }, [isMenuPage, params?.slug]);
 
-    // Ne pas afficher le header sur la page d'accueil, admin, settings, orders, cart et venue
-    if (isAdminPage || isHomePage || isSettingsPage || isOrdersPage || isCartPage || isVenuePage) {
+    // Ne pas afficher le header sur la page d'accueil, admin, settings, orders, cart, venue et order-confirmed
+    if (isAdminPage || isHomePage || isSettingsPage || isOrdersPage || isCartPage || isVenuePage || isOrderConfirmedPage) {
         return null;
     }
 

@@ -2,12 +2,13 @@
 
 import { Home, ShoppingBag, Clock } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 
 export default function BottomNav() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { language } = useLanguage();
     const { totalItems } = useCart();
 
@@ -21,11 +22,23 @@ export default function BottomNav() {
         return pathname.startsWith(path);
     };
 
+    // Construire l'URL de l'accueil en préservant les query params
+    const getHomeHref = () => {
+        const params = new URLSearchParams();
+        // Préserver les paramètres v et table s'ils existent
+        const v = searchParams.get('v');
+        const table = searchParams.get('table');
+        if (v) params.set('v', v);
+        if (table) params.set('table', table);
+        const queryString = params.toString();
+        return queryString ? `/?${queryString}` : '/';
+    };
+
     const navItems = [
         {
             icon: Home,
             label: language === 'fr' ? "Accueil" : "Home",
-            href: "/",
+            href: getHomeHref(),
             active: isActive("/") && !isActive("/venue") && !isActive("/menu") && !isActive("/cart") && !isActive("/orders")
         },
         {
@@ -48,10 +61,18 @@ export default function BottomNav() {
             <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2">
                 {navItems.map((item) => {
                     const Icon = item.icon;
+                    const handleClick = (e: React.MouseEvent) => {
+                        // Si c'est le bouton Accueil et qu'on a des query params, marquer comme navigation
+                        if (item.href.startsWith('/') && item.href.includes('?')) {
+                            sessionStorage.setItem('navigating_to_home', 'true');
+                        }
+                    };
+
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
+                            onClick={handleClick}
                             className={`flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200 min-w-[72px] ${
                                 item.active
                                     ? "text-[#002C5F]"

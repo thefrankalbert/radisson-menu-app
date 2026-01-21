@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { Globe, ChevronRight, Bell, Shield, Info, DollarSign, X } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export default function SettingsPage() {
     const { language, setLanguage } = useLanguage();
@@ -31,31 +32,62 @@ export default function SettingsPage() {
 
     const toggleNotifications = async () => {
         if (!notificationsSupported) {
+            toast.error(language === 'fr' ? "Notifications non supportées sur ce navigateur" : "Notifications not supported on this browser");
             return;
         }
 
         if (!notificationsEnabled) {
             // Demander la permission
             try {
+                // Vérifier si on est en HTTPS ou localhost
+                const isSecureContext = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                
+                if (!isSecureContext) {
+                    toast.error(language === 'fr' ? "Les notifications nécessitent une connexion sécurisée (HTTPS)" : "Notifications require a secure connection (HTTPS)");
+                    return;
+                }
+
                 const permission = await Notification.requestPermission();
+                
                 if (permission === "granted") {
                     setNotificationsEnabled(true);
                     // Envoyer une notification de test
-                    new Notification("Blu Table", {
-                        body: language === 'fr' ? "Notifications activées !" : "Notifications enabled!",
-                        icon: "/logo.png"
-                    });
+                    try {
+                        const notification = new Notification("Blu Table", {
+                            body: language === 'fr' ? "Notifications activées !" : "Notifications enabled!",
+                            icon: "/logo.png",
+                            badge: "/logo.png",
+                            tag: "blutable-notification",
+                            requireInteraction: false
+                        });
+                        
+                        // Fermer automatiquement après 3 secondes
+                        setTimeout(() => {
+                            notification.close();
+                        }, 3000);
+                        
+                        toast.success(language === 'fr' ? "Notifications activées avec succès !" : "Notifications enabled successfully!");
+                    } catch (notifError) {
+                        console.error("Error showing notification:", notifError);
+                        toast.error(language === 'fr' ? "Erreur lors de l'affichage de la notification" : "Error showing notification");
+                    }
+                } else if (permission === "denied") {
+                    setNotificationsEnabled(false);
+                    toast.error(language === 'fr' ? "Permission refusée. Veuillez autoriser les notifications dans les paramètres du navigateur." : "Permission denied. Please enable notifications in browser settings.");
                 } else {
                     setNotificationsEnabled(false);
+                    toast(language === 'fr' ? "Permission non accordée" : "Permission not granted", { icon: 'ℹ️' });
                 }
             } catch (error) {
                 console.error("Error requesting notification permission:", error);
                 setNotificationsEnabled(false);
+                toast.error(language === 'fr' ? "Erreur lors de la demande de permission" : "Error requesting permission");
             }
         } else {
             // Note: On ne peut pas révoquer les permissions programmatiquement
             // On désactive juste l'état local (les notifications seront ignorées côté app)
             setNotificationsEnabled(false);
+            toast(language === 'fr' ? "Notifications désactivées localement" : "Notifications disabled locally", { icon: 'ℹ️' });
         }
     };
 
@@ -197,7 +229,7 @@ export default function SettingsPage() {
                 {/* Version */}
                 <div className="mt-12 text-center">
                     <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                        Radisson Blu N&apos;Djamena v2.3.1
+                        Radisson Blu N&apos;Djamena v1.0
                     </p>
                 </div>
             </div>
@@ -288,7 +320,6 @@ export default function SettingsPage() {
                                         }}
                                     />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900">Blu Table</h3>
                                 <p className="text-sm text-gray-500">by Radisson Blu N&apos;Djamena</p>
                             </div>
 
@@ -299,42 +330,17 @@ export default function SettingsPage() {
                                         : "Blu Table is the digital menu application of Radisson Blu N'Djamena. It allows you to discover our gastronomic menu and place orders directly from your table."}
                                 </p>
 
-                                <div className="bg-gray-50 rounded-xl p-4">
-                                    <h4 className="font-bold text-gray-900 mb-2">{language === "fr" ? "Fonctionnalités" : "Features"}</h4>
-                                    <ul className="space-y-2">
-                                        <li className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 bg-[#C5A065] rounded-full" />
-                                            {language === "fr" ? "Menu digital multilingue (FR/EN)" : "Multilingual digital menu (FR/EN)"}
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 bg-[#C5A065] rounded-full" />
-                                            {language === "fr" ? "Commande directe depuis votre table" : "Direct ordering from your table"}
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 bg-[#C5A065] rounded-full" />
-                                            {language === "fr" ? "Conversion de devises en temps réel" : "Real-time currency conversion"}
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 bg-[#C5A065] rounded-full" />
-                                            {language === "fr" ? "Historique de vos commandes" : "Order history"}
-                                        </li>
-                                    </ul>
-                                </div>
-
                                 <div className="bg-[#002C5F]/5 rounded-xl p-4">
                                     <h4 className="font-bold text-gray-900 mb-2">{language === "fr" ? "Nos espaces" : "Our Venues"}</h4>
                                     <ul className="space-y-2 text-gray-600">
-                                        <li><strong>Panorama</strong> - {language === "fr" ? "Restaurant gastronomique avec vue" : "Fine dining with a view"}</li>
+                                        <li><strong>Panorama</strong> - {language === "fr" ? "Restaurant gastronomique avec vue sur le Chari" : "Fine dining with a view of the Chari"}</li>
                                         <li><strong>Lobby Bar</strong> - {language === "fr" ? "Bar & snacks dans un cadre élégant" : "Bar & snacks in an elegant setting"}</li>
-                                        <li><strong>Pool Bar</strong> - {language === "fr" ? "Détente au bord de la piscine" : "Relaxation by the pool"}</li>
+                                        <li><strong>Pool</strong> - {language === "fr" ? "Détente au bord de la piscine" : "Relaxation by the pool"}</li>
                                     </ul>
                                 </div>
 
                                 <div className="text-center pt-4 border-t border-gray-100">
-                                    <p className="text-xs text-gray-400">
-                                        {language === "fr" ? "Développé avec" : "Developed with"} ❤️ {language === "fr" ? "pour" : "for"} Radisson Blu
-                                    </p>
-                                    <p className="text-xs text-gray-400 mt-1">© 2024 Radisson Blu N&apos;Djamena</p>
+                                    <p className="text-xs text-gray-400 mt-1">© {new Date().getFullYear()} Radisson Blu N&apos;Djamena</p>
                                 </div>
                             </div>
                         </div>

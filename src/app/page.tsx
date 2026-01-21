@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { toast } from "react-hot-toast";
 import QRScanner from "@/components/QRScanner";
 import ClearStorage from "@/components/ClearStorage";
@@ -143,7 +144,10 @@ const CURATED_CATEGORIES = [
   { id: 'burgers', fr: "Burgers Signatures", en: "Burgers", icon: "🍔", dbTerm: "Burger" },
   { id: 'african', fr: "Saveurs d'Afrique", en: "African Dishes", icon: "🍲", dbTerm: "Africains" },
   { id: 'pizzas', fr: "Pizzas", en: "Pizzas", icon: "🍕", dbTerm: "Pizza" },
+  { id: 'pasta', fr: "Pâtes", en: "Pasta", icon: "🍝", dbTerm: "Pâtes" },
   { id: 'grills', fr: "Du grill", en: "Grills", icon: "🍖", dbTerm: "Grillade" },
+  { id: 'main', fr: "Plats principaux", en: "Main Courses", icon: "🍽️", dbTerm: "Plat" },
+  { id: 'vegetarian', fr: "Végétarien", en: "Vegetarian", icon: "🥬", dbTerm: "Végétarien" },
   { id: 'desserts', fr: "Douceurs", en: "Desserts", icon: "🍰", dbTerm: "Dessert" },
   { id: 'drinks', fr: "À boire", en: "Drinks", icon: "🍹", dbTerm: "Boisson" },
   { id: 'aperitifs', fr: "Apéritifs", en: "Aperitifs", icon: "🫒", dbTerm: "Cocktail" },
@@ -234,6 +238,7 @@ import { useSearchParams } from "next/navigation";
 export default function Home() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
@@ -241,6 +246,7 @@ export default function Home() {
   const searchBarRef = useRef<HTMLDivElement>(null);
   const { t, language } = useLanguage();
   const { items, totalItems, totalPrice } = useCart();
+  const { formatPrice } = useCurrency();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -285,12 +291,15 @@ export default function Home() {
   const urlVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
   const urlTable = searchParams.get('table');
   
-  // Ouvrir automatiquement le scanner QR à chaque fois qu'on est à la racine sans paramètres
+  // Ouvrir automatiquement le scanner QR uniquement quand on accède directement à la racine sans paramètres
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const currentPath = window.location.pathname;
     const hasParams = window.location.search.length > 0;
+    
+    // Vérifier si c'est une navigation depuis le bouton Accueil (avec query params préservés)
+    const isNavigationFromButton = sessionStorage.getItem('navigating_to_home') === 'true';
     
     // Réinitialiser le flag quand on change de page
     scannerCheckRef.current = false;
@@ -300,17 +309,26 @@ export default function Home() {
       if (scannerCheckRef.current) return;
       scannerCheckRef.current = true;
       
-      // Si on est sur la racine SANS paramètres, ouvrir le scanner QR automatiquement
-      if (currentPath === '/' && !hasParams) {
-        console.log('Ouverture automatique du scanner QR sur la racine');
-        setShowQRScanner(true);
-      } else {
-        // Si on a des paramètres, fermer le scanner s'il est ouvert
-        // Utiliser une fonction de callback pour éviter la dépendance
+      // Si on a des paramètres (navigation depuis bouton ou retour après scan), fermer le scanner
+      if (hasParams) {
+        console.log('Paramètres présents dans l\'URL - fermeture du scanner');
+        sessionStorage.removeItem('navigating_to_home'); // Nettoyer le flag
         setShowQRScanner((prev) => {
           if (prev) return false;
           return prev;
         });
+      } else if (currentPath === '/' && !hasParams) {
+        // Si on est sur la racine SANS paramètres
+        if (isNavigationFromButton) {
+          // Navigation depuis le bouton Accueil sans params → nettoyer et scanner
+          console.log('Navigation depuis bouton Accueil sans params - nettoyage et scanner');
+          sessionStorage.removeItem('navigating_to_home'); // Nettoyer le flag
+          setShowQRScanner(true);
+        } else {
+          // Accès direct à la racine → scanner
+          console.log('Ouverture automatique du scanner QR sur la racine (accès direct)');
+          setShowQRScanner(true);
+        }
       }
     }, 600); // Délai pour s'assurer que ClearStorage a fini de nettoyer
     
@@ -321,16 +339,66 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlVenue, urlTable]); // Réagir aux changements de paramètres URL
   
-  // Initialiser depuis URL - ne plus utiliser localStorage car on le nettoie à la racine
+  // Initialiser depuis URL et sessionStorage (pas localStorage car on le nettoie à la racine)
   useEffect(() => {
-    if (urlVenue) {
-      // Si on a un paramètre URL, l'utiliser directement
-      setPersistedVenue(urlVenue);
-    } else {
-      // Pas de paramètre URL, ne rien faire (le scanner s'ouvrira automatiquement)
-      setPersistedVenue(null);
+    if (typeof window === 'undefined') return;
+    
+    const currentPath = window.location.pathname;
+    const hasParams = window.location.search.length > 0;
+    
+    // Vérifier si c'est un accès direct (pas de referrer ou referrer externe)
+    const isDirectAccess = !document.referrer || 
+                          !document.referrer.includes(window.location.origin) ||
+                          document.referrer === window.location.href;
+    
+    // Si accès direct à la racine, nettoyer les paramètres de l'URL s'ils existent
+    if (currentPath === '/' && isDirectAccess) {
+      if (hasParams) {
+        // Accès direct avec paramètres → les nettoyer
+        console.log('Accès direct à la racine avec paramètres - nettoyage de l\'URL');
+        window.history.replaceState({}, '', '/');
+        setPersistedVenue(null);
+        return;
+      } else {
+        // Accès direct sans paramètres → ne pas restaurer
+        console.log('Accès direct à la racine - ne pas restaurer les paramètres');
+        setPersistedVenue(null);
+        return;
+      }
     }
-  }, [urlVenue]);
+    
+    if (urlVenue) {
+      // Si on a un paramètre URL, l'utiliser directement et le sauvegarder dans sessionStorage
+      setPersistedVenue(urlVenue);
+      sessionStorage.setItem('active_venue_filter', urlVenue);
+    } else {
+      // Pas de paramètre URL dans l'URL, vérifier sessionStorage
+      // Mais seulement si ce n'est PAS un accès direct sans paramètres
+      if (!(currentPath === '/' && !hasParams && isDirectAccess)) {
+        const savedVenue = sessionStorage.getItem('active_venue_filter');
+        if (savedVenue && savedVenue !== 'null' && savedVenue !== '') {
+          // Si on a un venue sauvegardé et qu'on a au moins le paramètre table, restaurer le venue
+          if (urlTable) {
+            setPersistedVenue(savedVenue);
+            // Rediriger pour ajouter le paramètre v manquant
+            const currentUrl = new URL(window.location.href);
+            if (!currentUrl.searchParams.has('v')) {
+              currentUrl.searchParams.set('v', savedVenue);
+              console.log('Restauration du venue depuis sessionStorage:', savedVenue);
+              router.replace(currentUrl.toString(), { scroll: false });
+            }
+          } else {
+            // Pas de table non plus, ne rien faire
+            setPersistedVenue(null);
+          }
+        } else {
+          setPersistedVenue(null);
+        }
+      } else {
+        setPersistedVenue(null);
+      }
+    }
+  }, [urlVenue, urlTable, router]);
   
   const activeVenue = urlVenue || persistedVenue;
 
@@ -359,6 +427,29 @@ export default function Home() {
           }
         } else if (restoData && isMounted) {
           setRestaurants(restoData as Restaurant[]);
+        }
+
+        // Fetch Categories
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('categories')
+          .select(`
+            id,
+            name,
+            name_en,
+            restaurant_id,
+            restaurants (
+              slug,
+              name
+            )
+          `)
+          .order('display_order', { ascending: true });
+
+        if (categoriesError) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error fetching categories:", categoriesError);
+          }
+        } else if (categoriesData && isMounted) {
+          setCategories(categoriesData);
         }
 
         // Deep Search Data
@@ -511,40 +602,202 @@ export default function Home() {
   const filteredCategories = useMemo(() => {
     if (!activeVenue) return CURATED_CATEGORIES;
 
-    // Filter categories that actually have items in this venue
-    const availableCategoryNames = new Set(
-      filteredMenuItems.map(item => {
-        const categoryData = getCategoryData(item.categories);
-        return categoryData?.name?.toLowerCase();
-      }).filter(Boolean)
-    );
+    // Récupérer les slugs autorisés pour le venue actif
+    const groupSlugs: Record<string, string[]> = {
+      'panorama': ['carte-panorama-restaurant'],
+      'lobby': ['carte-lobby-bar-snacks'],
+      'lobby-bar': ['carte-lobby-bar-snacks'],
+    };
+    const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];
 
-    // Filtrer les catégories selon les items disponibles dans le restaurant actif
-    const categories = CURATED_CATEGORIES.filter(cat => {
-      // Vérifier si la catégorie correspond aux items filtrés
-      const hasMatchingItems = availableCategoryNames.has(cat.dbTerm.toLowerCase()) ||
-        availableCategoryNames.has(cat.fr.toLowerCase()) ||
-        availableCategoryNames.has(cat.en?.toLowerCase() || '');
-      
-      // Les boissons sont toujours disponibles pour Panorama et Lobby
-      const isDrinks = cat.id === 'drinks';
-      
-      return hasMatchingItems || (isDrinks && activeVenue);
+    console.log("[HomePage] Filtering categories for venue:", { activeVenue, allowedSlugs });
+
+    // Récupérer toutes les catégories du restaurant actif depuis la DB
+    const venueCategories = categories.filter(cat => {
+      const restaurant = Array.isArray(cat.restaurants) ? cat.restaurants[0] : cat.restaurants;
+      const slug = (restaurant as any)?.slug;
+      return slug && allowedSlugs.some(s => slug.includes(s));
     });
 
-    return categories;
-  }, [filteredMenuItems, activeVenue]);
+    // Exclure les catégories Tapas si on est sur Panorama (comme dans venue page)
+    const excludedCategories = activeVenue === 'panorama' 
+      ? ['Entre Deux Doigts', 'Nos Hamburgers']
+      : [];
+
+    const filteredVenueCategories = venueCategories.filter(cat => {
+      const catName = cat.name?.toLowerCase() || '';
+      const shouldExclude = excludedCategories.some(excluded => catName.includes(excluded.toLowerCase()));
+      if (shouldExclude) {
+        console.log("[HomePage] Excluding category:", cat.name);
+      }
+      return !shouldExclude;
+    });
+
+    console.log("[HomePage] Venue categories after filtering:", {
+      total: venueCategories.length,
+      filtered: filteredVenueCategories.length,
+      categories: filteredVenueCategories.map(c => ({ fr: c.name, en: c.name_en }))
+    });
+
+    // Mapper les catégories réelles aux catégories CURATED
+    // Créer un mapping plus complet entre les noms de catégories DB et les catégories CURATED
+    const categoryMapping: Record<string, string> = {
+      // Starters / Entrées
+      'pour commencer': 'starters',
+      'entrée': 'starters',
+      'starters': 'starters',
+      'starter': 'starters',
+      // Burgers
+      'nos hamburgers': 'burgers',
+      'burger': 'burgers',
+      'hamburgers': 'burgers',
+      // African
+      'plats africains': 'african',
+      'africains': 'african',
+      'african': 'african',
+      'african dishes': 'african',
+      // Pizzas
+      'pizza': 'pizzas',
+      'pizzas': 'pizzas',
+      // Grills
+      'grillade': 'grills',
+      'du grill': 'grills',
+      'grills': 'grills',
+      'grill': 'grills',
+      // Desserts
+      'douceurs': 'desserts',
+      'dessert': 'desserts',
+      'desserts': 'desserts',
+      'sweets': 'desserts',
+      // Drinks
+      'boisson': 'drinks',
+      'à boire': 'drinks',
+      'drinks': 'drinks',
+      'drink': 'drinks',
+      'boissons': 'drinks',
+      // Aperitifs
+      'cocktail': 'aperitifs',
+      'apéritif': 'aperitifs',
+      'aperitifs': 'aperitifs',
+      'aperitif': 'aperitifs',
+      // Pasta
+      'nos pâtes': 'pasta',
+      'pasta': 'pasta',
+      'pâtes': 'pasta',
+      'our pasta': 'pasta',
+      // Main courses
+      'plats principaux': 'main',
+      'main courses': 'main',
+      'main course': 'main',
+      'plats': 'main',
+      // Vegetarian
+      'plat végétarien': 'vegetarian',
+      'vegetarian': 'vegetarian',
+      'végétarien': 'vegetarian',
+      'vegetarian dish': 'vegetarian',
+    };
+
+    // Créer un Set des catégories trouvées dans le venue
+    const foundCategoryIds = new Set<string>();
+    
+    filteredVenueCategories.forEach(venueCat => {
+      const catName = (venueCat.name || '').toLowerCase().trim();
+      const catNameEn = ((venueCat.name_en || '').toLowerCase().trim());
+      
+      console.log("[HomePage] Checking category:", { catName, catNameEn, fullName: venueCat.name });
+      
+      // Chercher une correspondance dans le mapping (recherche plus flexible)
+      let matched = false;
+      for (const [key, categoryId] of Object.entries(categoryMapping)) {
+        const keyLower = key.toLowerCase();
+        // Correspondance partielle dans les deux sens
+        if (catName.includes(keyLower) || catNameEn.includes(keyLower) || 
+            keyLower.includes(catName) || keyLower.includes(catNameEn)) {
+          foundCategoryIds.add(categoryId);
+          matched = true;
+          console.log("[HomePage] Matched category via mapping:", { catName, key, categoryId });
+          break;
+        }
+      }
+      
+      // Si aucune correspondance trouvée, essayer de deviner selon des mots-clés
+      if (!matched) {
+        if (catName.includes('africain') || catNameEn.includes('african')) {
+          foundCategoryIds.add('african');
+          console.log("[HomePage] Matched via keyword: african");
+        } else if (catName.includes('burger') || catNameEn.includes('burger') || catName.includes('hamburger')) {
+          foundCategoryIds.add('burgers');
+          console.log("[HomePage] Matched via keyword: burgers");
+        } else if (catName.includes('pizza') || catNameEn.includes('pizza')) {
+          foundCategoryIds.add('pizzas');
+          console.log("[HomePage] Matched via keyword: pizzas");
+        } else if (catName.includes('pâte') || catNameEn.includes('pasta')) {
+          foundCategoryIds.add('pasta');
+          console.log("[HomePage] Matched via keyword: pasta");
+        } else if (catName.includes('grill') || catNameEn.includes('grill')) {
+          foundCategoryIds.add('grills');
+          console.log("[HomePage] Matched via keyword: grills");
+        } else if (catName.includes('principal') || catNameEn.includes('main course')) {
+          foundCategoryIds.add('main');
+          console.log("[HomePage] Matched via keyword: main");
+        } else if (catName.includes('végétarien') || catNameEn.includes('vegetarian')) {
+          foundCategoryIds.add('vegetarian');
+          console.log("[HomePage] Matched via keyword: vegetarian");
+        } else if (catName.includes('dessert') || catName.includes('douceur') || 
+                   catNameEn.includes('dessert') || catNameEn.includes('sweet')) {
+          foundCategoryIds.add('desserts');
+          console.log("[HomePage] Matched via keyword: desserts");
+        } else if (catName.includes('commencer') || catName.includes('entrée') ||
+                   catNameEn.includes('starter') || catNameEn.includes('start')) {
+          foundCategoryIds.add('starters');
+          console.log("[HomePage] Matched via keyword: starters");
+        } else if (catName.includes('boisson') || catName.includes('drink') ||
+                   catNameEn.includes('drink') || catNameEn.includes('beverage')) {
+          foundCategoryIds.add('drinks');
+          console.log("[HomePage] Matched via keyword: drinks");
+        } else if (catName.includes('cocktail') || catName.includes('apéritif') ||
+                   catNameEn.includes('cocktail') || catNameEn.includes('aperitif')) {
+          foundCategoryIds.add('aperitifs');
+          console.log("[HomePage] Matched via keyword: aperitifs");
+        } else {
+          console.warn("[HomePage] No match found for category:", { catName, catNameEn, fullName: venueCat.name });
+        }
+      }
+    });
+
+    // Toujours inclure les boissons pour Panorama et Lobby
+    if (activeVenue === 'panorama' || activeVenue === 'lobby' || activeVenue === 'lobby-bar') {
+      foundCategoryIds.add('drinks');
+    }
+
+    // Filtrer CURATED_CATEGORIES selon les catégories trouvées
+    const result = CURATED_CATEGORIES.filter(cat => foundCategoryIds.has(cat.id));
+
+    console.log("[HomePage] Filtered categories:", {
+      activeVenue,
+      venueCategoriesCount: filteredVenueCategories.length,
+      venueCategories: filteredVenueCategories.map(c => ({ fr: c.name, en: c.name_en })),
+      foundCategoryIds: Array.from(foundCategoryIds),
+      resultCount: result.length,
+      result: result.map(c => c.fr)
+    });
+
+    return result;
+  }, [categories, activeVenue]);
 
   const deepSearchResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
 
+    // Utiliser les mêmes items filtrés que pour les catégories
+    const itemsToSearch = activeVenue ? filteredMenuItems : menuItems;
+
     const lowerQuery = searchQuery.toLowerCase();
-    return menuItems.filter(item => {
+    return itemsToSearch.filter(item => {
       const itemName = (item.name || "").toLowerCase();
       const itemNameEn = (item.name_en || "").toLowerCase();
       return itemName.includes(lowerQuery) || itemNameEn.includes(lowerQuery);
     }).slice(0, 5);
-  }, [menuItems, searchQuery]);
+  }, [menuItems, filteredMenuItems, searchQuery, activeVenue]);
 
   const featuredItems = menuItems.filter(item => item.is_featured);
 
@@ -759,9 +1012,7 @@ export default function Home() {
                   {/* Titre */}
                   <h1 className="text-[#003058] text-xl sm:text-2xl font-bold mb-2 leading-tight">
                     {language === 'fr' ? (
-                      <>
-                        Découvrez de<br />délicieux plats
-                      </>
+                      'Découvrez nos délicieux plats'
                     ) : (
                       'Order Easier'
                     )}
@@ -770,8 +1021,8 @@ export default function Home() {
                   {/* Sous-titre */}
                   <p className="text-[#003058] text-sm sm:text-base font-normal">
                     {language === 'fr' 
-                      ? `Vous êtes assis à la table ${tableNumber}` 
-                      : `You are seated at table ${tableNumber}`}
+                      ? `Vous êtes à la table ${tableNumber}` 
+                      : `You are at table ${tableNumber}`}
                   </p>
                 </div>
               </div>
@@ -807,7 +1058,7 @@ export default function Home() {
                         </h3>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] font-bold text-orange-500">
-                            {item.price.toLocaleString()} FCFA
+                            {formatPrice(item.price)}
                           </span>
                           <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                             x{item.quantity}
@@ -900,7 +1151,7 @@ export default function Home() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-gray-900">{totalPrice.toLocaleString()} FCFA</span>
+                        <span className="text-lg font-bold text-gray-900">{formatPrice(totalPrice)}</span>
                         <span className="text-[10px] text-gray-400">{language === 'fr' ? "À l'instant" : "Just now"}</span>
                       </div>
                     </Link>
@@ -942,7 +1193,7 @@ export default function Home() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-lg font-bold text-gray-900">{order.totalPrice.toLocaleString()} FCFA</span>
+                          <span className="text-lg font-bold text-gray-900">{formatPrice(order.totalPrice)}</span>
                         </div>
                         <div className="flex items-center justify-between text-[10px] text-gray-400">
                           <span>{timeAgo}</span>

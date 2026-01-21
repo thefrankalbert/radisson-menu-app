@@ -2,6 +2,7 @@ import { Plus, Minus, Leaf, Flame, Utensils, ChevronDown, Martini } from "lucide
 import { useCart } from "@/context/CartContext";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 
 // Types pour options et variantes
 interface ItemOption {
@@ -41,6 +42,7 @@ interface MenuItemProps {
 export default function MenuItemCard({ item, restaurantId, priority = false, category = "" }: MenuItemProps) {
     const { addToCart, updateQuantity, items } = useCart();
     const { language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const [isAnimating, setIsAnimating] = useState(false);
 
     // État pour les sélections
@@ -181,9 +183,8 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                                     className="flex items-center gap-1 bg-orange-50 rounded-lg px-2 py-1 border border-orange-200 hover:bg-orange-100 transition-colors"
                                 >
                                     <span className="text-base font-black text-orange-500">
-                                        {currentPrice?.toLocaleString()}
+                                        {formatPrice(currentPrice)}
                                     </span>
-                                    <span className="text-[9px] text-orange-400 font-bold uppercase">FCFA</span>
                                     <ChevronDown size={14} className={`text-orange-400 transition-transform ${showVariantDropdown ? 'rotate-180' : ''}`} />
                                 </button>
 
@@ -201,7 +202,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                                                     }`}
                                             >
                                                 <span className="text-sm text-gray-700">{getVariantName(variant)}</span>
-                                                <span className="text-sm font-bold text-orange-500">{variant.price.toLocaleString()} FCFA</span>
+                                                <span className="text-sm font-bold text-orange-500">{formatPrice(variant.price)}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -210,9 +211,8 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                         ) : (
                             <div className="flex items-baseline">
                                 <span className="text-base font-black text-orange-500">
-                                    {currentPrice > 0 ? currentPrice?.toLocaleString() : (language === 'en' ? 'Included' : 'Inclus')}
+                                    {currentPrice > 0 ? formatPrice(currentPrice) : (language === 'en' ? 'Included' : 'Inclus')}
                                 </span>
-                                {currentPrice > 0 && <span className="text-[9px] text-orange-400 font-bold ml-1 uppercase">FCFA</span>}
                             </div>
                         )}
                     </div>

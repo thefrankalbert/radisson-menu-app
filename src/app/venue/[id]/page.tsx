@@ -15,13 +15,15 @@ import { toast } from "react-hot-toast";
 const VENUE_CONFIG: Record<string, {
     name_fr: string;
     name_en: string;
-    submenus: {
+        submenus: {
         id: string;
         slug: string;
         name_fr: string;
         name_en: string;
         filterCategory?: string;
+        filterCategories?: string[]; // Support pour plusieurs catégories
         excludeCategory?: string;
+        excludeCategories?: string[]; // Support pour exclure plusieurs catégories
     }[];
 }> = {
     'panorama': {
@@ -33,14 +35,14 @@ const VENUE_CONFIG: Record<string, {
                 slug: 'carte-panorama-restaurant',
                 name_fr: "Panorama",
                 name_en: 'Panorama',
-                // Removed excludeCategory to show EVERYTHING (Tapas included) in the main tab if user wants
+                excludeCategories: ['Entre Deux Doigts', 'Nos Hamburgers'] // Exclure ces catégories qui sont dans Tapas
             },
             {
                 id: 'panorama-tapas',
                 slug: 'carte-panorama-restaurant',
                 name_fr: "Tapas",
                 name_en: 'Tapas',
-                filterCategory: 'Tapas' // We keep this one to have a dedicated "Shortcu" tab for Tapas only
+                filterCategories: ['Entre Deux Doigts', 'Nos Hamburgers'] // Les deux catégories qui appartiennent à Tapas
             }
         ]
     },
@@ -173,6 +175,7 @@ export default function VenuePage({ params }: VenuePageProps) {
                     .order('display_order', { ascending: true });
 
                 console.log("[VenuePage] Categories:", catData?.length || 0);
+                console.log("[VenuePage] Category names:", catData?.map((c: Category) => ({ id: c.id, name: c.name, name_en: c.name_en })) || []);
 
                 // 3. Fetch Items
                 let items: MenuItem[] = [];
@@ -242,19 +245,156 @@ export default function VenuePage({ params }: VenuePageProps) {
     const categories = useMemo(() => {
         let cats = data?.categories || [];
 
-        // Only filter if explicitly requested in config
-        if (activeSubmenu?.filterCategory) {
-            const filterTerm = activeSubmenu.filterCategory.toLowerCase();
+        console.log("[VenuePage] Filtering categories:", {
+            totalCategories: cats.length,
+            filterCategory: activeSubmenu?.filterCategory,
+            filterCategories: activeSubmenu?.filterCategories,
+            categoryNames: cats.map(c => ({ fr: c.name, en: c.name_en }))
+        });
+
+        // Support pour plusieurs catégories (filterCategories)
+        if (activeSubmenu?.filterCategories && activeSubmenu.filterCategories.length > 0) {
+            const beforeFilter = cats.length;
+            const filterTerms = activeSubmenu.filterCategories.map(term => term.toLowerCase().trim());
+            
             cats = cats.filter((c: Category) => {
-                const nameLower = c.name.toLowerCase();
-                const nameEnLower = (c.name_en || '').toLowerCase();
-                // Recherche plus flexible : dans le nom FR ou EN
-                return nameLower.includes(filterTerm) || nameEnLower.includes(filterTerm);
+                const nameLower = c.name.toLowerCase().trim();
+                const nameEnLower = (c.name_en || '').toLowerCase().trim();
+                
+                // Vérifier si le nom de la catégorie correspond à un des termes de filtre
+                const matches = filterTerms.some(filterTerm => {
+                    // Correspondance exacte ou partielle
+                    return nameLower === filterTerm || 
+                           nameEnLower === filterTerm ||
+                           nameLower.includes(filterTerm) || 
+                           nameEnLower.includes(filterTerm);
+                });
+                
+                if (!matches) {
+                    console.log("[VenuePage] Category filtered out:", { 
+                        name: c.name, 
+                        name_en: c.name_en, 
+                        filterTerms
+                    });
+                } else {
+                    console.log("[VenuePage] Category matched:", { 
+                        name: c.name, 
+                        name_en: c.name_en,
+                        matchedTerm: filterTerms.find(term => 
+                            nameLower.includes(term) || nameEnLower.includes(term)
+                        )
+                    });
+                }
+                
+                return matches;
+            });
+            
+            console.log("[VenuePage] After filterCategories:", {
+                before: beforeFilter,
+                after: cats.length,
+                filterTerms,
+                filteredCategories: cats.map(c => ({ fr: c.name, en: c.name_en }))
             });
         }
+        // Support pour une seule catégorie (filterCategory) - rétrocompatibilité
+        else if (activeSubmenu?.filterCategory) {
+            const filterTerm = activeSubmenu.filterCategory.toLowerCase();
+            const beforeFilter = cats.length;
+            
+            // Créer des variantes possibles du terme de filtre pour une recherche plus flexible
+            const filterVariants = [
+                filterTerm,
+                filterTerm + 's', // "tapas" au pluriel
+                filterTerm.replace('s', ''), // "tapa" si on cherche "tapas"
+            ];
+            
+            cats = cats.filter((c: Category) => {
+                const nameLower = c.name.toLowerCase().trim();
+                const nameEnLower = (c.name_en || '').toLowerCase().trim();
+                
+                // Vérifier si une des variantes correspond
+                const matches = filterVariants.some(variant => 
+                    nameLower.includes(variant) || nameEnLower.includes(variant)
+                );
+                
+                if (!matches) {
+                    console.log("[VenuePage] Category filtered out:", { 
+                        name: c.name, 
+                        name_en: c.name_en, 
+                        filterTerm,
+                        nameLower,
+                        nameEnLower
+                    });
+                } else {
+                    console.log("[VenuePage] Category matched:", { 
+                        name: c.name, 
+                        name_en: c.name_en,
+                        matchedVariant: filterVariants.find(v => 
+                            nameLower.includes(v) || nameEnLower.includes(v)
+                        )
+                    });
+                }
+                
+                return matches;
+            });
+            
+            console.log("[VenuePage] After filterCategory:", {
+                before: beforeFilter,
+                after: cats.length,
+                filterTerm,
+                filteredCategories: cats.map(c => ({ fr: c.name, en: c.name_en }))
+            });
+            
+            // Si aucune catégorie n'a été trouvée, logger toutes les catégories disponibles pour déboguer
+            if (cats.length === 0 && beforeFilter > 0) {
+                console.warn("[VenuePage] No categories matched filter!", {
+                    filterTerm,
+                    availableCategories: data?.categories?.map(c => ({ 
+                        id: c.id, 
+                        name: c.name, 
+                        name_en: c.name_en 
+                    })) || []
+                });
+            }
+        }
 
-        // Only exclude if explicitly requested in config
-        if (activeSubmenu?.excludeCategory) {
+        // Support pour exclure plusieurs catégories (excludeCategories)
+        if (activeSubmenu?.excludeCategories && activeSubmenu.excludeCategories.length > 0) {
+            const beforeExclude = cats.length;
+            const excludeTerms = activeSubmenu.excludeCategories.map(term => term.toLowerCase().trim());
+            
+            cats = cats.filter((c: Category) => {
+                const nameLower = c.name.toLowerCase().trim();
+                const nameEnLower = (c.name_en || '').toLowerCase().trim();
+                
+                // Vérifier si le nom de la catégorie correspond à un des termes à exclure
+                const shouldExclude = excludeTerms.some(excludeTerm => {
+                    return nameLower === excludeTerm || 
+                           nameEnLower === excludeTerm ||
+                           nameLower.includes(excludeTerm) || 
+                           nameEnLower.includes(excludeTerm);
+                });
+                
+                if (shouldExclude) {
+                    console.log("[VenuePage] Category excluded:", { 
+                        name: c.name, 
+                        name_en: c.name_en, 
+                        excludeTerms
+                    });
+                }
+                
+                return !shouldExclude;
+            });
+            
+            console.log("[VenuePage] After excludeCategories:", {
+                before: beforeExclude,
+                after: cats.length,
+                excludeTerms,
+                remainingCategories: cats.map(c => ({ fr: c.name, en: c.name_en }))
+            });
+        }
+        // Support pour exclure une seule catégorie (excludeCategory) - rétrocompatibilité
+        else if (activeSubmenu?.excludeCategory) {
             const excludeTerm = activeSubmenu.excludeCategory.toLowerCase();
             cats = cats.filter((c: Category) => {
                 const nameLower = c.name.toLowerCase();
@@ -265,6 +405,8 @@ export default function VenuePage({ params }: VenuePageProps) {
 
         // IMPORTANT: By default, we DO NOT restrict items. All categories for the fetched restaurant slug are shown.
         // This fixes the issue where "Panorama" tab only showed "Plats" and hid "Tapas" because of restrictive logic.
+
+        console.log("[VenuePage] Final categories:", cats.length, cats.map(c => c.name));
 
         return cats;
     }, [data?.categories, activeSubmenu]);

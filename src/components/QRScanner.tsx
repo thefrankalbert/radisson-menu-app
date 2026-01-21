@@ -21,6 +21,7 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
   const html5QrCodeRef = useRef<any>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
+  const hasScannedRef = useRef(false); // Pour éviter les scans multiples
   const router = useRouter();
   const { language } = useLanguage();
 
@@ -39,6 +40,7 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
     
     // Réinitialiser le statut quand on ouvre le scanner
     setScanStatus('idle');
+    hasScannedRef.current = false; // Réinitialiser le flag de scan
 
     const loadScanner = async () => {
       try {
@@ -57,116 +59,220 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
               fps: 10,
               qrbox: { width: 250, height: 250 },
             },
-            (decodedText: string) => {
-              // QR code scanné avec succès - arrêter immédiatement pour éviter les scans multiples
-              if (!html5QrCodeRef.current) return;
+            (decodedText: string, decodedResult: any) => {
+              // Éviter les scans multiples
+              if (hasScannedRef.current || !html5QrCodeRef.current) {
+                console.log('Scan ignoré (déjà traité ou scanner fermé)');
+                return;
+              }
               
-              console.log('QR Code scanné:', decodedText);
+              // Marquer comme scanné immédiatement
+              hasScannedRef.current = true;
+              
+              // Nettoyer le texte décodé (enlever les espaces, retours à la ligne, etc.)
+              const cleanText = decodedText.trim().replace(/\s+/g, '');
+              
+              console.log('=== QR CODE SCANNÉ ===');
+              console.log('Texte brut:', decodedText);
+              console.log('Texte nettoyé:', cleanText);
+              console.log('Résultat complet:', decodedResult);
+              
               setScanStatus('success');
               
               const currentScanner = html5QrCodeRef.current;
               html5QrCodeRef.current = null; // Marquer comme null immédiatement
               
-              currentScanner.stop().then(() => {
-                setIsScanning(false);
-                currentScanner.clear().catch(() => {});
-                
-                // Fonction pour traiter et rediriger
-                const processAndRedirect = (targetUrl: string) => {
-                  console.log('Redirection vers:', targetUrl);
-                  onClose(); // Fermer le modal avant la redirection
-                  
-                  // Utiliser window.location.href pour une redirection complète qui recharge la page
-                  // Cela garantit que tous les paramètres sont bien pris en compte
-                  setTimeout(() => {
-                    window.location.href = targetUrl;
-                  }, 200);
-                };
-                
-                // Vérifier si c'est une URL valide
-                if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
-                  // Extraire TOUS les paramètres de l'URL scannée
+              // Arrêter le scanner de manière sécurisée
+              currentScanner.stop()
+                .then(() => {
+                  setIsScanning(false);
+                  // clear() peut ne pas retourner une Promise, donc on vérifie
                   try {
-                    const scannedUrl = new URL(decodedText);
-                    console.log('URL scannée analysée:', {
-                      origin: scannedUrl.origin,
-                      pathname: scannedUrl.pathname,
-                      search: scannedUrl.search,
-                      params: Object.fromEntries(scannedUrl.searchParams)
-                    });
-                    
-                    // Si l'URL scannée pointe vers le même domaine, utiliser directement
-                    if (scannedUrl.origin === window.location.origin) {
-                      // Extraire le chemin et tous les paramètres de query
-                      const path = scannedUrl.pathname || '/';
-                      const searchParams = scannedUrl.searchParams;
-                      
-                      // Construire la nouvelle URL avec le chemin et tous les paramètres
-                      const newUrl = new URL(path, window.location.origin);
-                      
-                      // Copier TOUS les paramètres de l'URL scannée
-                      searchParams.forEach((value, key) => {
-                        newUrl.searchParams.set(key, value);
-                      });
-                      
-                      console.log('URL finale (même domaine):', newUrl.toString());
-                      processAndRedirect(newUrl.toString());
-                    } else {
-                      // URL d'un autre domaine - extraire seulement les paramètres pertinents
-                      const newUrl = new URL('/', window.location.origin);
-                      
-                      // Extraire tous les paramètres de query de l'URL scannée
-                      scannedUrl.searchParams.forEach((value, key) => {
-                        // Normaliser les noms de paramètres communs
-                        if (key === 'v' || key === 'venue' || key === 'restaurant') {
-                          newUrl.searchParams.set('v', value);
-                        } else {
-                          // Conserver tous les autres paramètres (table, media queries, etc.)
-                          newUrl.searchParams.set(key, value);
-                        }
-                      });
-                      
-                      console.log('URL finale (autre domaine):', newUrl.toString());
-                      processAndRedirect(newUrl.toString());
+                    const clearResult = currentScanner.clear();
+                    if (clearResult && typeof clearResult === 'object' && typeof clearResult.catch === 'function') {
+                      clearResult.catch(() => {});
                     }
                   } catch (e) {
-                    console.error('Erreur lors du parsing de l\'URL:', e);
-                    // Si l'URL n'est pas valide, essayer de rediriger directement
-                    if (decodedText.includes(window.location.origin)) {
-                      processAndRedirect(decodedText);
-                    } else {
-                      console.error('Invalid QR code URL:', decodedText);
-                      // Essayer d'extraire les paramètres même si l'URL n'est pas complète
-                      try {
-                        const urlMatch = decodedText.match(/\?(.+)$/);
-                        if (urlMatch) {
-                          const params = new URLSearchParams(urlMatch[1]);
+                    // Ignorer les erreurs de clear()
+                    console.log('clear() a échoué, continuons quand même');
+                  }
+                  
+                  // Fonction pour traiter et rediriger
+                  const processAndRedirect = (targetUrl: string) => {
+                    console.log('=== REDIRECTION ===');
+                    console.log('URL cible:', targetUrl);
+                    
+                    // Construire l'URL finale
+                    let finalUrl: string;
+                    try {
+                      if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                        // URL complète, utiliser directement mais adapter le domaine si nécessaire
+                        const url = new URL(targetUrl);
+                        // Si c'est un autre domaine, extraire seulement les paramètres
+                        if (url.origin !== window.location.origin) {
                           const newUrl = new URL('/', window.location.origin);
-                          params.forEach((value, key) => {
+                          url.searchParams.forEach((value, key) => {
                             newUrl.searchParams.set(key, value);
                           });
+                          finalUrl = newUrl.toString();
+                        } else {
+                          finalUrl = targetUrl;
+                        }
+                      } else {
+                        // URL relative, construire avec l'origin actuel
+                        finalUrl = new URL(targetUrl, window.location.origin).toString();
+                      }
+                      
+                      console.log('URL finale construite:', finalUrl);
+                      console.log('Redirection dans 300ms...');
+                      
+                      onClose(); // Fermer le modal avant la redirection
+                      
+                      // Utiliser window.location.href pour une redirection complète qui recharge la page
+                      setTimeout(() => {
+                        console.log('Exécution de la redirection vers:', finalUrl);
+                        window.location.href = finalUrl;
+                      }, 300);
+                    } catch (urlError) {
+                      console.error('Erreur lors de la construction de l\'URL:', urlError);
+                      onClose();
+                    }
+                  };
+                
+                // Utiliser le texte nettoyé pour le traitement
+                const textToProcess = cleanText || decodedText;
+                
+                // Vérifier si c'est une URL valide
+                if (textToProcess.startsWith('http://') || textToProcess.startsWith('https://')) {
+                  // Extraire TOUS les paramètres de l'URL scannée
+                  try {
+                    const scannedUrl = new URL(textToProcess);
+                    console.log('=== ANALYSE URL SCANNÉE ===');
+                    console.log('Origin:', scannedUrl.origin);
+                    console.log('Pathname:', scannedUrl.pathname);
+                    console.log('Search:', scannedUrl.search);
+                    console.log('Hash:', scannedUrl.hash);
+                    console.log('Paramètres:', Object.fromEntries(scannedUrl.searchParams));
+                    
+                    // Toujours extraire les paramètres et construire une URL avec le domaine actuel
+                    // Cela permet de fonctionner même si le QR code contient un autre domaine
+                    const newUrl = new URL('/', window.location.origin);
+                    
+                    // Copier TOUS les paramètres de l'URL scannée
+                    scannedUrl.searchParams.forEach((value, key) => {
+                      // Normaliser les noms de paramètres communs
+                      if (key === 'v' || key === 'venue' || key === 'restaurant') {
+                        newUrl.searchParams.set('v', value);
+                      } else {
+                        // Conserver tous les autres paramètres (table, media queries, etc.)
+                        newUrl.searchParams.set(key, value);
+                      }
+                    });
+                    
+                    console.log('=== CONSTRUCTION URL FINALE ===');
+                    console.log('Origin scanné:', scannedUrl.origin);
+                    console.log('Origin actuel:', window.location.origin);
+                    console.log('Paramètres extraits:', Object.fromEntries(newUrl.searchParams));
+                    console.log('URL finale:', newUrl.toString());
+                    
+                    processAndRedirect(newUrl.toString());
+                  } catch (e) {
+                    console.error('=== ERREUR PARSING URL ===');
+                    console.error('Erreur:', e);
+                    console.error('Texte reçu:', textToProcess);
+                    
+                    // Si l'URL n'est pas valide, essayer de rediriger directement
+                    if (textToProcess.includes(window.location.origin) || textToProcess.includes('localhost') || textToProcess.includes('theblutable')) {
+                      console.log('Tentative de redirection directe avec le texte brut');
+                      processAndRedirect(textToProcess);
+                    } else {
+                      // Essayer d'extraire les paramètres même si l'URL n'est pas complète
+                      console.log('Tentative d\'extraction des paramètres depuis le texte');
+                      try {
+                        // Chercher les paramètres dans le texte (format ?v=xxx&table=yyy)
+                        const urlMatch = textToProcess.match(/[?&]([^=&]+)=([^&]+)/g);
+                        if (urlMatch && urlMatch.length > 0) {
+                          const newUrl = new URL('/', window.location.origin);
+                          urlMatch.forEach(param => {
+                            const [key, value] = param.replace(/[?&]/, '').split('=');
+                            if (key && value) {
+                              newUrl.searchParams.set(key, decodeURIComponent(value));
+                            }
+                          });
+                          console.log('URL reconstruite depuis paramètres:', newUrl.toString());
                           processAndRedirect(newUrl.toString());
                         } else {
-                          onClose();
+                          // Si on trouve juste des valeurs sans clés, essayer de les utiliser comme paramètres
+                          const simpleMatch = textToProcess.match(/(?:v|venue|restaurant|table)=([^&\s]+)/i);
+                          if (simpleMatch) {
+                            const newUrl = new URL('/', window.location.origin);
+                            if (textToProcess.toLowerCase().includes('v=') || textToProcess.toLowerCase().includes('venue=')) {
+                              const vMatch = textToProcess.match(/(?:v|venue)=([^&\s]+)/i);
+                              if (vMatch) newUrl.searchParams.set('v', vMatch[1]);
+                            }
+                            if (textToProcess.toLowerCase().includes('table=')) {
+                              const tMatch = textToProcess.match(/table=([^&\s]+)/i);
+                              if (tMatch) newUrl.searchParams.set('table', tMatch[1]);
+                            }
+                            console.log('URL reconstruite depuis valeurs simples:', newUrl.toString());
+                            processAndRedirect(newUrl.toString());
+                          } else {
+                            console.error('Impossible d\'extraire les paramètres du QR code');
+                            onClose();
+                          }
                         }
-                      } catch {
+                      } catch (parseError) {
+                        console.error('Erreur lors de l\'extraction des paramètres:', parseError);
                         onClose();
                       }
                     }
                   }
                 } else {
                   // Si ce n'est pas une URL, essayer de l'utiliser comme paramètre venue
-                  console.log('QR code n\'est pas une URL, utilisation comme paramètre v');
+                  console.log('=== QR CODE N\'EST PAS UNE URL ===');
+                  console.log('Texte:', textToProcess);
+                  console.log('Utilisation comme paramètre v');
+                  
                   const newUrl = new URL('/', window.location.origin);
-                  newUrl.searchParams.set('v', decodedText);
+                  newUrl.searchParams.set('v', textToProcess);
                   processAndRedirect(newUrl.toString());
                 }
-              }).catch((error: unknown) => {
-                console.error('Erreur lors de l\'arrêt du scanner:', error);
-                setIsScanning(false);
-                html5QrCodeRef.current = null;
-                onClose();
-              });
+                })
+                .catch((error: unknown) => {
+                  console.error('Erreur lors de l\'arrêt du scanner:', error);
+                  setIsScanning(false);
+                  html5QrCodeRef.current = null;
+                  // Même en cas d'erreur, continuer avec la redirection si on a le texte décodé
+                  if (cleanText || decodedText) {
+                    const textToProcess = cleanText || decodedText;
+                    console.log('Tentative de redirection malgré l\'erreur d\'arrêt');
+                    // Traiter le texte décodé même si l'arrêt a échoué
+                    setTimeout(() => {
+                      if (textToProcess.startsWith('http')) {
+                        try {
+                          const scannedUrl = new URL(textToProcess);
+                          const newUrl = new URL('/', window.location.origin);
+                          scannedUrl.searchParams.forEach((value, key) => {
+                            if (key === 'v' || key === 'venue' || key === 'restaurant') {
+                              newUrl.searchParams.set('v', value);
+                            } else {
+                              newUrl.searchParams.set(key, value);
+                            }
+                          });
+                          console.log('Redirection d\'urgence vers:', newUrl.toString());
+                          window.location.href = newUrl.toString();
+                        } catch (e) {
+                          console.error('Impossible de rediriger:', e);
+                          onClose();
+                        }
+                      } else {
+                        onClose();
+                      }
+                    }, 100);
+                  } else {
+                    onClose();
+                  }
+                });
             },
             (errorMessage: string) => {
               // Erreur de scan (continuera à scanner)

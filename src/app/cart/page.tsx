@@ -2,6 +2,7 @@
 
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { supabase } from "@/lib/supabase";
 import { Minus, Plus, ShoppingBag, Send, CheckCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -32,6 +33,7 @@ const getCartItemKey = (item: any): string => {
 export default function CartPage() {
     const { items, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems, currentRestaurantId } = useCart();
     const { t, language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const router = useRouter();
     const [notes, setNotes] = useState("");
     const [tableNumber, setTableNumber] = useState("");
@@ -215,7 +217,7 @@ export default function CartPage() {
                                                         <span className="uppercase">{item.name}</span>
                                                     </div>
                                                     <div className="flex-1 border-b border-dotted border-gray-300 mx-2 relative top-[-4px] opacity-30"></div>
-                                                    <span className="font-bold">{(item.price * item.quantity).toLocaleString()}</span>
+                                                    <span className="font-bold">{formatPrice(item.price * item.quantity)}</span>
                                                 </div>
 
                                                 {/* Afficher option/variante si présente */}
@@ -250,7 +252,7 @@ export default function CartPage() {
                                 <div className="flex justify-between items-end">
                                     <span className="text-sm font-bold uppercase tracking-widest text-gray-500">Total</span>
                                     <span className="text-2xl font-black font-mono text-gray-900 tracking-tight">
-                                        {totalPrice.toLocaleString()} <span className="text-xs text-gray-400 font-sans">FCFA</span>
+                                        {formatPrice(totalPrice)}
                                     </span>
                                 </div>
                             </div>
