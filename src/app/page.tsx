@@ -1005,28 +1005,28 @@ export default function Home() {
               </form>
             </div>
 
-            {/* Titre de bienvenue et numéro de table */}
-            {tableNumber && (
-              <div className="mb-5 animate-fade-in">
-                <div className="text-left">
-                  {/* Titre */}
-                  <h1 className="text-[#003058] text-xl sm:text-2xl font-bold mb-2 leading-tight">
-                    {language === 'fr' ? (
-                      'Découvrez nos délicieux plats'
-                    ) : (
-                      'Order Easier'
-                    )}
-                  </h1>
-                  
-                  {/* Sous-titre */}
-                  <p className="text-[#003058] text-sm sm:text-base font-normal">
-                    {language === 'fr' 
-                      ? `Vous êtes à la table ${tableNumber}` 
-                      : `You are at table ${tableNumber}`}
-                  </p>
-                </div>
-              </div>
-            )}
+           {/* Titre de bienvenue et numéro de table */}
+{tableNumber && (
+  <div className="mb-5 animate-fade-in">
+    <div className="text-left">
+      {/* Titre */}
+      <h1 className="text-[#003058] text-xl sm:text-2xl font-bold mb-1 leading-tight">
+        {language === 'fr' ? (
+          'Découvrez nos délicieux plats'
+        ) : (
+          'Order Easier'
+        )}
+      </h1>
+      
+      {/* Sous-titre */}
+      <p className="text-[#003058] text-sm sm:text-base font-normal -mt-1">
+        {language === 'fr' 
+          ? `Vous êtes à la table ${tableNumber}` 
+          : `You are at table ${tableNumber}`}
+      </p>
+    </div>
+  </div>
+)}
 
             {/* 1.5. APERÇU DU PANIER - Cartes compactes */}
             {items.length > 0 && (
