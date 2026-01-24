@@ -7,33 +7,24 @@ export default function ClearStorage() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Vider le localStorage ET sessionStorage uniquement si on accède directement à la racine sans paramètres
-    // Ne pas nettoyer si c'est une navigation depuis le bouton Accueil (flag présent)
+    // Vider le localStorage ET sessionStorage quand on accède à la racine sans paramètres
     if (pathname === '/') {
       const timer = setTimeout(() => {
-        const isNavigationFromButton = sessionStorage.getItem('navigating_to_home') === 'true';
         const hasParams = window.location.search.length > 0;
         
-        // Vérifier si c'est un accès direct (pas de referrer ou referrer externe)
-        const isDirectAccess = !document.referrer || 
-                              !document.referrer.includes(window.location.origin) ||
-                              document.referrer === window.location.href;
-        
-        // Si accès direct à la racine sans paramètres, nettoyer TOUT et nettoyer l'URL
-        if (window.location.pathname === '/' && !hasParams && isDirectAccess && !isNavigationFromButton) {
-          console.log('Nettoyage du localStorage et sessionStorage sur la racine (accès direct)');
+        // Si on est à la racine SANS paramètres, nettoyer TOUT
+        if (!hasParams) {
+          console.log('Nettoyage automatique du localStorage et sessionStorage à la racine (sans paramètres)');
           localStorage.clear();
-          sessionStorage.clear(); // Nettoyer aussi sessionStorage pour un accès direct
+          sessionStorage.clear();
           
           // S'assurer que l'URL est vraiment propre (sans paramètres)
           if (window.location.search !== '') {
             window.history.replaceState({}, '', '/');
           }
-        } else if (isNavigationFromButton && window.location.search === '') {
-          // Navigation depuis bouton sans params → nettoyer quand même
-          console.log('Navigation depuis bouton sans params - nettoyage');
-          localStorage.clear();
-          sessionStorage.clear();
+        } else {
+          // Si on a des paramètres (QR code), ne pas nettoyer pour préserver les données
+          console.log('Paramètres présents - préservation du localStorage');
         }
       }, 50); // Petit délai pour laisser les autres composants s'initialiser
       

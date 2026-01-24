@@ -291,15 +291,13 @@ export default function Home() {
   const urlVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
   const urlTable = searchParams.get('table');
   
-  // Ouvrir automatiquement le scanner QR uniquement quand on accède directement à la racine sans paramètres
+  // Ouvrir automatiquement le scanner QR quand on accède à la racine sans paramètres
+  // ET nettoyer le localStorage automatiquement
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const currentPath = window.location.pathname;
     const hasParams = window.location.search.length > 0;
-    
-    // Vérifier si c'est une navigation depuis le bouton Accueil (avec query params préservés)
-    const isNavigationFromButton = sessionStorage.getItem('navigating_to_home') === 'true';
     
     // Réinitialiser le flag quand on change de page
     scannerCheckRef.current = false;
@@ -309,28 +307,25 @@ export default function Home() {
       if (scannerCheckRef.current) return;
       scannerCheckRef.current = true;
       
-      // Si on a des paramètres (navigation depuis bouton ou retour après scan), fermer le scanner
+      // Si on a des paramètres (QR code scanné), fermer le scanner
       if (hasParams) {
         console.log('Paramètres présents dans l\'URL - fermeture du scanner');
-        sessionStorage.removeItem('navigating_to_home'); // Nettoyer le flag
         setShowQRScanner((prev) => {
           if (prev) return false;
           return prev;
         });
       } else if (currentPath === '/' && !hasParams) {
-        // Si on est sur la racine SANS paramètres
-        if (isNavigationFromButton) {
-          // Navigation depuis le bouton Accueil sans params → nettoyer et scanner
-          console.log('Navigation depuis bouton Accueil sans params - nettoyage et scanner');
-          sessionStorage.removeItem('navigating_to_home'); // Nettoyer le flag
-          setShowQRScanner(true);
-        } else {
-          // Accès direct à la racine → scanner
-          console.log('Ouverture automatique du scanner QR sur la racine (accès direct)');
-          setShowQRScanner(true);
-        }
+        // Accès à la racine SANS paramètres → nettoyer localStorage et ouvrir scanner
+        console.log('Accès à la racine sans paramètres - nettoyage localStorage et ouverture scanner');
+        
+        // Nettoyer le localStorage et sessionStorage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Ouvrir le scanner
+        setShowQRScanner(true);
       }
-    }, 600); // Délai pour s'assurer que ClearStorage a fini de nettoyer
+    }, 100); // Délai réduit car on nettoie directement ici
     
     return () => {
       clearTimeout(timer);
@@ -351,18 +346,18 @@ export default function Home() {
                           !document.referrer.includes(window.location.origin) ||
                           document.referrer === window.location.href;
     
-    // Si accès direct à la racine SANS paramètres, ne pas restaurer
+    // Si accès à la racine SANS paramètres, ne pas restaurer (localStorage déjà nettoyé)
     // MAIS si on a des paramètres (QR code), les PRÉSERVER
     if (currentPath === '/' && isDirectAccess) {
       if (!hasParams) {
-        // Accès direct sans paramètres → ne pas restaurer
-        console.log('Accès direct à la racine sans paramètres - ne pas restaurer les paramètres');
+        // Accès à la racine sans paramètres → localStorage déjà nettoyé, ne pas restaurer
+        console.log('Accès à la racine sans paramètres - localStorage nettoyé, ne pas restaurer');
         setPersistedVenue(null);
         return;
       }
       // Si on a des paramètres (arrivée depuis QR code), les PRÉSERVER
       // Ne pas nettoyer l'URL, laisser les paramètres intacts
-      console.log('Accès direct avec paramètres (QR code) - PRÉSERVER les paramètres');
+      console.log('Accès avec paramètres (QR code) - PRÉSERVER les paramètres');
     }
     
     if (urlVenue) {
