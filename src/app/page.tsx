@@ -351,20 +351,18 @@ export default function Home() {
                           !document.referrer.includes(window.location.origin) ||
                           document.referrer === window.location.href;
     
-    // Si accès direct à la racine, nettoyer les paramètres de l'URL s'ils existent
+    // Si accès direct à la racine SANS paramètres, ne pas restaurer
+    // MAIS si on a des paramètres (QR code), les PRÉSERVER
     if (currentPath === '/' && isDirectAccess) {
-      if (hasParams) {
-        // Accès direct avec paramètres → les nettoyer
-        console.log('Accès direct à la racine avec paramètres - nettoyage de l\'URL');
-        window.history.replaceState({}, '', '/');
-        setPersistedVenue(null);
-        return;
-      } else {
+      if (!hasParams) {
         // Accès direct sans paramètres → ne pas restaurer
-        console.log('Accès direct à la racine - ne pas restaurer les paramètres');
+        console.log('Accès direct à la racine sans paramètres - ne pas restaurer les paramètres');
         setPersistedVenue(null);
         return;
       }
+      // Si on a des paramètres (arrivée depuis QR code), les PRÉSERVER
+      // Ne pas nettoyer l'URL, laisser les paramètres intacts
+      console.log('Accès direct avec paramètres (QR code) - PRÉSERVER les paramètres');
     }
     
     if (urlVenue) {
