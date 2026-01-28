@@ -60,6 +60,18 @@ const VENUE_CONFIG: Record<string, {
         submenus: [
             { id: 'drinks', slug: 'carte-des-boissons', name_fr: 'Boissons', name_en: 'Drinks' }
         ]
+    },
+    'room-service': {
+        name_fr: 'Room Service',
+        name_en: 'Room Service',
+        submenus: [
+            { 
+                id: 'room-service', 
+                slug: 'room-service', // À ajuster selon le slug réel dans la base de données
+                name_fr: 'Room Service 24/7', 
+                name_en: '24/7 Room Service' 
+            }
+        ]
     }
 };
 

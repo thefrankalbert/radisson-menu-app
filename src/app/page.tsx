@@ -203,6 +203,22 @@ const MAIN_VENUES = [
     },
     image: "/images/boissons.jpg",
     badge: null
+  },
+  {
+    id: 'room-service',
+    href: '/venue/room-service',
+    fr: {
+      name: "Room Service",
+      subtitle: "Service en chambre 24/7",
+      description: "Room Service 24/7"
+    },
+    en: {
+      name: "Room Service",
+      subtitle: "24/7 In-Room Service",
+      description: "24/7 Room Service"
+    },
+    image: "/images/placeholder.svg", // TODO: Ajouter l'image room-service.jpg
+    badge: "24/7"
   }
 ];
 
@@ -524,6 +540,7 @@ export default function Home() {
             'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
             'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
             'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
+            'room-service': ['room-service'], // À ajuster selon le slug réel dans la base de données
           };
           const allowed = groupSlugs[activeVenue] || [activeVenue];
           const match = data.find(c => {
@@ -558,6 +575,7 @@ export default function Home() {
         'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
         'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
         'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
+        'room-service': ['room-service'], // À ajuster selon le slug réel dans la base de données
       };
       const allowed = groupSlugs[activeVenue] || [activeVenue];
       list = restaurants.filter(r => allowed.some(s => r.slug.includes(s)));
@@ -600,6 +618,7 @@ export default function Home() {
       'panorama': ['carte-panorama-restaurant'],
       'lobby': ['carte-lobby-bar-snacks'],
       'lobby-bar': ['carte-lobby-bar-snacks'],
+      'room-service': ['room-service'], // À ajuster selon le slug réel dans la base de données
     };
     const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];
 
