@@ -2,46 +2,33 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-    Download,
     TrendingUp,
     Users,
-    ShoppingBag,
-    DollarSign,
     Loader2,
-    FileSpreadsheet,
-    FileText,
     Trophy,
-    Calendar,
-    BarChart3,
-    PieChart as PieChartIcon,
     Wallet,
     Package,
     ArrowUpRight,
-    Search,
     Printer
 } from "lucide-react";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    PieChart,
-    Pie,
-    Cell
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const RevenueChart = dynamic(() => import("@/components/admin/reports/RevenueChart"), {
+    ssr: false,
+    loading: () => <Skeleton className="w-full h-full" />
+});
+
+const CategoryPieChart = dynamic(() => import("@/components/admin/reports/CategoryPieChart"), {
+    ssr: false,
+    loading: () => <Skeleton className="w-full h-full rounded-full" />
+});
 import { supabase } from "@/lib/supabase";
-import StatsCard from "@/components/admin/StatsCard";
 import { toast } from "react-hot-toast";
 import { jsPDF } from "jspdf";
 import Skeleton, { StatsCardSkeleton } from "@/components/admin/Skeleton";
 import { cn } from "@/lib/utils";
 
-const COLORS = ['#003058', '#C5A065', '#22C55E', '#3B82F6', '#6366F1'];
+
 
 type PeriodType = '24h' | '7d' | '30d' | 'year';
 
@@ -351,29 +338,14 @@ export default function ReportsPage() {
                         <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-1">Revenus générés par {period === '24h' ? 'heure' : 'jour'}</p>
                     </div>
                     <div className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={dailyRevenue}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 500, fill: 'hsl(var(--muted-foreground))' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 500, fill: 'hsl(var(--muted-foreground))' }} />
-                                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))', boxShadow: 'none' }} />
-                                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 }} activeDot={{ r: 6, stroke: '#FFF', strokeWidth: 3 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        <RevenueChart data={dailyRevenue} />
                     </div>
                 </div>
 
                 <div className="lg:col-span-4 bg-card p-6 rounded-md border border-border">
                     <h2 className="text-sm font-bold uppercase tracking-wider text-foreground mb-8">Répartition Cartes</h2>
                     <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={restaurantDistribution} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={4} dataKey="value" stroke="none">
-                                    {restaurantDistribution.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        <CategoryPieChart data={restaurantDistribution} />
                     </div>
                 </div>
             </div>
