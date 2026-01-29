@@ -14,7 +14,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
-import QRScanner from "@/components/QRScanner";
+import QRScanner, { preloadScanner } from "@/components/QRScanner";
 import ClearStorage from "@/components/ClearStorage";
 import CategoryGrid from "@/components/menu/CategoryGrid";
 import ProductGrid from "@/components/menu/ProductGrid";
@@ -285,6 +285,8 @@ export default function HomeClient({
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true });
+    // Précharger le module QR scanner pour une initialisation instantanée
+    preloadScanner();
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 

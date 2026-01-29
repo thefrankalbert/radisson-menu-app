@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, Camera, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 declare global {
   interface Window {
-    Html5Qrcode: any;
+    Html5Qrcode: unknown;
   }
 }
 
@@ -16,278 +16,122 @@ interface QRScannerProps {
   onClose: () => void;
 }
 
+// Précharger le module html5-qrcode
+let html5QrcodeModule: typeof import("html5-qrcode") | null = null;
+const preloadScanner = () => {
+  if (!html5QrcodeModule) {
+    import("html5-qrcode").then((module) => {
+      html5QrcodeModule = module;
+    });
+  }
+};
+
+// Exporter pour permettre le préchargement au hover
+export { preloadScanner };
+
 export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
   const scannerRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<any>(null);
+  const html5QrCodeRef = useRef<InstanceType<typeof import("html5-qrcode").Html5Qrcode> | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
-  const hasScannedRef = useRef(false); // Pour éviter les scans multiples
+  const [scanStatus, setScanStatus] = useState<'loading' | 'scanning' | 'success' | 'error'>('loading');
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const hasScannedRef = useRef(false);
   const router = useRouter();
   const { language } = useLanguage();
 
+  const processQRCode = useCallback((decodedText: string) => {
+    const cleanText = decodedText.trim().replace(/\s+/g, '');
+
+    const processAndRedirect = (targetUrl: string) => {
+      onClose();
+      setTimeout(() => {
+        window.location.href = targetUrl;
+      }, 150); // Réduit de 300ms à 150ms
+    };
+
+    if (cleanText.startsWith('http://') || cleanText.startsWith('https://')) {
+      try {
+        const scannedUrl = new URL(cleanText);
+        const newUrl = new URL('/', window.location.origin);
+
+        scannedUrl.searchParams.forEach((value, key) => {
+          if (key === 'v' || key === 'venue' || key === 'restaurant') {
+            newUrl.searchParams.set('v', value);
+          } else {
+            newUrl.searchParams.set(key, value);
+          }
+        });
+
+        processAndRedirect(newUrl.toString());
+      } catch {
+        onClose();
+      }
+    } else {
+      const newUrl = new URL('/', window.location.origin);
+      newUrl.searchParams.set('v', cleanText);
+      processAndRedirect(newUrl.toString());
+    }
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) {
-      // Nettoyer le scanner si on ferme
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-        html5QrCodeRef.current.clear().catch(() => {});
+        html5QrCodeRef.current.stop().catch(() => { });
         html5QrCodeRef.current = null;
       }
       setIsScanning(false);
-      setScanStatus('idle');
+      setScanStatus('loading');
+      setPermissionDenied(false);
       return;
     }
-    
-    // Réinitialiser le statut quand on ouvre le scanner
-    setScanStatus('idle');
-    hasScannedRef.current = false; // Réinitialiser le flag de scan
+
+    setScanStatus('loading');
+    hasScannedRef.current = false;
 
     const loadScanner = async () => {
       try {
-        // Charger dynamiquement html5-qrcode
-        const { Html5Qrcode } = await import("html5-qrcode");
-        
+        // Utiliser le module préchargé ou le charger
+        const qrModule = html5QrcodeModule || await import("html5-qrcode");
+        html5QrcodeModule = qrModule;
+
         if (!scannerRef.current || !isOpen) return;
 
-        const qrCode = new Html5Qrcode(scannerRef.current.id);
+        const qrCode = new qrModule.Html5Qrcode(scannerRef.current.id);
         html5QrCodeRef.current = qrCode;
 
-        try {
-          await qrCode.start(
-            { facingMode: "environment" }, // Utiliser la caméra arrière
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-            },
-            (decodedText: string, decodedResult: any) => {
-              // Éviter les scans multiples
-              if (hasScannedRef.current || !html5QrCodeRef.current) {
-                console.log('Scan ignoré (déjà traité ou scanner fermé)');
-                return;
-              }
-              
-              // Marquer comme scanné immédiatement
-              hasScannedRef.current = true;
-              
-              // Nettoyer le texte décodé (enlever les espaces, retours à la ligne, etc.)
-              const cleanText = decodedText.trim().replace(/\s+/g, '');
-              
-              console.log('=== QR CODE SCANNÉ ===');
-              console.log('Texte brut:', decodedText);
-              console.log('Texte nettoyé:', cleanText);
-              console.log('Résultat complet:', decodedResult);
-              
-              setScanStatus('success');
-              
-              const currentScanner = html5QrCodeRef.current;
-              html5QrCodeRef.current = null; // Marquer comme null immédiatement
-              
-              // Arrêter le scanner de manière sécurisée
-              currentScanner.stop()
-                .then(() => {
-                  setIsScanning(false);
-                  // clear() peut ne pas retourner une Promise, donc on vérifie
-                  try {
-                    const clearResult = currentScanner.clear();
-                    if (clearResult && typeof clearResult === 'object' && typeof clearResult.catch === 'function') {
-                      clearResult.catch(() => {});
-                    }
-                  } catch (e) {
-                    // Ignorer les erreurs de clear()
-                    console.log('clear() a échoué, continuons quand même');
-                  }
-                  
-                  // Fonction pour traiter et rediriger
-                  const processAndRedirect = (targetUrl: string) => {
-                    console.log('=== REDIRECTION ===');
-                    console.log('URL cible:', targetUrl);
-                    
-                    // Construire l'URL finale
-                    let finalUrl: string;
-                    try {
-                      if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-                        // URL complète, utiliser directement mais adapter le domaine si nécessaire
-                        const url = new URL(targetUrl);
-                        // Si c'est un autre domaine, extraire seulement les paramètres
-                        if (url.origin !== window.location.origin) {
-                          const newUrl = new URL('/', window.location.origin);
-                          url.searchParams.forEach((value, key) => {
-                            newUrl.searchParams.set(key, value);
-                          });
-                          finalUrl = newUrl.toString();
-                        } else {
-                          finalUrl = targetUrl;
-                        }
-                      } else {
-                        // URL relative, construire avec l'origin actuel
-                        finalUrl = new URL(targetUrl, window.location.origin).toString();
-                      }
-                      
-                      console.log('URL finale construite:', finalUrl);
-                      console.log('Redirection dans 300ms...');
-                      
-                      onClose(); // Fermer le modal avant la redirection
-                      
-                      // Utiliser window.location.href pour une redirection complète qui recharge la page
-                      setTimeout(() => {
-                        console.log('Exécution de la redirection vers:', finalUrl);
-                        window.location.href = finalUrl;
-                      }, 300);
-                    } catch (urlError) {
-                      console.error('Erreur lors de la construction de l\'URL:', urlError);
-                      onClose();
-                    }
-                  };
-                
-                // Utiliser le texte nettoyé pour le traitement
-                const textToProcess = cleanText || decodedText;
-                
-                // Vérifier si c'est une URL valide
-                if (textToProcess.startsWith('http://') || textToProcess.startsWith('https://')) {
-                  // Extraire TOUS les paramètres de l'URL scannée
-                  try {
-                    const scannedUrl = new URL(textToProcess);
-                    console.log('=== ANALYSE URL SCANNÉE ===');
-                    console.log('Origin:', scannedUrl.origin);
-                    console.log('Pathname:', scannedUrl.pathname);
-                    console.log('Search:', scannedUrl.search);
-                    console.log('Hash:', scannedUrl.hash);
-                    console.log('Paramètres:', Object.fromEntries(scannedUrl.searchParams));
-                    
-                    // Toujours extraire les paramètres et construire une URL avec le domaine actuel
-                    // Cela permet de fonctionner même si le QR code contient un autre domaine
-                    const newUrl = new URL('/', window.location.origin);
-                    
-                    // Copier TOUS les paramètres de l'URL scannée
-                    scannedUrl.searchParams.forEach((value, key) => {
-                      // Normaliser les noms de paramètres communs
-                      if (key === 'v' || key === 'venue' || key === 'restaurant') {
-                        newUrl.searchParams.set('v', value);
-                      } else {
-                        // Conserver tous les autres paramètres (table, media queries, etc.)
-                        newUrl.searchParams.set(key, value);
-                      }
-                    });
-                    
-                    console.log('=== CONSTRUCTION URL FINALE ===');
-                    console.log('Origin scanné:', scannedUrl.origin);
-                    console.log('Origin actuel:', window.location.origin);
-                    console.log('Paramètres extraits:', Object.fromEntries(newUrl.searchParams));
-                    console.log('URL finale:', newUrl.toString());
-                    
-                    processAndRedirect(newUrl.toString());
-                  } catch (e) {
-                    console.error('=== ERREUR PARSING URL ===');
-                    console.error('Erreur:', e);
-                    console.error('Texte reçu:', textToProcess);
-                    
-                    // Si l'URL n'est pas valide, essayer de rediriger directement
-                    if (textToProcess.includes(window.location.origin) || textToProcess.includes('localhost') || textToProcess.includes('theblutable')) {
-                      console.log('Tentative de redirection directe avec le texte brut');
-                      processAndRedirect(textToProcess);
-                    } else {
-                      // Essayer d'extraire les paramètres même si l'URL n'est pas complète
-                      console.log('Tentative d\'extraction des paramètres depuis le texte');
-                      try {
-                        // Chercher les paramètres dans le texte (format ?v=xxx&table=yyy)
-                        const urlMatch = textToProcess.match(/[?&]([^=&]+)=([^&]+)/g);
-                        if (urlMatch && urlMatch.length > 0) {
-                          const newUrl = new URL('/', window.location.origin);
-                          urlMatch.forEach(param => {
-                            const [key, value] = param.replace(/[?&]/, '').split('=');
-                            if (key && value) {
-                              newUrl.searchParams.set(key, decodeURIComponent(value));
-                            }
-                          });
-                          console.log('URL reconstruite depuis paramètres:', newUrl.toString());
-                          processAndRedirect(newUrl.toString());
-                        } else {
-                          // Si on trouve juste des valeurs sans clés, essayer de les utiliser comme paramètres
-                          const simpleMatch = textToProcess.match(/(?:v|venue|restaurant|table)=([^&\s]+)/i);
-                          if (simpleMatch) {
-                            const newUrl = new URL('/', window.location.origin);
-                            if (textToProcess.toLowerCase().includes('v=') || textToProcess.toLowerCase().includes('venue=')) {
-                              const vMatch = textToProcess.match(/(?:v|venue)=([^&\s]+)/i);
-                              if (vMatch) newUrl.searchParams.set('v', vMatch[1]);
-                            }
-                            if (textToProcess.toLowerCase().includes('table=')) {
-                              const tMatch = textToProcess.match(/table=([^&\s]+)/i);
-                              if (tMatch) newUrl.searchParams.set('table', tMatch[1]);
-                            }
-                            console.log('URL reconstruite depuis valeurs simples:', newUrl.toString());
-                            processAndRedirect(newUrl.toString());
-                          } else {
-                            console.error('Impossible d\'extraire les paramètres du QR code');
-                            onClose();
-                          }
-                        }
-                      } catch (parseError) {
-                        console.error('Erreur lors de l\'extraction des paramètres:', parseError);
-                        onClose();
-                      }
-                    }
-                  }
-                } else {
-                  // Si ce n'est pas une URL, essayer de l'utiliser comme paramètre venue
-                  console.log('=== QR CODE N\'EST PAS UNE URL ===');
-                  console.log('Texte:', textToProcess);
-                  console.log('Utilisation comme paramètre v');
-                  
-                  const newUrl = new URL('/', window.location.origin);
-                  newUrl.searchParams.set('v', textToProcess);
-                  processAndRedirect(newUrl.toString());
-                }
-                })
-                .catch((error: unknown) => {
-                  console.error('Erreur lors de l\'arrêt du scanner:', error);
-                  setIsScanning(false);
-                  html5QrCodeRef.current = null;
-                  // Même en cas d'erreur, continuer avec la redirection si on a le texte décodé
-                  if (cleanText || decodedText) {
-                    const textToProcess = cleanText || decodedText;
-                    console.log('Tentative de redirection malgré l\'erreur d\'arrêt');
-                    // Traiter le texte décodé même si l'arrêt a échoué
-                    setTimeout(() => {
-                      if (textToProcess.startsWith('http')) {
-                        try {
-                          const scannedUrl = new URL(textToProcess);
-                          const newUrl = new URL('/', window.location.origin);
-                          scannedUrl.searchParams.forEach((value, key) => {
-                            if (key === 'v' || key === 'venue' || key === 'restaurant') {
-                              newUrl.searchParams.set('v', value);
-                            } else {
-                              newUrl.searchParams.set(key, value);
-                            }
-                          });
-                          console.log('Redirection d\'urgence vers:', newUrl.toString());
-                          window.location.href = newUrl.toString();
-                        } catch (e) {
-                          console.error('Impossible de rediriger:', e);
-                          onClose();
-                        }
-                      } else {
-                        onClose();
-                      }
-                    }, 100);
-                  } else {
-                    onClose();
-                  }
-                });
-            },
-            (errorMessage: string) => {
-              // Erreur de scan (continuera à scanner)
-              // console.log('Scan error:', errorMessage);
-            }
-          );
-          setIsScanning(true);
-          setScanStatus('scanning');
-        } catch (err) {
-          console.error('Error starting camera:', err);
-          setIsScanning(false);
-        }
+        await qrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 15, // Augmenté pour une détection plus rapide
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1,
+          },
+          (decodedText: string) => {
+            if (hasScannedRef.current || !html5QrCodeRef.current) return;
+            hasScannedRef.current = true;
+            setScanStatus('success');
+
+            const currentScanner = html5QrCodeRef.current;
+            html5QrCodeRef.current = null;
+
+            currentScanner.stop()
+              .then(() => {
+                setIsScanning(false);
+                processQRCode(decodedText);
+              })
+              .catch(() => {
+                processQRCode(decodedText);
+              });
+          },
+          () => { } // Ignorer les erreurs de scan continues
+        );
+
+        setIsScanning(true);
+        setScanStatus('scanning');
       } catch (err) {
-        console.error('Error loading QR scanner:', err);
-        setIsScanning(false);
+        console.error('Camera error:', err);
+        setPermissionDenied(true);
+        setScanStatus('error');
       }
     };
 
@@ -295,70 +139,123 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
 
     return () => {
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-        html5QrCodeRef.current.clear().catch(() => {});
+        html5QrCodeRef.current.stop().catch(() => { });
         html5QrCodeRef.current = null;
       }
-      setIsScanning(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // Seulement dépendre de isOpen pour éviter les re-exécutions
+  }, [isOpen, processQRCode]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="relative bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 z-50 bg-black">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
+        <h2 className="text-white font-semibold text-lg">
+          {language === 'fr' ? 'Scanner QR' : 'Scan QR'}
+        </h2>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
         >
-          <X className="w-5 h-5 text-gray-600" />
+          <X className="w-5 h-5 text-white" />
         </button>
-        
-        <div className="text-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {language === 'fr' ? 'Scanner le code QR' : 'Scan QR Code'}
-          </h2>
-          <p className="text-sm text-gray-500">
-            {language === 'fr' 
-              ? 'Pointez votre caméra vers le code QR' 
-              : 'Point your camera at the QR code'}
-          </p>
-        </div>
+      </div>
 
-        <div 
-          id="qr-scanner" 
+      {/* Scanner Container */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          id="qr-scanner"
           ref={scannerRef}
-          className="w-full rounded-xl overflow-hidden bg-gray-100"
-          style={{ minHeight: '300px' }}
+          className="w-full h-full"
+          style={{
+            opacity: isScanning ? 1 : 0,
+            transition: 'opacity 0.2s ease'
+          }}
         />
 
-        {scanStatus === 'idle' && !isScanning && (
-          <div className="mt-4 text-center text-sm text-gray-500">
-            {language === 'fr' 
-              ? 'Chargement de la caméra...' 
-              : 'Loading camera...'}
+        {/* Scanner Frame Overlay */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Dark overlay with center cutout */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-72 h-72">
+              {/* Animated corner frames */}
+              <div className="absolute -top-1 -left-1 w-12 h-12 border-t-4 border-l-4 border-white rounded-tl-xl" />
+              <div className="absolute -top-1 -right-1 w-12 h-12 border-t-4 border-r-4 border-white rounded-tr-xl" />
+              <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-4 border-l-4 border-white rounded-bl-xl" />
+              <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-4 border-r-4 border-white rounded-br-xl" />
+
+              {/* Scanning line animation */}
+              {scanStatus === 'scanning' && (
+                <div className="absolute top-0 left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-radisson-gold to-transparent animate-scan" />
+              )}
+
+              {/* Success indicator */}
+              {scanStatus === 'success' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-green-500/20 rounded-xl">
+                  <CheckCircle2 className="w-20 h-20 text-green-400 animate-scale-up" />
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        
-        {scanStatus === 'scanning' && isScanning && (
-          <div className="mt-4 text-center text-sm text-blue-600">
-            {language === 'fr' 
-              ? 'Scannez le code QR...' 
-              : 'Scanning QR code...'}
-          </div>
-        )}
-        
-        {scanStatus === 'success' && (
-          <div className="mt-4 text-center text-sm text-green-600 font-semibold">
-            {language === 'fr' 
-              ? '✓ Code QR scanné avec succès! Redirection...' 
-              : '✓ QR code scanned successfully! Redirecting...'}
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Bottom Info */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 bg-gradient-to-t from-black/80 to-transparent">
+        <div className="text-center">
+          {scanStatus === 'loading' && (
+            <div className="flex flex-col items-center gap-3">
+              <Camera className="w-8 h-8 text-white/60 animate-pulse" />
+              <p className="text-white/80 text-sm">
+                {language === 'fr' ? 'Activation de la caméra...' : 'Starting camera...'}
+              </p>
+            </div>
+          )}
+
+          {scanStatus === 'scanning' && (
+            <p className="text-white/80 text-sm">
+              {language === 'fr'
+                ? 'Placez le code QR dans le cadre'
+                : 'Position QR code in the frame'}
+            </p>
+          )}
+
+          {scanStatus === 'success' && (
+            <p className="text-green-400 text-sm font-semibold">
+              {language === 'fr'
+                ? '✓ Code scanné ! Redirection...'
+                : '✓ Code scanned! Redirecting...'}
+            </p>
+          )}
+
+          {permissionDenied && (
+            <div className="text-center">
+              <p className="text-red-400 text-sm mb-3">
+                {language === 'fr'
+                  ? 'Accès à la caméra refusé'
+                  : 'Camera access denied'}
+              </p>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-white/10 text-white rounded-lg text-sm"
+              >
+                {language === 'fr' ? 'Fermer' : 'Close'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes scan {
+          0%, 100% { transform: translateY(0); opacity: 0.5; }
+          50% { transform: translateY(280px); opacity: 1; }
+        }
+        .animate-scan {
+          animation: scan 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
-
