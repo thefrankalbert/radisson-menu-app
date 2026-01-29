@@ -75,10 +75,10 @@ export default function LoginPage() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 relative z-10"
+                className="w-full max-w-md bg-white rounded-[2.5rem] border border-gray-100 p-10 relative z-10"
             >
                 <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 bg-[#003058] rounded-2xl flex items-center justify-center shadow-xl shadow-blue-900/20 mb-6">
+                    <div className="w-16 h-16 bg-[#003058] rounded-2xl flex items-center justify-center mb-6">
                         <span className="text-white font-black text-3xl">R</span>
                     </div>
                     <h1 className="text-2xl font-black text-[#003058] tracking-tight text-center">
@@ -141,7 +141,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="h-14 bg-[#C5A065] hover:bg-[#b08e5a] text-[#003058] font-black rounded-2xl flex items-center justify-center space-x-2 shadow-xl transition-all active:scale-[0.98] disabled:opacity-50"
+                            className="h-14 bg-[#C5A065] hover:bg-[#b08e5a] text-[#003058] font-black rounded-2xl flex items-center justify-center space-x-2 border border-[#b08e5a]/50 transition-all active:scale-[0.98] disabled:opacity-50"
                         >
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />

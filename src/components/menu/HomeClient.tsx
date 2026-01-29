@@ -750,7 +750,7 @@ export default function HomeClient({
             : 'opacity-0 -translate-y-full pointer-events-none'
             }`}
         >
-          <div className="bg-white border-b border-gray-100 shadow-sm">
+          <div className="bg-white border-b border-gray-100 italic">
             <div className="w-full px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
@@ -829,7 +829,7 @@ export default function HomeClient({
 
                     {/* Content */}
                     <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 z-10">
-                      <h3 className="text-white text-xl md:text-3xl font-playfair font-bold uppercase tracking-widest mb-2 text-shadow-elegant">
+                      <h3 className="text-white text-xl md:text-3xl font-playfair font-bold uppercase tracking-widest mb-2">
                         {announcement.title}
                       </h3>
                       {announcement.description && (
@@ -872,7 +872,7 @@ export default function HomeClient({
                   />
 
                   {deepSearchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl card-shadow-hover border border-gray-100 overflow-hidden z-50 animate-fade-in-up">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-200 overflow-hidden z-50 animate-fade-in-up">
                       <div className="p-2">
                         <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-3 py-2">
                           {language === 'fr' ? "Plats trouvés" : "Dishes found"}
@@ -953,7 +953,7 @@ export default function HomeClient({
                         <Link
                           key={item.id}
                           href="/cart"
-                          className="flex-shrink-0 bg-white rounded-xl border border-gray-300 shadow-sm hover:card-shadow-hover transition-all p-3 w-32 group"
+                          className="flex-shrink-0 bg-white rounded-xl border border-gray-300 transition-all p-3 w-32 group"
                         >
                           <div className="w-full h-20 bg-gray-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
                             <Utensils size={24} className="text-gray-300" />
@@ -1005,7 +1005,7 @@ export default function HomeClient({
                     {items.length > 0 && (
                       <Link
                         href="/cart"
-                        className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl p-3 shadow-sm hover:card-shadow-hover transition-all group"
+                        className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl p-3 transition-all group"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
@@ -1049,7 +1049,7 @@ export default function HomeClient({
                         <Link
                           key={order.id}
                           href="/orders"
-                          className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl p-3 shadow-sm hover:card-shadow-hover transition-all group"
+                          className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl p-3 transition-all group"
                         >
                           <div className="flex items-start justify-between mb-2">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -1100,7 +1100,7 @@ export default function HomeClient({
                         <Link
                           key={venue.id}
                           href={venue.href}
-                          className="bg-white rounded-[24px] overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 cursor-pointer group block"
+                          className="bg-white rounded-[24px] overflow-hidden border border-gray-200 transition-all duration-300 cursor-pointer group block"
                         >
                           <div className="h-44 relative overflow-hidden">
                             <img

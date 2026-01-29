@@ -321,7 +321,7 @@ export default function POSPage() {
                                             <Utensils className="w-6 h-6 stroke-1" />
                                         )}
                                         {cart.find(i => i.id === item.id) && (
-                                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-black shadow-lg">
+                                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-black border border-white/20">
                                                 {cart.find(i => i.id === item.id)?.quantity}
                                             </div>
                                         )}
@@ -348,7 +348,7 @@ export default function POSPage() {
             </div>
 
             {/* Right side: Cart */}
-            <div className="w-[420px] flex flex-col bg-card border-l border-border m-6 rounded-md shadow-sm overflow-hidden">
+            <div className="w-[420px] flex flex-col bg-card border-l border-border m-6 rounded-md overflow-hidden outline outline-1 outline-border">
                 <div className="p-6 border-b border-border flex items-center justify-between">
                     <div>
                         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground flex items-center gap-2">
@@ -447,7 +447,7 @@ export default function POSPage() {
 
             {editingNotes && (
                 <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-card border border-border rounded-md w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-card border border-border rounded-md w-full max-w-sm p-8 animate-in zoom-in-95 duration-200">
                         <div className="space-y-1 text-center mb-6">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground">Note Cuisine</h3>
                             <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">Spécifications pour le chef</p>

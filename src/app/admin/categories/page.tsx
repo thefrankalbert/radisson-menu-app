@@ -361,7 +361,7 @@ export default function CategoriesPage() {
                 </div>
                 <button
                     onClick={handleNewCategory}
-                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs hover:opacity-90 active:scale-95 transition-all outline outline-1 outline-primary/20"
                 >
                     <Plus className="w-4 h-4" />
                     <span>Nouvelle Catégorie</span>
@@ -392,7 +392,7 @@ export default function CategoriesPage() {
 
             {/* Tableau ou état vide */}
             {categories.length > 0 ? (
-                <div className="bg-card rounded-md border border-border overflow-hidden shadow-sm">
+                <div className="bg-card rounded-md border border-border overflow-hidden">
                     <DataTable
                         columns={columns}
                         data={categories}
@@ -401,7 +401,7 @@ export default function CategoriesPage() {
                     />
                 </div>
             ) : (
-                <div className="bg-card rounded-md border border-border p-16 text-center shadow-sm">
+                <div className="bg-card rounded-md border border-border p-16 text-center">
                     <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                         <Folder className="w-8 h-8 text-muted-foreground" />
                     </div>
@@ -413,7 +413,7 @@ export default function CategoriesPage() {
                     </p>
                     <button
                         onClick={handleNewCategory}
-                        className="mt-6 bg-primary text-primary-foreground px-6 py-2 rounded-md font-bold text-xs hover:opacity-90 transition-all shadow-sm"
+                        className="mt-6 bg-primary text-primary-foreground px-6 py-2 rounded-md font-bold text-xs hover:opacity-90 transition-all"
                     >
                         Créer une catégorie
                     </button>
@@ -504,7 +504,7 @@ export default function CategoriesPage() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 px-8 py-2 bg-primary text-primary-foreground font-bold rounded-md hover:opacity-90 transition-all text-[10px] uppercase tracking-wider disabled:opacity-50 shadow-md"
+                            className="flex items-center gap-2 px-8 py-2 bg-primary text-primary-foreground font-bold rounded-md hover:opacity-90 transition-all text-[10px] uppercase tracking-wider disabled:opacity-50"
                         >
                             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (editingCategory ? 'Mettre à jour' : 'Créer')}
                         </button>

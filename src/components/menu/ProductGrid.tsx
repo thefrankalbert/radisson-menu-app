@@ -56,7 +56,7 @@ export default function ProductGrid({ items }: ProductGridProps) {
                         <Link
                             key={item.id}
                             href={restoSlug ? `/menu/${restoSlug}` : "#"}
-                            className="flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group"
+                            className="flex-shrink-0 w-[260px] bg-white border border-gray-200 rounded-3xl overflow-hidden transition-all duration-500 group"
                         >
                             <div className="relative h-40 bg-gray-50 overflow-hidden">
                                 {item.image_url && !item.image_url.includes('placeholder') ? (
@@ -81,7 +81,7 @@ export default function ProductGrid({ items }: ProductGridProps) {
                                         )}
                                     </div>
                                 )}
-                                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-sm">
+                                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/20">
                                     <span className="text-xs font-black text-gray-900">
                                         {price}
                                     </span>

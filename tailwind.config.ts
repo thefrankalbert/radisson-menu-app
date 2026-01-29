@@ -63,9 +63,15 @@ const config: Config = {
 				}
 			},
 			boxShadow: {
-				soft: 'none',
-				premium: 'none',
-				glow: 'none'
+				DEFAULT: 'none',
+				sm: 'none',
+				md: 'none',
+				lg: 'none',
+				xl: 'none',
+				'2xl': 'none',
+				inner: 'none',
+				none: 'none',
+				none: 'none'
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

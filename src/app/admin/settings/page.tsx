@@ -302,7 +302,7 @@ export default function SettingsPage() {
                                             <div className={cn("aspect-square rounded-sm", color.class)} />
                                             {design.primaryColor === color.value && (
                                                 <div className="absolute inset-0 flex items-center justify-center">
-                                                    <Check className="w-3.5 h-3.5 text-white drop-shadow-md" />
+                                                    <Check className="w-3.5 h-3.5 text-white" />
                                                 </div>
                                             )}
                                         </button>
@@ -332,7 +332,7 @@ export default function SettingsPage() {
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-3 h-3 bg-white rounded-full transition-all duration-200 shadow-sm",
+                                                "w-3 h-3 bg-white rounded-full transition-all duration-200 border border-gray-200",
                                                 notifs.newOrderSound ? "translate-x-4" : "translate-x-0"
                                             )} />
                                         </button>
@@ -401,7 +401,7 @@ export default function SettingsPage() {
                                                 "w-9 h-5 rounded-full p-1 transition-all duration-200",
                                                 (notifs as any)[it.k] ? "bg-primary" : "bg-muted border border-border"
                                             )}>
-                                                <div className={cn("w-3 h-3 bg-white rounded-full transition-all duration-200 shadow-sm", (notifs as any)[it.k] ? "translate-x-4" : "translate-x-0")} />
+                                                <div className={cn("w-3 h-3 bg-white rounded-full transition-all duration-200 border border-gray-200", (notifs as any)[it.k] ? "translate-x-4" : "translate-x-0")} />
                                             </button>
                                         </div>
                                     ))}

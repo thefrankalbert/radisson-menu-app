@@ -548,7 +548,7 @@ export default function ItemsPage() {
                 </div>
                 <button
                     onClick={handleNewItem}
-                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs hover:opacity-90 active:scale-95 transition-all outline outline-1 outline-primary/20"
                 >
                     <Plus className="w-4 h-4" />
                     <span>Nouvel Article</span>
@@ -591,7 +591,7 @@ export default function ItemsPage() {
 
             {/* Actions en masse - Sticky Bar Style Nova */}
             {selectedItems.length > 0 && (
-                <div className="sticky top-2 z-[50] bg-foreground text-background p-3 rounded-md shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+                <div className="sticky top-2 z-[50] bg-foreground text-background p-3 rounded-md border border-white/10 flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
                     <div className="flex items-center gap-4">
                         <div className="bg-primary text-primary-foreground w-8 h-8 rounded flex items-center justify-center font-black text-xs">
                             {selectedItems.length}
@@ -764,7 +764,7 @@ export default function ItemsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setValue('image_url', '')}
-                                                    className="bg-destructive text-destructive-foreground p-1.5 rounded-full shadow-lg"
+                                                    className="bg-destructive text-destructive-foreground p-1.5 rounded-full border border-destructive-foreground/20"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -818,7 +818,7 @@ export default function ItemsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setValue('image_back_url', '')}
-                                                    className="bg-destructive text-destructive-foreground p-1.5 rounded-full shadow-lg"
+                                                    className="bg-destructive text-destructive-foreground p-1.5 rounded-full border border-destructive-foreground/20"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
@@ -904,7 +904,7 @@ export default function ItemsPage() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex items-center gap-2 px-8 py-2 bg-primary text-primary-foreground font-bold rounded-md hover:opacity-90 transition-all text-[10px] uppercase tracking-wider disabled:opacity-50 shadow-md"
+                            className="flex items-center gap-2 px-8 py-2 bg-primary text-primary-foreground font-bold rounded-md hover:opacity-90 transition-all text-[10px] uppercase tracking-wider disabled:opacity-50"
                         >
                             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (editingItem ? 'Mettre à jour' : 'Créer le plat')}
                         </button>

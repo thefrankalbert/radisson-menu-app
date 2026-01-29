@@ -299,7 +299,7 @@ export default function OrdersPage() {
                                         loadOrders();
                                     }
                                 }}
-                                className="w-full py-4 bg-primary text-primary-foreground font-black rounded-md uppercase tracking-[0.2em] text-[10px] shadow-lg hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
+                                className="w-full py-4 bg-primary text-primary-foreground font-black rounded-md uppercase tracking-[0.2em] text-[10px] border border-primary/20 hover:opacity-95 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
                             >
                                 Encaisser la commande
                             </button>

@@ -334,7 +334,7 @@ export default function UsersPage() {
                             onClick={() => setActiveTab('users')}
                             className={cn(
                                 "px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all",
-                                activeTab === 'users' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                                activeTab === 'users' ? 'bg-background text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             {t('items')}
@@ -344,7 +344,7 @@ export default function UsersPage() {
                                 onClick={() => setActiveTab('history')}
                                 className={cn(
                                     "px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-sm transition-all flex items-center gap-1.5",
-                                    activeTab === 'history' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                                    activeTab === 'history' ? 'bg-background text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
                                 <History className="w-3 h-3" />
@@ -410,7 +410,7 @@ export default function UsersPage() {
                     </div>
 
                     {/* Users List */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-50 dark:border-slate-800 overflow-hidden shadow-premium">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                         {filteredUsers.length > 0 ? (
                             <div className="divide-y divide-gray-50">
                                 {filteredUsers.map((user) => {

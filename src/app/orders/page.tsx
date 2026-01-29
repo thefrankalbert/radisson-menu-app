@@ -90,8 +90,8 @@ export default function OrdersPage() {
     const clearHistory = () => {
         localStorage.removeItem('order_history');
         setHistory([]);
-        toast.success(language === 'fr' 
-            ? "Historique effacé avec succès !" 
+        toast.success(language === 'fr'
+            ? "Historique effacé avec succès !"
             : "History cleared successfully!");
     };
 
@@ -100,8 +100,8 @@ export default function OrdersPage() {
         const newHistory = history.filter(o => o.id !== orderToDelete);
         setHistory(newHistory);
         localStorage.setItem('order_history', JSON.stringify(newHistory));
-        toast.success(language === 'fr' 
-            ? "Commande supprimée !" 
+        toast.success(language === 'fr'
+            ? "Commande supprimée !"
             : "Order deleted!");
         setOrderToDelete(null);
     };
@@ -130,8 +130,8 @@ export default function OrdersPage() {
                 onClose={() => setShowClearModal(false)}
                 onConfirm={clearHistory}
                 title={language === 'fr' ? "Effacer tout l'historique" : "Clear all history"}
-                message={language === 'fr' 
-                    ? "Êtes-vous sûr de vouloir effacer tout l'historique de vos commandes ? Cette action est irréversible." 
+                message={language === 'fr'
+                    ? "Êtes-vous sûr de vouloir effacer tout l'historique de vos commandes ? Cette action est irréversible."
                     : "Are you sure you want to clear all your order history? This action cannot be undone."}
                 confirmText={language === 'fr' ? "Effacer" : "Clear"}
                 cancelText={language === 'fr' ? "Annuler" : "Cancel"}
@@ -147,8 +147,8 @@ export default function OrdersPage() {
                 }}
                 onConfirm={handleDeleteOrder}
                 title={language === 'fr' ? "Supprimer la commande" : "Delete order"}
-                message={language === 'fr' 
-                    ? "Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible." 
+                message={language === 'fr'
+                    ? "Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible."
                     : "Are you sure you want to delete this order? This action cannot be undone."}
                 confirmText={language === 'fr' ? "Supprimer" : "Delete"}
                 cancelText={language === 'fr' ? "Annuler" : "Cancel"}
@@ -179,7 +179,7 @@ export default function OrdersPage() {
                 </div>
 
                 {history.length === 0 ? (
-                    <div className="bg-white rounded-[24px] p-12 text-center border border-gray-100 shadow-soft animate-fade-in-up">
+                    <div className="bg-white rounded-[24px] p-12 text-center border border-gray-200 animate-fade-in-up">
                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Package size={32} className="text-gray-200" />
                         </div>
@@ -189,7 +189,7 @@ export default function OrdersPage() {
                         </p>
                         <Link
                             href="/"
-                            className="inline-flex items-center gap-2 bg-[#002C5F] text-white px-6 py-3 rounded-xl font-bold text-xs tracking-widest hover:bg-[#00428C] transition-all active:scale-95 shadow-soft"
+                            className="inline-flex items-center gap-2 bg-[#002C5F] text-white px-6 py-3 rounded-xl font-bold text-xs tracking-widest hover:bg-[#00428C] transition-all active:scale-95"
                         >
                             <Utensils size={14} />
                             COMMANDER
@@ -200,7 +200,7 @@ export default function OrdersPage() {
                         {history.map((order, index) => (
                             <div
                                 key={order.id}
-                                className="shadow-sm drop-shadow-sm p-6 relative animate-fade-in-up group pr-10"
+                                className="p-6 relative animate-fade-in-up group pr-10"
                                 style={{
                                     animationDelay: `${index * 100}ms`,
                                     background: `

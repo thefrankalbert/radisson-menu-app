@@ -14,7 +14,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
             type={type}
             data-slot="input"
             className={cn(
-                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                 "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
                 className
@@ -171,7 +171,7 @@ export function LoginForm() {
                         <div className="absolute -inset-[0.5px] rounded-2xl bg-gradient-to-r from-[#C5A065]/20 via-[#C5A065]/40 to-[#C5A065]/20 opacity-0 group-hover:opacity-70 transition-opacity duration-500" />
 
                         {/* Glass card background - Radisson Dark Blue base */}
-                        <div className="relative bg-[#002545]/80 backdrop-blur-xl rounded-2xl p-6 border border-[#C5A065]/10 shadow-2xl overflow-hidden">
+                        <div className="relative bg-[#002545]/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 overflow-hidden">
                             {/* Subtle card inner patterns */}
                             <div className="absolute inset-0 opacity-[0.03]"
                                 style={{
@@ -186,7 +186,7 @@ export function LoginForm() {
                                     initial={{ scale: 0.5, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ type: "spring", duration: 0.8 }}
-                                    className="mx-auto w-10 h-10 rounded-lg flex items-center justify-center relative overflow-hidden bg-[#C5A065] shadow-lg shadow-[#C5A065]/20"
+                                    className="mx-auto w-10 h-10 rounded-lg flex items-center justify-center relative overflow-hidden bg-[#C5A065] border border-[#C5A065]/20"
                                 >
                                     <span className="text-xl font-black text-[#003058]">R</span>
                                     <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-50" />
@@ -306,7 +306,7 @@ export function LoginForm() {
                                 >
                                     <div className="absolute inset-0 bg-[#C5A065]/20 rounded-lg blur-lg opacity-0 group-hover/button:opacity-70 transition-opacity duration-300" />
 
-                                    <div className="relative overflow-hidden bg-[#C5A065] text-[#003058] font-bold h-10 rounded-lg transition-all duration-300 flex items-center justify-center shadow-lg shadow-[#C5A065]/20">
+                                    <div className="relative overflow-hidden bg-[#C5A065] text-[#003058] font-bold h-10 rounded-lg transition-all duration-300 flex items-center justify-center border border-[#003058]/10">
 
                                         <AnimatePresence mode="wait">
                                             {isLoading ? (

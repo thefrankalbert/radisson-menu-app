@@ -47,7 +47,7 @@ export default function OfflineIndicator() {
 
     return (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[120] animate-bounce">
-            <div className="bg-red-500 text-white px-4 py-2 rounded-full shadow-soft text-xs font-bold flex items-center gap-2 border border-white/20">
+            <div className="bg-red-500 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 border border-white/20">
                 <WifiOff size={14} />
                 HORS-LIGNE
             </div>

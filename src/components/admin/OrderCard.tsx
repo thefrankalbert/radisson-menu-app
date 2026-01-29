@@ -149,13 +149,9 @@ export default function OrderCard({ order, onStatusChange, compact = false }: Or
 
     return (
         <motion.div
-            initial={isPending ? { scale: 1 } : {}}
-            animate={isPending ? {
-                boxShadow: ["0px 0px 0px rgba(245, 158, 11, 0)", "0px 0px 20px rgba(245, 158, 11, 0.2)", "0px 0px 0px rgba(245, 158, 11, 0)"]
-            } : {}}
             transition={isPending ? { repeat: Infinity, duration: 2 } : {}}
             className={cn(
-                "bg-white rounded-3xl border-l-[6px] shadow-sm overflow-hidden flex flex-col transition-all border-[#F5F5F5]",
+                "bg-white rounded-3xl border-l-[6px] border border-gray-100 overflow-hidden flex flex-col transition-all border-l-[#F5F5F5]",
                 config.border,
                 isUrgent && "ring-2 ring-red-500 ring-offset-2"
             )}
@@ -242,11 +238,11 @@ export default function OrderCard({ order, onStatusChange, compact = false }: Or
                     <button
                         onClick={() => onStatusChange(order.id, config.nextStatus!)}
                         className={cn(
-                            "w-full rounded-xl flex items-center justify-center space-x-2 text-white font-black uppercase tracking-[0.15em] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg",
+                            "w-full rounded-xl flex items-center justify-center space-x-2 text-white font-black uppercase tracking-[0.15em] transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/10",
                             compact ? "h-10 text-[10px]" : "h-12 text-xs",
-                            order.status === 'pending' ? "bg-amber-500 shadow-amber-500/20" :
-                                order.status === 'preparing' ? "bg-blue-500 shadow-blue-500/20" :
-                                    "bg-emerald-500 shadow-emerald-500/20"
+                            order.status === 'pending' ? "bg-amber-500" :
+                                order.status === 'preparing' ? "bg-blue-500" :
+                                    "bg-emerald-500"
                         )}
                     >
                         <span>{config.nextLabel}</span>

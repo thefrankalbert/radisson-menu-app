@@ -62,7 +62,7 @@ export default function Modal({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.98, y: 10 }}
                         className={cn(
-                            "relative w-full bg-background rounded-md border border-border shadow-lg flex flex-col overflow-hidden max-h-[90vh]",
+                            "relative w-full bg-background rounded-md border border-border flex flex-col overflow-hidden max-h-[90vh]",
                             sizes[size]
                         )}
                     >

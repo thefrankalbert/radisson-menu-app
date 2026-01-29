@@ -15,7 +15,7 @@ export default function Loading() {
                             <div className="h-[1px] flex-1 bg-gray-200/50" />
                         </div>
 
-                        <div className="bg-white rounded-2xl border border-gray-300 shadow-sm overflow-hidden">
+                        <div className="bg-white rounded-2xl border border-gray-300 overflow-hidden">
                             <div className="divide-y divide-gray-50">
                                 {[1, 2, 3].map((j) => (
                                     <div key={j} className="p-4 flex gap-4">

@@ -382,7 +382,7 @@ export default function CardsPage() {
                 </div>
                 <button
                     onClick={handleNewCard}
-                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs hover:opacity-90 active:scale-95 transition-all outline outline-1 outline-primary/20"
                 >
                     <Plus className="w-4 h-4" />
                     <span>Nouvelle Carte</span>
@@ -390,7 +390,7 @@ export default function CardsPage() {
             </div>
 
             {cards.length > 0 ? (
-                <div className="bg-card rounded-md border border-border overflow-hidden shadow-sm">
+                <div className="bg-card rounded-md border border-border overflow-hidden">
                     <DataTable
                         columns={columns}
                         data={cards}
@@ -399,7 +399,7 @@ export default function CardsPage() {
                     />
                 </div>
             ) : (
-                <div className="bg-card rounded-md border border-border p-16 text-center shadow-sm">
+                <div className="bg-card rounded-md border border-border p-16 text-center">
                     <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                         <Building className="w-8 h-8 text-muted-foreground" />
                     </div>
@@ -407,7 +407,7 @@ export default function CardsPage() {
                     <p className="text-muted-foreground mt-1 text-sm font-medium">Créez votre première carte pour commencer à ajouter des catégories et des plats.</p>
                     <button
                         onClick={handleNewCard}
-                        className="mt-6 bg-primary text-primary-foreground px-8 py-2 rounded-md font-bold text-xs hover:opacity-90 transition-all shadow-sm"
+                        className="mt-6 bg-primary text-primary-foreground px-8 py-2 rounded-md font-bold text-xs hover:opacity-90 transition-all"
                     >
                         Créer ma première carte
                     </button>
@@ -477,7 +477,7 @@ export default function CardsPage() {
                                         <button
                                             type="button"
                                             onClick={() => setValue('image_url', '')}
-                                            className="bg-destructive text-destructive-foreground p-1 rounded-full shadow-lg"
+                                            className="bg-destructive text-destructive-foreground p-1 rounded-full border border-destructive-foreground/20"
                                         >
                                             <Trash2 className="w-3 h-4" />
                                         </button>

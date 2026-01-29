@@ -275,7 +275,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                         <div className="h-8 w-48 bg-gray-200/50 rounded-lg mb-8 shimmer" />
                         <div className="grid grid-cols-1 gap-3">
                             {[1, 2, 3, 4].map((j) => (
-                                <div key={j} className="h-28 bg-white rounded-2xl border border-gray-300 shadow-sm p-3 flex items-center gap-4 overflow-hidden relative">
+                                <div key={j} className="h-28 bg-white rounded-2xl border border-gray-300 p-3 flex items-center gap-4 overflow-hidden relative">
                                     <div className="w-24 h-24 bg-gray-50 rounded-xl flex-shrink-0 shimmer" />
                                     <div className="flex-1 flex flex-col justify-center space-y-3">
                                         <div className="h-4 w-3/4 bg-gray-100 rounded shimmer" />
@@ -309,7 +309,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                 {/* CONTEXTUAL BANNER */}
                 {announcement && (
                     <div className="mb-10 animate-fade-in w-full">
-                        <div className="relative overflow-hidden rounded-[24px] shadow-lg border border-radisson-gold/20 aspect-[21/9] md:aspect-[32/9]">
+                        <div className="relative overflow-hidden rounded-[24px] border border-radisson-gold/30 aspect-[21/9] md:aspect-[32/9]">
                             {announcement.image_url ? (
                                 <>
                                     <img
@@ -327,7 +327,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                 <div className="bg-white/10 backdrop-blur-md rounded-full px-3 py-1 mb-3 w-fit border border-white/20">
                                     <span className="text-white text-[10px] uppercase font-bold tracking-widest">Offre Spéciale</span>
                                 </div>
-                                <h3 className="text-white text-xl md:text-2xl font-playfair font-bold uppercase tracking-widest mb-2 text-shadow-elegant">
+                                <h3 className="text-white text-xl md:text-2xl font-playfair font-bold uppercase tracking-widest mb-2">
                                     {announcement.title}
                                 </h3>
                                 {announcement.description && (
@@ -372,7 +372,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                                 />
                                             ))
                                         ) : (
-                                            <div className="col-span-full bg-white rounded-2xl p-10 text-center text-gray-400 italic text-sm shadow-sm border border-gray-300">
+                                            <div className="col-span-full bg-white rounded-2xl p-10 text-center text-gray-400 italic text-sm border border-gray-300">
                                                 {t('menu_empty')}
                                             </div>
                                         )}

@@ -208,7 +208,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
 
                                 {/* Dropdown des variantes */}
                                 {showVariantDropdown && (
-                                    <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-max">
+                                    <div className="absolute top-full left-0 mt-1 bg-white rounded-lg border border-gray-200 py-1 z-20 min-w-max">
                                         {item.price_variants?.map((variant) => (
                                             <button
                                                 key={variant.id}
@@ -259,7 +259,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                     ) : (
                         <button
                             onClick={handleAdd}
-                            className={`w-8 h-8 rounded-full bg-[#002C5F] text-white shadow-soft flex items-center justify-center hover:bg-[#00428C] transition-all active:scale-90 ${isAnimating ? "scale-110 !bg-orange-500" : ""}`}
+                            className={`w-8 h-8 rounded-full bg-[#002C5F] text-white flex items-center justify-center hover:bg-[#00428C] transition-all active:scale-90 ${isAnimating ? "scale-110 !bg-orange-500" : ""}`}
                         >
                             <Plus size={18} strokeWidth={3} />
                         </button>
@@ -276,8 +276,8 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                                 key={option.id}
                                 onClick={() => setSelectedOption(option)}
                                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selectedOption?.id === option.id
-                                        ? 'bg-[#002C5F] text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-[#002C5F] text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 {getOptionName(option)}

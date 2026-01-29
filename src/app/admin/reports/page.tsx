@@ -272,7 +272,7 @@ export default function ReportsPage() {
                                 onClick={() => setPeriod(p)}
                                 className={cn(
                                     "px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-wider transition-all",
-                                    period === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                    period === p ? "bg-background text-foreground border border-border" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 {p === 'year' ? 'ANNÉE' : p.toUpperCase()}

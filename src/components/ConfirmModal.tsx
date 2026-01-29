@@ -77,7 +77,7 @@ export default function ConfirmModal({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative bg-white rounded-[1.5rem] shadow-2xl max-w-md w-full p-6 z-10"
+                        className="relative bg-white rounded-[1.5rem] border border-gray-200 max-w-md w-full p-6 z-10"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button */}
@@ -91,7 +91,7 @@ export default function ConfirmModal({
 
                         {/* Icon */}
                         <div className="flex justify-center mb-4">
-                            <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center relative overflow-hidden p-3 shadow-inner">
+                            <div className="w-20 h-20 rounded-2xl bg-gray-50 flex items-center justify-center relative overflow-hidden p-3 border border-gray-200">
                                 <Image src="/logo.png" alt="Logo" width={60} height={60} className="object-contain" />
                             </div>
                         </div>

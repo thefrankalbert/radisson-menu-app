@@ -234,7 +234,7 @@ export default function AnnouncementsPage() {
                 <h1 className="text-3xl font-black text-[#003058] tracking-tight">Gestion des Annonces</h1>
                 <button
                     onClick={handleNew}
-                    className="flex items-center space-x-2 bg-[#C5A065] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-amber-900/20 hover:scale-105 transition-transform"
+                    className="flex items-center space-x-2 bg-[#C5A065] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:scale-105 transition-transform"
                 >
                     <Plus className="w-5 h-5" />
                     <span>Nouvelle Annonce</span>

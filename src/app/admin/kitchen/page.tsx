@@ -218,12 +218,12 @@ function KDSTicket({
 
     return (
         <div className={cn(
-            "flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-300 shadow-lg",
+            "flex flex-col rounded-xl overflow-hidden border-2 transition-all duration-300",
             statusConfig[order.status].borderColor,
             isLate && "animate-pulse border-red-500",
             isMock && "opacity-90"
         )}
-        style={{ backgroundColor: 'hsl(var(--card))' }}
+            style={{ backgroundColor: 'hsl(var(--card))' }}
         >
             {/* Status Bar */}
             <div className={cn("h-2 w-full", statusConfig[order.status].bg)} />
@@ -614,7 +614,7 @@ export default function KitchenPage() {
 
             {/* Demo Mode Indicator */}
             {(showMockData || orders.length === 0) && (
-                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-500/90 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg">
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-500/90 text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border border-amber-400">
                     <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
                     Mode Démo - Données Simulées
                 </div>

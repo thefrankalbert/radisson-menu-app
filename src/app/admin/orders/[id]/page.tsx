@@ -114,7 +114,7 @@ export default function OrderDetailsPage() {
             </div>
 
             {/* Main Info Card */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
                 <div className="p-8 border-b border-gray-50">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
@@ -143,7 +143,7 @@ export default function OrderDetailsPage() {
                         {(order.items || []).map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-[#003058] shadow-sm border border-gray-100">
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-[#003058] border border-gray-100 font-sans">
                                         {item.quantity}x
                                     </div>
                                     <div>
@@ -161,25 +161,25 @@ export default function OrderDetailsPage() {
                 <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex flex-wrap gap-3">
                     <button
                         onClick={() => handleStatusUpdate('pending')}
-                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'pending' ? 'bg-amber-500 text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-500'}`}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'pending' ? 'bg-amber-500 text-white border border-amber-600' : 'bg-white border border-gray-200 text-gray-500'}`}
                     >
                         En attente
                     </button>
                     <button
                         onClick={() => handleStatusUpdate('preparing')}
-                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'preparing' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-500'}`}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'preparing' ? 'bg-blue-500 text-white border border-blue-600' : 'bg-white border border-gray-200 text-gray-500'}`}
                     >
                         En préparation
                     </button>
                     <button
                         onClick={() => handleStatusUpdate('ready')}
-                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'ready' ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-500'}`}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'ready' ? 'bg-emerald-500 text-white border border-emerald-600' : 'bg-white border border-gray-200 text-gray-500'}`}
                     >
                         Prêt
                     </button>
                     <button
                         onClick={() => handleStatusUpdate('delivered')}
-                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'delivered' ? 'bg-zinc-800 text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-500'}`}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${order.status === 'delivered' ? 'bg-zinc-800 text-white border border-zinc-900' : 'bg-white border border-gray-200 text-gray-500'}`}
                     >
                         Servi / Payé
                     </button>

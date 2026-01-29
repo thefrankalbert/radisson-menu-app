@@ -156,7 +156,7 @@ export default function CartPage() {
                 </h1>
 
                 {items.length === 0 ? (
-                    <div className="bg-white rounded-sm p-12 text-center shadow-sm border border-gray-200">
+                    <div className="bg-white rounded-sm p-12 text-center border border-gray-200">
                         <ShoppingBag size={32} className="text-gray-300 mx-auto mb-4" />
                         <h2 className="text-lg font-bold text-gray-700 mb-2">{t('cart_empty')}</h2>
                         {/* BOUTON RETOUR SUPPRIME */}
@@ -181,7 +181,7 @@ export default function CartPage() {
                                 maxHeight: '80vh',
                                 overflowY: 'auto'
                             }}
-                            className="shadow-sm drop-shadow-sm p-6 relative mx-auto mb-0 scrollbar-hide"
+                            className="p-6 relative mx-auto mb-0 scrollbar-hide"
                         >
 
                             {/* HEADER TICKET */}
@@ -298,7 +298,7 @@ export default function CartPage() {
                                 whileTap={{ scale: 0.98 }}
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full bg-[#002C5F] text-white h-14 rounded-xl shadow-lg font-black text-sm uppercase tracking-widest hover:bg-[#003B7A] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 active:scale-[0.98]"
+                                className="w-full bg-[#002C5F] text-white h-14 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-[#003B7A] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-[0.98]"
                             >
                                 {isSubmitting ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

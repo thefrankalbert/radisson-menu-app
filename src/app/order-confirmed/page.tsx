@@ -145,7 +145,7 @@ function OrderConfirmedContent() {
         <main className="h-screen bg-radisson-light flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden font-sans">
             {/* Success Animation */}
             <div className={`mb-8 relative z-10 transition-all duration-700 ${isModifiable ? 'scale-90 opacity-80' : 'scale-100'}`}>
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-soft border-4 border-gray-50/50 animate-bounce-in">
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center border-4 border-gray-100 animate-bounce-in">
                     <CheckCircle2 size={40} className="text-green-500 animate-scale-up" strokeWidth={3} />
                 </div>
                 <div className="absolute -bottom-2 w-20 h-4 bg-green-500/20 blur-xl rounded-full" />
@@ -165,7 +165,7 @@ function OrderConfirmedContent() {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="z-10 mb-6 bg-white border border-blue-100 rounded-md p-4 shadow-sm max-w-sm w-full"
+                    className="z-10 mb-6 bg-white border border-blue-200 rounded-md p-4 max-w-sm w-full"
                 >
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ function OrderConfirmedContent() {
             {/* Order Receipt Summary */}
             {orderId && !loading && orderItems.length > 0 && (
                 <div
-                    className="w-full max-w-sm shadow-sm drop-shadow-sm p-6 mb-8 text-left relative z-10 animate-fade-in-up mx-auto"
+                    className="w-full max-w-sm p-6 mb-8 text-left relative z-10 animate-fade-in-up mx-auto border border-gray-200 rounded-xl"
                     style={{
                         background: `
                             linear-gradient(to bottom, white 0%, white calc(100% - 10px), transparent calc(100% - 10px)),
@@ -237,7 +237,7 @@ function OrderConfirmedContent() {
             <div className="flex flex-col gap-3 w-full max-w-[280px] relative z-10">
                 <Link
                     href={lastVisitedMenuUrl || "/"}
-                    className="bg-radisson-blue text-white py-4 rounded-xl font-black flex items-center justify-center gap-3 hover:opacity-90 transition-all active:scale-95 shadow-lg text-[10px] uppercase tracking-[0.2em]"
+                    className="bg-radisson-blue text-white py-4 rounded-xl font-black flex items-center justify-center gap-3 hover:opacity-90 transition-all active:scale-95 text-[10px] uppercase tracking-[0.2em] border border-white/10"
                 >
                     <Utensils size={14} />
                     Poursuivre la Carte
