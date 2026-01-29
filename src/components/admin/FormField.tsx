@@ -1,11 +1,19 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 type FormFieldProps = {
     label: string;
     name: string;
-    type: 'text' | 'number' | 'textarea' | 'select' | 'file' | 'toggle';
+    type: 'text' | 'number' | 'textarea' | 'select' | 'file' | 'toggle' | 'date';
     value: any;
     onChange: (value: any) => void;
     options?: Array<{ value: string; label: string }>;
@@ -27,81 +35,95 @@ export default function FormField({
     placeholder,
     className
 }: FormFieldProps) {
+    const { t } = useLanguage();
+
     const baseInputClasses = cn(
-        "w-full bg-[#F5F5F5] border-2 border-transparent rounded-2xl px-5 transition-all outline-none font-bold text-[#003058] placeholder:text-slate-400 placeholder:font-medium focus:bg-white focus:border-[#C5A065]/20",
-        error ? "border-red-500 bg-red-50/50" : ""
+        "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        error ? "border-destructive focus-visible:ring-destructive" : "focus-visible:border-primary/50",
+        "font-sans"
     );
 
     return (
-        <div className={cn("space-y-2 group", className)}>
-            <label className="flex items-center space-x-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 transition-colors group-focus-within:text-[#C5A065]">
-                <span>{label}</span>
-                {required && <span className="text-red-500 text-xs">*</span>}
+        <div className={cn("grid w-full items-center gap-1.5", className)}>
+            <label
+                htmlFor={name}
+                className="text-xs font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 uppercase tracking-wider text-muted-foreground/80 ml-1"
+            >
+                {label}
+                {required && <span className="text-destructive ml-1">*</span>}
             </label>
 
             {type === 'textarea' ? (
                 <textarea
+                    id={name}
                     name={name}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
                     rows={4}
-                    className={cn(baseInputClasses, "py-4 resize-none")}
+                    className={cn(baseInputClasses, "h-auto py-2 resize-none")}
                 />
             ) : type === 'select' ? (
-                <select
-                    name={name}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    className={cn(baseInputClasses, "h-14 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%23003058%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:20px_20px] bg-[right_1.25rem_center] bg-no-repeat")}
-                >
-                    {placeholder && <option value="" disabled>{placeholder}</option>}
-                    {options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                <Select value={value} onValueChange={onChange}>
+                    <SelectTrigger
+                        id={name}
+                        className={cn(
+                            "w-full h-9 text-sm font-medium",
+                            error ? "border-destructive focus:ring-destructive" : ""
+                        )}
+                    >
+                        <SelectValue placeholder={placeholder} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {options.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             ) : type === 'toggle' ? (
                 <button
                     type="button"
+                    id={name}
                     onClick={() => onChange(!value)}
                     className={cn(
-                        "w-12 h-6 rounded-full p-1 transition-colors duration-300 ml-4",
-                        value ? "bg-[#C5A065]" : "bg-slate-200"
+                        "w-8 h-4 rounded-full p-0.5 transition-all duration-200 ease-in-out relative border border-transparent self-start mt-1",
+                        value ? "bg-primary" : "bg-muted border-border"
                     )}
                 >
                     <div className={cn(
-                        "w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300",
-                        value ? "translate-x-6" : "translate-x-0"
+                        "w-3 h-3 bg-background rounded-full transition-all duration-200 shadow-sm",
+                        value ? "translate-x-4" : "translate-x-0"
                     )} />
                 </button>
             ) : type === 'file' ? (
                 <div className="relative group">
                     <input
+                        id={name}
                         type="file"
                         onChange={(e) => onChange(e.target.files?.[0])}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <div className={cn(baseInputClasses, "h-32 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center space-y-2 group-hover:border-[#C5A065]/40 transition-all")}>
-                        <span className="text-3xl">📁</span>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Choisir un fichier</span>
-                        <span className="text-[10px] text-slate-300">{value?.name || "Aucun fichier sélectionné"}</span>
+                    <div className={cn(baseInputClasses, "h-16 border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center space-y-1 group-hover:bg-muted/40 transition-all")}>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t('upload_image') || 'Cliquez pour uploader'}</span>
+                        {value?.name && <span className="text-[10px] text-foreground font-semibold bg-primary/10 px-2 py-0.5 rounded-sm">{value.name}</span>}
                     </div>
                 </div>
             ) : (
                 <input
+                    id={name}
                     type={type}
                     name={name}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
-                    className={cn(baseInputClasses, "h-14")}
+                    className={baseInputClasses}
                 />
             )}
 
             {error && (
-                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-4 mt-1 italic animate-bounce">
+                <p className="text-xs font-medium text-destructive mt-1">
                     {error}
                 </p>
             )}

@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/context/LanguageContext";
 import { getTranslatedContent } from "@/utils/translation";
 import { toast } from "react-hot-toast";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, use } from "react";
 
 
 
@@ -59,14 +59,32 @@ interface MenuItem {
     price_variants?: ItemPriceVariant[];
 }
 
+interface Announcement {
+    id: string;
+    title: string;
+    description: string;
+    image_url: string;
+    type: 'standard' | 'home_banner' | 'contextual';
+    start_date: string;
+    end_date: string;
+    restaurant_id: string;
+}
+
 interface MenuPageProps {
-    params: {
+    params: Promise<{
         slug: string;
-    };
+    }>;
+}
+
+interface MenuData {
+    restaurant: Restaurant;
+    categories: Category[];
+    items: MenuItem[];
+    announcement: Announcement | null;
 }
 
 // --- Fetcher optimisé pour SWR ---
-const fetchMenuData = async (slug: string) => {
+const fetchMenuData = async (slug: string): Promise<MenuData> => {
     // Configuration pour les QR codes : Panorama et Lobby doivent inclure les boissons
     const QR_CONFIG: Record<string, string[]> = {
         'carte-panorama-restaurant': ['carte-panorama-restaurant', 'carte-des-boissons'],
@@ -147,25 +165,45 @@ const fetchMenuData = async (slug: string) => {
         }
     }
 
+    // 5. Fetch Contextual Announcements
+    let announcement: Announcement | null = null;
+    const today = new Date().toISOString().split('T')[0];
+    const { data: annData } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_active', true)
+        .eq('type', 'contextual')
+        .eq('restaurant_id', mainRestaurantId)
+        .or(`start_date.is.null,start_date.lte.${today}`)
+        .or(`end_date.is.null,end_date.gte.${today}`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+    if (annData && annData.length > 0) {
+        announcement = annData[0] as Announcement;
+    }
+
     return {
         restaurant: mainRestaurant as Restaurant,
         categories: (catData || []) as Category[],
-        items: items
+        items: items,
+        announcement: announcement
     };
 };
 
 export default function MenuDetailPage({ params }: MenuPageProps) {
-    const { slug } = params;
+    const { slug } = use(params);
     const { t, language } = useLanguage();
 
-    // SWR Implementation
-    const { data, error, isLoading } = useSWR(
+    // SWR Implementation avec sync améliorée
+    const { data, error, isLoading, mutate } = useSWR<MenuData>(
         slug ? `menu-${slug}` : null,
         () => fetchMenuData(slug),
         {
-            revalidateOnFocus: false,
+            revalidateOnFocus: true, // Recharge quand user revient sur l'onglet
             revalidateOnReconnect: true,
-            dedupingInterval: 60000, // 1 minute
+            dedupingInterval: 15000, // 15 secondes (réduit de 60s)
+            refreshInterval: 30000, // Auto-refresh toutes les 30 secondes
             errorRetryCount: 2,
             onError: (err) => {
                 console.error("SWR Error:", err);
@@ -174,10 +212,29 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
         }
     );
 
+    // Real-time subscription pour les changements de menu
+    useEffect(() => {
+        if (!slug) return;
+
+        const channel = supabase.channel(`menu-sync-${slug}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, () => {
+                mutate(); // Recharge les données quand un plat change
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+                mutate(); // Recharge quand une catégorie change
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [slug, mutate]);
+
     const restaurant = data?.restaurant;
     // Memoize categories pour éviter les re-renders inutiles
     const categories = useMemo(() => data?.categories || [], [data?.categories]);
     const items = useMemo(() => data?.items || [], [data?.items]);
+    const announcement = data?.announcement;
     const searchParams = useSearchParams();
     const section = searchParams.get('section');
 
@@ -248,6 +305,41 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
             {navCategories.length > 0 && <CategoryNav categories={navCategories} />}
 
             <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 pt-6">
+
+                {/* CONTEXTUAL BANNER */}
+                {announcement && (
+                    <div className="mb-10 animate-fade-in w-full">
+                        <div className="relative overflow-hidden rounded-[24px] shadow-lg border border-radisson-gold/20 aspect-[21/9] md:aspect-[32/9]">
+                            {announcement.image_url ? (
+                                <>
+                                    <img
+                                        src={announcement.image_url}
+                                        alt={announcement.title}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                                </>
+                            ) : (
+                                <div className="absolute inset-0 bg-gradient-to-r from-radisson-blue to-[#001833]"></div>
+                            )}
+
+                            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8 z-10">
+                                <div className="bg-white/10 backdrop-blur-md rounded-full px-3 py-1 mb-3 w-fit border border-white/20">
+                                    <span className="text-white text-[10px] uppercase font-bold tracking-widest">Offre Spéciale</span>
+                                </div>
+                                <h3 className="text-white text-xl md:text-2xl font-playfair font-bold uppercase tracking-widest mb-2 text-shadow-elegant">
+                                    {announcement.title}
+                                </h3>
+                                {announcement.description && (
+                                    <p className="text-gray-200 text-xs md:text-sm font-medium line-clamp-2 max-w-xl">
+                                        {announcement.description}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Categories Section */}
                 {categories && categories.length > 0 ? (
                     <div className="space-y-12 mb-12">

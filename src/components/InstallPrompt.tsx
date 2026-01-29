@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Share, X, Download } from "lucide-react";
+import { Share, X, Download, Plus } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 
@@ -10,14 +10,20 @@ export default function InstallPrompt() {
     const [isIOS, setIsIOS] = useState(false);
     const [show, setShow] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     useEffect(() => {
         // ONLY show on home page
         if (pathname !== "/") return;
 
-        // Check if user has already closed it
-        const isDismissed = localStorage.getItem("install_prompt_dismissed");
-        if (isDismissed) return;
+        // Check if user has already closed it (with 24h expiration)
+        const dismissedTime = localStorage.getItem("install_prompt_dismissed");
+        if (dismissedTime) {
+            const dismissedDate = new Date(parseInt(dismissedTime));
+            const now = new Date();
+            const hoursDiff = (now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60);
+            if (hoursDiff < 24) return; // Ne pas afficher pendant 24h
+        }
 
         // Check if already installed/standalone
         const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -33,14 +39,15 @@ export default function InstallPrompt() {
         const handler = (e: any) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            setShow(true);
+            // Délai de 3 secondes avant d'afficher
+            setTimeout(() => setShow(true), 3000);
         };
 
         window.addEventListener("beforeinstallprompt", handler);
 
-        // For iOS, show if on home and not dismissed
+        // For iOS, show after delay
         if (isIosDevice) {
-            setShow(true);
+            setTimeout(() => setShow(true), 3000);
         }
 
         return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -48,7 +55,7 @@ export default function InstallPrompt() {
 
     const handleDismiss = () => {
         setShow(false);
-        localStorage.setItem("install_prompt_dismissed", "true");
+        localStorage.setItem("install_prompt_dismissed", Date.now().toString());
     };
 
     const handleInstallClick = async () => {
@@ -63,48 +70,69 @@ export default function InstallPrompt() {
 
     if (!show || isStandalone || pathname !== "/") return null;
 
+    // Version compacte (bandeau discret)
     return (
-        <div className="fixed bottom-24 left-4 right-4 md:left-auto md:right-8 md:w-80 z-[110] bg-[#003366] text-white p-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/10 animate-fade-in-up">
-            <button onClick={handleDismiss} aria-label="Fermer la suggestion d'installation" className="absolute top-2 right-2 text-white/60 hover:text-white p-1">
-                <X size={16} aria-hidden="true" />
-            </button>
+        <div
+            role="dialog"
+            aria-labelledby="install-prompt-title"
+            className="fixed bottom-20 left-2 right-2 md:left-auto md:right-4 md:max-w-sm z-[110] bg-[#003366] text-white rounded-xl shadow-lg border border-white/10 animate-fade-in-up overflow-hidden"
+        >
+            <div className="flex items-center gap-3 p-3">
+                <Image
+                    src="/logo.png"
+                    alt="Blu Table"
+                    width={36}
+                    height={36}
+                    className="object-contain rounded-lg flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                    <h3 id="install-prompt-title" className="font-bold text-xs truncate">Installer Blu Table</h3>
+                    <p className="text-[10px] text-white/70 truncate">Accès rapide depuis l&apos;écran d&apos;accueil</p>
+                </div>
 
-            <div className="flex items-center gap-4 pr-6">
-                <div className="flex-shrink-0">
-                    <Image 
-                        src="/logo.png" 
-                        alt="Logo" 
-                        width={48} 
-                        height={48} 
-                        className="object-contain border-2 border-white rounded-lg" 
-                    />
-                </div>
-                <div>
-                    <h3 className="font-bold text-sm">Installer Blu Table</h3>
-                    <p className="text-[10px] text-white/80 leading-tight mt-1">
-                        Accédez à la carte plus rapidement depuis votre écran d&apos;accueil.
-                    </p>
-                </div>
+                {isIOS ? (
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        aria-expanded={isExpanded}
+                        aria-label="Voir les instructions d'installation"
+                        className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold transition-colors flex-shrink-0"
+                    >
+                        {isExpanded ? 'Fermer' : 'Comment ?'}
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleInstallClick}
+                        aria-label="Installer l'application"
+                        className="px-3 py-1.5 bg-white text-[#003366] rounded-lg text-[10px] font-bold active:scale-95 transition-transform flex items-center gap-1 flex-shrink-0"
+                    >
+                        <Download size={12} aria-hidden="true" />
+                        Installer
+                    </button>
+                )}
+
+                <button
+                    onClick={handleDismiss}
+                    aria-label="Fermer"
+                    className="text-white/50 hover:text-white p-1 flex-shrink-0"
+                >
+                    <X size={14} aria-hidden="true" />
+                </button>
             </div>
 
-            {isIOS ? (
-                <div className="mt-3 pt-3 border-t border-white/10 text-xs text-white/90 space-y-2">
-                    <p className="flex items-center gap-2 text-[10px]">
-                        1. Appuyez sur le bouton de partage <Share size={12} />
-                    </p>
-                    <p className="flex items-center gap-2 text-[10px]">
-                        2. Sélectionnez <span className="font-bold">&quot;Sur l&apos;écran d&apos;accueil&quot;</span>
-                    </p>
+            {/* Instructions iOS expandables */}
+            {isIOS && isExpanded && (
+                <div className="px-3 pb-3 pt-0 border-t border-white/10 mt-0">
+                    <div className="bg-white/10 rounded-lg p-2 space-y-1.5 text-[10px]">
+                        <p className="flex items-center gap-2">
+                            <Share size={12} className="text-white/80 flex-shrink-0" aria-hidden="true" />
+                            <span>Appuyez sur <strong>Partager</strong></span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                            <Plus size={12} className="text-white/80 flex-shrink-0" aria-hidden="true" />
+                            <span>Puis <strong>&quot;Sur l&apos;écran d&apos;accueil&quot;</strong></span>
+                        </p>
+                    </div>
                 </div>
-            ) : (
-                <button
-                    onClick={handleInstallClick}
-                    aria-label="Installer l'application sur votre appareil"
-                    className="mt-4 w-full bg-white text-[#003366] py-2.5 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
-                >
-                    <Download size={16} aria-hidden="true" />
-                    Installer l&apos;application
-                </button>
             )}
         </div>
     );

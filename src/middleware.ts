@@ -2,6 +2,12 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+    // Seulement vérifier l'auth pour les routes /admin
+    // Les autres routes passent directement sans appel Supabase (évite les 503)
+    if (!request.nextUrl.pathname.startsWith('/admin')) {
+        return NextResponse.next();
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,
@@ -13,8 +19,6 @@ export async function middleware(request: NextRequest) {
 
     if (!supabaseUrl || !supabaseAnonKey) {
         console.error("MIDDLEWARE ERROR: Supabase environment variables are missing!");
-        // En middleware, s'il manque les variables, on laisse passer pour éviter un crash total
-        // mais on ne pourra pas authentifier l'admin
         return response;
     }
 
@@ -68,20 +72,17 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Protection des routes /admin
-    if (request.nextUrl.pathname.startsWith('/admin')) {
-        // Si on est déjà sur la page de login
-        if (request.nextUrl.pathname === '/admin/login') {
-            if (user) {
-                return NextResponse.redirect(new URL('/admin', request.url))
-            }
-            return response
+    // Si on est déjà sur la page de login
+    if (request.nextUrl.pathname === '/admin/login') {
+        if (user) {
+            return NextResponse.redirect(new URL('/admin', request.url))
         }
+        return response
+    }
 
-        // Si on n'est pas connecté
-        if (!user) {
-            return NextResponse.redirect(new URL('/admin/login', request.url))
-        }
+    // Si on n'est pas connecté
+    if (!user) {
+        return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
     return response

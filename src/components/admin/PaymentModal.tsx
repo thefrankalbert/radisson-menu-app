@@ -57,12 +57,14 @@ export default function PaymentModal({
     const [converterAmount, setConverterAmount] = useState("");
     const [converterFrom, setConverterFrom] = useState<keyof typeof EXCHANGE_RATES>("EUR");
     const [converterTo, setConverterTo] = useState<keyof typeof EXCHANGE_RATES>("XAF");
+    const [tip, setTip] = useState<number>(0);
 
     // Reset on open and handle Scroll Lock
     useEffect(() => {
         if (isOpen) {
             setInputAmount("");
             setAmountPaid(0);
+            setTip(0);
             setPaymentMethod("cash");
             setPaymentType("full");
             document.body.style.overflow = "hidden";
@@ -75,8 +77,9 @@ export default function PaymentModal({
         };
     }, [isOpen]);
 
-    const dueAmount = Math.max(0, total - amountPaid);
-    const change = amountPaid > total ? amountPaid - total : 0;
+    const finalTotal = total + tip;
+    const dueAmount = Math.max(0, finalTotal - amountPaid);
+    const change = amountPaid > finalTotal ? amountPaid - finalTotal : 0;
 
     const handleNumberClick = (num: string) => {
         if (num === "x") {
@@ -123,7 +126,10 @@ export default function PaymentModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
             <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-up">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-100">
@@ -147,8 +153,8 @@ export default function PaymentModal({
                         <button
                             onClick={() => setPaymentType("full")}
                             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${paymentType === "full"
-                                    ? "bg-orange-500 text-white shadow"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-orange-500 text-white shadow"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             Paiement complet
@@ -156,8 +162,8 @@ export default function PaymentModal({
                         <button
                             onClick={() => setPaymentType("split")}
                             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${paymentType === "split"
-                                    ? "bg-orange-500 text-white shadow"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-orange-500 text-white shadow"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             Partager l'addition
@@ -178,8 +184,8 @@ export default function PaymentModal({
                                 key={method.id}
                                 onClick={() => setPaymentMethod(method.id as PaymentMethod)}
                                 className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all ${paymentMethod === method.id
-                                        ? "bg-[#003058] text-white border-[#003058]"
-                                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                                    ? "bg-[#003058] text-white border-[#003058]"
+                                    : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
                                     }`}
                             >
                                 <method.icon className="w-5 h-5" />
@@ -222,8 +228,8 @@ export default function PaymentModal({
                                 key={key}
                                 onClick={() => handleNumberClick(key)}
                                 className={`py-3 rounded-xl text-lg font-bold transition-all ${key === "x"
-                                        ? "bg-red-100 text-red-600 hover:bg-red-200"
-                                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                    ? "bg-red-100 text-red-600 hover:bg-red-200"
+                                    : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                                     }`}
                             >
                                 {key === "x" ? "⌫" : key}
@@ -235,10 +241,28 @@ export default function PaymentModal({
                 {/* Summary */}
                 <div className="p-4 bg-gray-50 space-y-2">
                     <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Total à payer</span>
+                        <span className="text-gray-500 font-medium">Sous-total</span>
                         <span className="font-bold text-gray-900">{total.toLocaleString()} FCFA</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    {/* Tip Field */}
+                    <div className="flex justify-between items-center py-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Ajouter un pourboire</span>
+                        <div className="flex items-center gap-2 bg-white border border-blue-100 rounded px-2 h-7">
+                            <input
+                                type="number"
+                                value={tip || ""}
+                                onChange={(e) => setTip(Math.max(0, Number(e.target.value)))}
+                                className="w-16 bg-transparent border-none text-[10px] font-black text-right outline-none placeholder:text-blue-200"
+                                placeholder="0"
+                            />
+                            <span className="text-[8px] font-bold text-blue-400">F</span>
+                        </div>
+                    </div>
+                    <div className="pt-2 border-t border-dashed border-gray-200 flex justify-between text-sm">
+                        <span className="text-gray-900 font-black uppercase text-[10px] tracking-widest">Total Final</span>
+                        <span className="font-black text-orange-600">{finalTotal.toLocaleString()} FCFA</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1">
                         <span className="text-gray-500">Montant reçu</span>
                         <span className="font-bold text-gray-900">{(amountPaid + (parseFloat(inputAmount) || 0)).toLocaleString()} FCFA</span>
                     </div>

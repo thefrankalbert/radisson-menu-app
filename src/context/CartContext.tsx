@@ -95,7 +95,7 @@ const areRestaurantsCompatible = async (restaurantId1: string | null, restaurant
 
     // Groupes de restaurants compatibles
     const panoramaGroup = ['carte-panorama-restaurant']; // Panorama et Tapas utilisent le même slug
-    const lobbyGroup = ['carte-lobby-bar-snacks', 'pool-bar']; // Lobby et Pool
+    const lobbyGroup = ['carte-lobby-bar-snacks', 'pool']; // Lobby et Pool
     const drinksSlug = 'carte-des-boissons'; // Boissons
 
     // Vérifier si les deux restaurants sont dans le même groupe
@@ -147,10 +147,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }, [items, currentRestaurantId, lastVisitedMenuUrl]);
 
     const addToCart = async (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false) => {
-        // Vérification Multi-Restaurant avant de modifier le state
-        if (items.length > 0 && currentRestaurantId && currentRestaurantId !== restaurantId && !skipConfirm) {
-            // Vérifier si les restaurants sont compatibles
-            const compatible = await areRestaurantsCompatible(currentRestaurantId, restaurantId);
+        // Capturer l'état actuel pour éviter les race conditions
+        const currentItems = items;
+        const currentRestoId = currentRestaurantId;
+
+        // Vérification Multi-Restaurant AVANT de modifier le state
+        const isDifferentRestaurant = currentItems.length > 0 && currentRestoId && currentRestoId !== restaurantId;
+
+        if (isDifferentRestaurant && !skipConfirm) {
+            // Vérifier si les restaurants sont compatibles (async)
+            const compatible = await areRestaurantsCompatible(currentRestoId, restaurantId);
             if (!compatible) {
                 setPendingAddToCart({ item: newItem, restaurantId });
                 return;
@@ -158,23 +164,26 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
             // Si compatibles, on continue sans modal
         }
 
+        // Déterminer l'action à effectuer (calculé en dehors de setItems)
+        const shouldClearCart = isDifferentRestaurant && skipConfirm;
+        const shouldSetNewRestaurant = currentItems.length === 0 || shouldClearCart;
+
+        // Mise à jour du restaurant ID si nécessaire
+        if (shouldSetNewRestaurant) {
+            setCurrentRestaurantId(restaurantId);
+        }
+
+        // Mise à jour synchrone des items
         setItems((prevItems) => {
-            // Si c'est le même restaurant ou panier vide
-            if (prevItems.length === 0) {
-                setCurrentRestaurantId(restaurantId);
-            } else if (currentRestaurantId && currentRestaurantId !== restaurantId) {
-                // Si on change de restaurant non compatible (skipConfirm = true signifie qu'on a confirmé)
-                // Dans ce cas, on vide le panier seulement si skipConfirm est true
-                if (skipConfirm) {
-                    setCurrentRestaurantId(restaurantId);
-                    return [{ ...newItem, quantity: 1, restaurant_id: restaurantId }];
-                }
-                // Sinon, si les restaurants sont compatibles, on continue avec le panier existant
+            // Si on doit vider le panier (changement de restaurant confirmé)
+            if (shouldClearCart) {
+                return [{ ...newItem, quantity: 1, restaurant_id: restaurantId }];
             }
 
-            // 2. Vérification si l'item existe déjà (avec même option/variante)
+            // Vérification si l'item existe déjà (avec même option/variante)
             const cartItemKey = getCartItemKey(newItem);
             const existingItem = prevItems.find((i) => getCartItemKey(i) === cartItemKey);
+
             if (existingItem) {
                 return prevItems.map((i) =>
                     getCartItemKey(i) === cartItemKey ? { ...i, quantity: i.quantity + 1 } : i

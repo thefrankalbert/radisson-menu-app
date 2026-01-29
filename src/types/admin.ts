@@ -52,6 +52,7 @@ export type OrderItem = {
     quantity: number;
     price: number;
     menu_item_id?: string;
+    notes?: string;
 };
 
 export type Order = {
@@ -96,6 +97,7 @@ export type MenuItem = {
     description_en?: string;
     price: number;
     image_url?: string;
+    image_back_url?: string; // Image verso/détail du plat
     is_available: boolean;
     is_featured: boolean;
     category_id: string;
@@ -216,3 +218,30 @@ export type SettingsMap = {
     auto_accept_orders: boolean;
     order_timeout_minutes: number;
 };
+
+// Utility Types
+export type WithId<T> = T & { id: string };
+export type WithTimestamps<T> = T & { created_at: string; updated_at?: string };
+export type Nullable<T> = T | null;
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// API Response Types
+export type ApiResponse<T> = {
+    data: T | null;
+    error: string | null;
+    success: boolean;
+};
+
+export type PaginatedResponse<T> = ApiResponse<T[]> & {
+    total: number;
+    page: number;
+    pageSize: number;
+    hasMore: boolean;
+};
+
+// Form Types
+export type FormErrors<T> = Partial<Record<keyof T, string>>;
+
+// Language Support
+export type Language = 'fr' | 'en';
+export type Translatable<T> = T & { [K in keyof T as `${string & K}_en`]?: string };

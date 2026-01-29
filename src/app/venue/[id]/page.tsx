@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, use } from "react";
 import { Info } from "lucide-react";
 import { notFound } from "next/navigation";
 import MenuItemCard from "@/components/MenuItemCard";
@@ -134,13 +134,13 @@ interface VenueData {
 }
 
 interface VenuePageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default function VenuePage({ params }: VenuePageProps) {
-    const { id: venueId } = params;
+    const { id: venueId } = use(params);
     const { t, language } = useLanguage();
 
     const venueConfig = VENUE_CONFIG[venueId];

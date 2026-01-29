@@ -50,26 +50,36 @@ export default function CartPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!tableNumber.trim()) {
+        // Nettoyer et valider le numéro de table
+        const cleanedTableNumber = tableNumber.trim().toUpperCase();
+
+        if (!cleanedTableNumber) {
             toast.error(t('table_required') || "Numéro de table requis");
+            return;
+        }
+
+        // Regex: lettres, chiffres et tirets uniquement (pas d'espaces), 1-10 caractères
+        const tableRegex = /^[A-Z0-9-]{1,10}$/;
+        if (!tableRegex.test(cleanedTableNumber)) {
+            toast.error(language === 'fr'
+                ? "Numéro de table invalide (ex: P01, L05, PE03)"
+                : "Invalid table number (e.g., P01, L05, PE03)");
             return;
         }
 
         const lastOrderTime = localStorage.getItem('last_order_time');
         const now = Date.now();
         if (lastOrderTime && now - parseInt(lastOrderTime) < 30000) {
-            toast.error("Veuillez attendre 30 secondes entre chaque commande.");
-            return;
-        }
-
-        const tableRegex = /^[a-zA-Z0-9\s-]{1,10}$/;
-        if (!tableRegex.test(tableNumber)) {
-            toast.error("Numéro de table invalide (max 10 caractères, alphanumérique).");
+            toast.error(language === 'fr'
+                ? "Veuillez attendre 30 secondes entre chaque commande."
+                : "Please wait 30 seconds between orders.");
             return;
         }
 
         if (!currentRestaurantId) {
-            toast.error("Erreur: Restaurant non identifié.");
+            toast.error(language === 'fr'
+                ? "Erreur: Restaurant non identifié."
+                : "Error: Restaurant not identified.");
             return;
         }
 
@@ -80,7 +90,7 @@ export default function CartPage() {
                 .from('orders')
                 .insert({
                     restaurant_id: currentRestaurantId,
-                    table_number: tableNumber,
+                    table_number: cleanedTableNumber,
                     total_price: totalPrice,
                     status: 'pending'
                 })
@@ -113,7 +123,7 @@ export default function CartPage() {
                     variant: i.selectedVariant?.name_fr
                 })),
                 totalPrice: totalPrice,
-                tableNumber: tableNumber,
+                tableNumber: cleanedTableNumber,
                 status: 'sent'
             };
 
@@ -122,8 +132,8 @@ export default function CartPage() {
             const updatedHistory = [newOrder, ...currentHist];
             localStorage.setItem('order_history', JSON.stringify(updatedHistory));
             localStorage.setItem('last_order_time', now.toString());
-            // Save Table Number for future convenience
-            localStorage.setItem('saved_table', tableNumber);
+            // Sauvegarder le numéro de table nettoyé pour la prochaine fois
+            localStorage.setItem('saved_table', cleanedTableNumber);
 
             clearCart();
             toast.success(t('order_sent_success'));

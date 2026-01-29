@@ -1,6 +1,7 @@
 {
   "name": "BLU TABLE",
   "short_name": "BLU TABLE",
+  "version": "2.3.0",
   "icons": [
     {
       "src": "/logo.png",

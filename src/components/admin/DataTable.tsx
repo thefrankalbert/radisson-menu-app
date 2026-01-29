@@ -19,6 +19,7 @@ type Column<T> = {
     label: string;
     render?: (value: any, row: T) => ReactNode;
     sortable?: boolean;
+    maxWidth?: number; // Max width in pixels for truncation
 };
 
 type DataTableProps<T> = {
@@ -28,6 +29,8 @@ type DataTableProps<T> = {
     onDelete?: (row: T) => void;
     isLoading?: boolean;
     emptyMessage?: string;
+    selectable?: boolean;
+    onSelectionChange?: (selectedIds: string[]) => void;
 };
 
 export default function DataTable<T extends Record<string, any>>({
@@ -37,12 +40,15 @@ export default function DataTable<T extends Record<string, any>>({
     onDelete,
     isLoading = false,
     emptyMessage = "Aucune donnée trouvée",
+    selectable = false,
+    onSelectionChange,
 }: DataTableProps<T>) {
     const [search, setSearch] = useState("");
     const [sortKey, setSortKey] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Filter & Search
     const filteredData = useMemo(() => {
@@ -54,6 +60,27 @@ export default function DataTable<T extends Record<string, any>>({
             )
         );
     }, [data, search]);
+
+    // Selection Logic
+    const toggleSelectAll = () => {
+        if (selectedIds.length === paginatedData.length) {
+            const newSelection = selectedIds.filter(id => !paginatedData.some(item => item.id === id));
+            setSelectedIds(newSelection);
+            onSelectionChange?.(newSelection);
+        } else {
+            const newIds = Array.from(new Set([...selectedIds, ...paginatedData.map(item => item.id)]));
+            setSelectedIds(newIds);
+            onSelectionChange?.(newIds);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        const newSelection = selectedIds.includes(id)
+            ? selectedIds.filter(i => i !== id)
+            : [...selectedIds, id];
+        setSelectedIds(newSelection);
+        onSelectionChange?.(newSelection);
+    };
 
     // Sort
     const sortedData = useMemo(() => {
@@ -90,22 +117,22 @@ export default function DataTable<T extends Record<string, any>>({
             {/* Search & Actions Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="relative group w-full sm:w-80">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#C5A065] transition-colors" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                     <input
                         type="text"
                         placeholder="Rechercher..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full h-11 bg-white border border-[#F5F5F5] rounded-xl pl-11 pr-4 text-sm font-bold text-[#003058] focus:ring-2 focus:ring-[#C5A065]/20 focus:border-[#C5A065]/30 transition-all outline-none"
+                        className="w-full h-9 bg-background border border-input rounded-md pl-9 pr-4 text-xs font-medium text-foreground focus:ring-1 focus:ring-ring focus:border-ring transition-all outline-none"
                     />
                 </div>
 
-                <div className="flex items-center space-x-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Afficher</label>
+                <div className="flex items-center space-x-2">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Afficher</label>
                     <select
                         value={itemsPerPage}
                         onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                        className="h-11 bg-white border border-[#F5F5F5] rounded-xl px-3 text-xs font-bold text-[#003058] outline-none"
+                        className="h-9 bg-background border border-input rounded-md px-2 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-ring"
                     >
                         <option value={10}>10</option>
                         <option value={25}>25</option>
@@ -115,35 +142,46 @@ export default function DataTable<T extends Record<string, any>>({
             </div>
 
             {/* Table Body */}
-            <div className="bg-white rounded-[2rem] border border-[#F5F5F5] overflow-hidden shadow-sm relative min-h-[400px]">
+            <div className="bg-card rounded-md border border-border overflow-hidden relative min-h-[400px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-[#F5F5F5]/50 border-b border-[#F5F5F5]">
+                            <tr className="bg-muted/50 border-b border-border">
+                                {selectable && (
+                                    <th className="px-6 py-4 w-10">
+                                        <input
+                                            type="checkbox"
+                                            className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary/20 transition-all cursor-pointer"
+                                            checked={paginatedData.length > 0 && paginatedData.every(item => selectedIds.includes(item.id))}
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </th>
+                                )}
                                 {columns.map((col) => (
                                     <th
                                         key={col.key}
                                         onClick={() => col.sortable !== false && handleSort(col.key)}
                                         className={cn(
-                                            "px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 select-none",
-                                            col.sortable !== false ? "cursor-pointer hover:text-[#003058] transition-colors" : ""
+                                            "px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none",
+                                            col.sortable !== false ? "cursor-pointer hover:text-foreground transition-colors" : ""
                                         )}
                                     >
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-1.5">
                                             <span>{col.label}</span>
                                             {sortKey === col.key && (
-                                                sortOrder === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                                                sortOrder === "asc" ? <ChevronUp className="w-3 h-3 text-primary" /> : <ChevronDown className="w-3 h-3 text-primary" />
                                             )}
                                         </div>
                                     </th>
                                 ))}
-                                {(onEdit || onDelete) && <th className="px-8 py-5"></th>}
+                                {(onEdit || onDelete) && <th className="px-6 py-4"></th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#F5F5F5]">
+                        <tbody className="divide-y divide-border">
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
+                                        {selectable && <td className="px-6 py-4"><div className="w-3.5 h-3.5 bg-slate-100 rounded"></div></td>}
                                         {columns.map((col) => (
                                             <td key={col.key} className="px-8 py-6">
                                                 <div className="h-4 bg-slate-100 rounded-lg w-full"></div>
@@ -156,30 +194,49 @@ export default function DataTable<T extends Record<string, any>>({
                                 paginatedData.map((row, idx) => (
                                     <tr
                                         key={idx}
-                                        className="hover:bg-slate-50/50 transition-colors group"
+                                        className={cn(
+                                            "hover:bg-accent/50 transition-colors group",
+                                            selectedIds.includes(row.id) ? "bg-primary/5" : ""
+                                        )}
                                     >
+                                        {selectable && (
+                                            <td className="px-6 py-4 w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary/20 transition-all cursor-pointer"
+                                                    checked={selectedIds.includes(row.id)}
+                                                    onChange={() => toggleSelect(row.id)}
+                                                />
+                                            </td>
+                                        )}
                                         {columns.map((col) => (
-                                            <td key={col.key} className="px-8 py-6 text-sm font-bold text-[#003058]">
-                                                {col.render ? col.render(row[col.key], row) : row[col.key]}
+                                            <td
+                                                key={col.key}
+                                                className="px-6 py-4 text-xs font-semibold text-foreground"
+                                                style={col.maxWidth ? { maxWidth: col.maxWidth } : undefined}
+                                            >
+                                                <div className={cn(col.maxWidth ? "truncate" : "")}>
+                                                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                                                </div>
                                             </td>
                                         ))}
                                         {(onEdit || onDelete) && (
-                                            <td className="px-8 py-6 text-right">
+                                            <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     {onEdit && (
                                                         <button
                                                             onClick={() => onEdit(row)}
-                                                            className="p-2 text-slate-400 hover:text-[#003058] hover:bg-[#F5F5F5] rounded-lg transition-all"
+                                                            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-all"
                                                         >
-                                                            <Edit2 className="w-4 h-4" />
+                                                            <Edit2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                     {onDelete && (
                                                         <button
                                                             onClick={() => onDelete(row)}
-                                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-all"
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                 </div>
@@ -189,7 +246,7 @@ export default function DataTable<T extends Record<string, any>>({
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={columns.length + 1} className="px-8 py-20 text-center">
+                                    <td colSpan={columns.length + (selectable ? 2 : 1)} className="px-8 py-20 text-center">
                                         <div className="flex flex-col items-center justify-center text-slate-300">
                                             <Search className="w-12 h-12 mb-4 opacity-20" />
                                             <p className="font-bold italic">{emptyMessage}</p>
@@ -203,7 +260,7 @@ export default function DataTable<T extends Record<string, any>>({
 
                 {isLoading && (
                     <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center">
-                        <Loader2 className="w-10 h-10 text-[#C5A065] animate-spin" />
+                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
                     </div>
                 )}
             </div>
@@ -211,16 +268,16 @@ export default function DataTable<T extends Record<string, any>>({
             {/* Pagination Bar */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-between px-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                         Affichage {Math.min(paginatedData.length, itemsPerPage)} sur {filteredData.length} résultats
                     </p>
                     <div className="flex items-center space-x-2">
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => prev - 1)}
-                            className="p-2 border border-[#F5F5F5] rounded-xl hover:bg-white disabled:opacity-30 transition-all shadow-sm"
+                            className="p-2 border border-border rounded-md hover:bg-accent disabled:opacity-30 transition-all text-foreground"
                         >
-                            <ChevronLeft className="w-5 h-5 text-[#003058]" />
+                            <ChevronLeft className="w-4 h-4" />
                         </button>
                         <div className="flex items-center space-x-1">
                             {Array.from({ length: totalPages }).map((_, i) => (
@@ -228,10 +285,10 @@ export default function DataTable<T extends Record<string, any>>({
                                     key={i}
                                     onClick={() => setCurrentPage(i + 1)}
                                     className={cn(
-                                        "w-10 h-10 rounded-xl text-xs font-black transition-all",
+                                        "w-8 h-8 rounded-md text-xs font-bold transition-all",
                                         currentPage === i + 1
-                                            ? "bg-[#003058] text-white shadow-lg shadow-blue-900/20 scale-110"
-                                            : "bg-white text-slate-400 border border-[#F5F5F5] hover:border-[#003058]/30"
+                                            ? "bg-primary text-primary-foreground border border-primary"
+                                            : "bg-background text-muted-foreground border border-border hover:bg-accent hover:text-foreground"
                                     )}
                                 >
                                     {i + 1}
@@ -241,9 +298,9 @@ export default function DataTable<T extends Record<string, any>>({
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => prev + 1)}
-                            className="p-2 border border-[#F5F5F5] rounded-xl hover:bg-white disabled:opacity-30 transition-all shadow-sm"
+                            className="p-2 border border-border rounded-md hover:bg-accent disabled:opacity-30 transition-all text-foreground"
                         >
-                            <ChevronRight className="w-5 h-5 text-[#003058]" />
+                            <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>

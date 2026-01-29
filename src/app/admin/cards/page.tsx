@@ -1,28 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
     Plus,
     Loader2,
     QrCode,
     Download,
-    Image as ImageIcon
+    Building,
+    Image as ImageIcon,
+    Trash2,
+    ExternalLink,
+    Settings,
+    AlertTriangle,
+    Folder,
+    Utensils,
+    ChevronRight
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import DataTable from "@/components/admin/DataTable";
 import Modal from "@/components/admin/Modal";
 import FormField from "@/components/admin/FormField";
 import { Restaurant } from "@/types/admin";
 import { toast } from "react-hot-toast";
+import { ListPageSkeleton } from "@/components/admin/Skeleton";
+import { cn } from "@/lib/utils";
 
-type CardFormData = {
-    name: string;
-    name_en: string;
-    slug: string;
-    image_url: string;
-    is_event: boolean;
-    is_active: boolean;
-};
+const cardSchema = z.object({
+    name: z.string().min(1, "Le nom est requis").max(100),
+    name_en: z.string().max(100).optional().or(z.literal("")),
+    slug: z.string().min(1, "Le slug est requis").regex(/^[a-z0-9-]+$/, "Slug invalide (lettres, chiffres, tirets uniquement)"),
+    image_url: z.string().url().optional().or(z.literal("")),
+    is_event: z.boolean(),
+    is_active: z.boolean()
+});
+
+type CardFormData = z.infer<typeof cardSchema>;
 
 const initialFormData: CardFormData = {
     name: '',
@@ -34,15 +50,25 @@ const initialFormData: CardFormData = {
 };
 
 export default function CardsPage() {
+    const router = useRouter();
     const [cards, setCards] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [showQRModal, setShowQRModal] = useState(false);
     const [editingCard, setEditingCard] = useState<Restaurant | null>(null);
-    const [formData, setFormData] = useState<CardFormData>(initialFormData);
     const [saving, setSaving] = useState(false);
     const [selectedCardForQR, setSelectedCardForQR] = useState<Restaurant | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [cardToDelete, setCardToDelete] = useState<Restaurant | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
+    const { control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CardFormData>({
+        resolver: zodResolver(cardSchema),
+        defaultValues: initialFormData
+    });
+
+    const cardName = watch('name');
 
     // Charger les cartes
     const loadCards = async () => {
@@ -76,17 +102,24 @@ export default function CardsPage() {
             .replace(/(^-|-$)/g, '');
     };
 
+    // Auto-update slug when name changes for new cards
+    useEffect(() => {
+        if (!editingCard && cardName) {
+            setValue('slug', generateSlug(cardName));
+        }
+    }, [cardName, editingCard, setValue]);
+
     // Ouvrir modal pour nouvelle carte
     const handleNewCard = () => {
         setEditingCard(null);
-        setFormData(initialFormData);
+        reset(initialFormData);
         setShowModal(true);
     };
 
     // Ouvrir modal pour édition
     const handleEdit = (card: Restaurant) => {
         setEditingCard(card);
-        setFormData({
+        reset({
             name: card.name || '',
             name_en: card.name_en || '',
             slug: card.slug || '',
@@ -100,7 +133,6 @@ export default function CardsPage() {
     // Upload image
     const handleImageUpload = async (file: File) => {
         if (!file) return;
-
         setUploadingImage(true);
         try {
             const fileExt = file.name.split('.').pop();
@@ -117,10 +149,9 @@ export default function CardsPage() {
                 .from('images')
                 .getPublicUrl(filePath);
 
-            setFormData(prev => ({ ...prev, image_url: publicUrl }));
+            setValue('image_url', publicUrl);
             toast.success('Image uploadée');
         } catch (error) {
-            console.error('Erreur upload:', error);
             toast.error('Erreur lors de l\'upload');
         } finally {
             setUploadingImage(false);
@@ -128,36 +159,26 @@ export default function CardsPage() {
     };
 
     // Sauvegarder carte
-    const handleSave = async () => {
-        if (!formData.name.trim()) {
-            toast.error('Le nom est requis');
-            return;
-        }
-
+    const onFormSubmit = async (data: CardFormData) => {
         setSaving(true);
         try {
-            const cardData = {
-                name: formData.name,
-                name_en: formData.name_en || null,
-                slug: formData.slug || generateSlug(formData.name),
-                image_url: formData.image_url || null,
-                is_event: formData.is_event,
-                is_active: formData.is_active
+            const payload = {
+                ...data,
+                name_en: data.name_en || null,
+                image_url: data.image_url || null
             };
 
             if (editingCard) {
                 const { error } = await supabase
                     .from('restaurants')
-                    .update(cardData)
+                    .update(payload)
                     .eq('id', editingCard.id);
-
                 if (error) throw error;
                 toast.success('Carte mise à jour');
             } else {
                 const { error } = await supabase
                     .from('restaurants')
-                    .insert([cardData]);
-
+                    .insert([payload]);
                 if (error) throw error;
                 toast.success('Carte créée');
             }
@@ -165,50 +186,54 @@ export default function CardsPage() {
             setShowModal(false);
             loadCards();
         } catch (error: any) {
-            console.error('Erreur sauvegarde:', error);
             toast.error(error.message || 'Erreur lors de la sauvegarde');
         } finally {
             setSaving(false);
         }
     };
 
-    // Supprimer carte
-    const handleDelete = async (card: Restaurant) => {
-        if (!confirm(`Supprimer la carte "${card.name}" ?`)) return;
+    const confirmDelete = (card: Restaurant) => {
+        setCardToDelete(card);
+        setShowDeleteConfirm(true);
+    };
 
+    const executeDelete = async () => {
+        if (!cardToDelete) return;
+        setDeleting(true);
         try {
             const { count } = await supabase
                 .from('categories')
                 .select('id', { count: 'exact', head: true })
-                .eq('restaurant_id', card.id);
+                .eq('restaurant_id', cardToDelete.id);
 
             if (count && count > 0) {
                 toast.error(`Cette carte a ${count} catégorie(s) liée(s). Supprimez-les d'abord.`);
+                setShowDeleteConfirm(false);
                 return;
             }
 
             const { error } = await supabase
                 .from('restaurants')
                 .delete()
-                .eq('id', card.id);
+                .eq('id', cardToDelete.id);
 
             if (error) throw error;
             toast.success('Carte supprimée');
             loadCards();
         } catch (error) {
-            console.error('Erreur suppression:', error);
-            toast.error('Erreur lors de la suppression');
+            toast.error('Erreur lors du suppression');
+        } finally {
+            setDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
-    // Toggle actif/inactif
     const handleToggleActive = async (card: Restaurant) => {
         try {
             const { error } = await supabase
                 .from('restaurants')
                 .update({ is_active: !card.is_active })
                 .eq('id', card.id);
-
             if (error) throw error;
             loadCards();
         } catch (error) {
@@ -216,17 +241,14 @@ export default function CardsPage() {
         }
     };
 
-    // Générer QR Code
     const handleGenerateQR = (card: Restaurant) => {
         setSelectedCardForQR(card);
         setShowQRModal(true);
     };
 
-    // Télécharger QR Code
     const downloadQRCode = () => {
         if (!selectedCardForQR) return;
-
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
             `${window.location.origin}/menu/${selectedCardForQR.slug}`
         )}`;
 
@@ -238,27 +260,28 @@ export default function CardsPage() {
         document.body.removeChild(link);
     };
 
-    // Colonnes du tableau
     const columns = [
         {
             key: 'image_url',
-            label: 'Image',
+            label: 'Visuel',
             sortable: false,
             render: (value: string) => value ? (
-                <img src={value} alt="" className="w-12 h-12 rounded-xl object-cover" />
+                <img src={value} alt="" className="w-10 h-10 rounded-md object-cover border border-border" />
             ) : (
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <ImageIcon className="w-5 h-5 text-slate-300" />
+                <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center border border-border">
+                    <Building className="w-4 h-4 text-muted-foreground/50" />
                 </div>
             )
         },
         {
             key: 'name',
-            label: 'Nom',
+            label: 'Nom & URL',
             render: (value: string, row: Restaurant) => (
                 <div>
-                    <p className="font-bold text-[#003058]">{value}</p>
-                    <p className="text-xs text-slate-400">/{row.slug}</p>
+                    <p className="font-bold text-foreground text-sm tracking-tight">{value}</p>
+                    <div className="flex items-center text-[10px] text-muted-foreground font-medium mt-1">
+                        <span className="bg-muted px-1.5 py-0.5 rounded border border-border mr-2 truncate max-w-[120px]">/menu/{row.slug}</span>
+                    </div>
                 </div>
             )
         },
@@ -266,9 +289,10 @@ export default function CardsPage() {
             key: 'is_event',
             label: 'Type',
             render: (value: boolean) => (
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    value ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-                }`}>
+                <span className={cn(
+                    "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border",
+                    value ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-blue-50 text-blue-600 border-blue-100"
+                )}>
                     {value ? 'Événement' : 'Permanent'}
                 </span>
             )
@@ -282,11 +306,12 @@ export default function CardsPage() {
                         e.stopPropagation();
                         handleToggleActive(row);
                     }}
-                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${
-                        value !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                    }`}
+                    className={cn(
+                        "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all",
+                        value !== false ? "bg-primary/5 text-primary border-primary/10" : "bg-muted text-muted-foreground border-border"
+                    )}
                 >
-                    {value !== false ? 'Actif' : 'Inactif'}
+                    {value !== false ? 'En ligne' : 'Invisible'}
                 </button>
             )
         },
@@ -295,121 +320,172 @@ export default function CardsPage() {
             label: '',
             sortable: false,
             render: (_: any, row: Restaurant) => (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleGenerateQR(row);
-                    }}
-                    className="p-2 text-slate-400 hover:text-[#003058] hover:bg-[#F5F5F5] rounded-lg transition-all"
-                    title="Générer QR Code"
-                >
-                    <QrCode className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/admin/categories?restaurant=${row.id}`);
+                        }}
+                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md transition-all flex items-center gap-1"
+                        title="Voir les catégories"
+                    >
+                        <Folder className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-3 h-3 opacity-50" />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/admin/items?restaurant=${row.id}`);
+                        }}
+                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md transition-all flex items-center gap-1"
+                        title="Voir les plats"
+                    >
+                        <Utensils className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-3 h-3 opacity-50" />
+                    </button>
+                    <div className="w-px h-4 bg-border mx-1" />
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(row);
+                        }}
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
+                        title="Paramètres de la carte"
+                    >
+                        <Settings className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleGenerateQR(row);
+                        }}
+                        className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-md transition-all"
+                        title="QR Code"
+                    >
+                        <QrCode className="w-3.5 h-3.5" />
+                    </button>
+                </div>
             )
         }
     ];
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <Loader2 className="w-12 h-12 text-[#C5A065] animate-spin" />
-            </div>
-        );
+        return <ListPageSkeleton />;
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 font-sans">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-black text-[#003058] tracking-tight">Gestion des Cartes & Menus</h1>
+                <div>
+                    <h1 className="text-xl font-bold text-foreground tracking-tight uppercase">Cartes & Menus</h1>
+                    <p className="text-xs text-muted-foreground font-medium">Configurez vos différents points de vente.</p>
+                </div>
                 <button
                     onClick={handleNewCard}
-                    className="flex items-center space-x-2 bg-[#003058] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-blue-900/20 hover:scale-105 transition-transform"
+                    className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all"
                 >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                     <span>Nouvelle Carte</span>
                 </button>
             </div>
 
             {cards.length > 0 ? (
-                <DataTable
-                    columns={columns}
-                    data={cards}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                />
+                <div className="bg-card rounded-md border border-border overflow-hidden shadow-sm">
+                    <DataTable
+                        columns={columns}
+                        data={cards}
+                        onEdit={(card) => router.push(`/admin/items?restaurant=${card.id}`)}
+                        onDelete={confirmDelete}
+                    />
+                </div>
             ) : (
-                <div className="bg-white rounded-[2.5rem] border border-[#F5F5F5] p-12 text-center">
-                    <div className="w-20 h-20 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto mb-6">
-                        <span className="text-3xl">📇</span>
+                <div className="bg-card rounded-md border border-border p-16 text-center shadow-sm">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Building className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-black text-[#003058]">Aucune carte active</h3>
-                    <p className="text-slate-400 mt-2 font-medium">Commencez par créer une carte pour vos restaurants ou événements.</p>
+                    <h3 className="text-lg font-bold text-foreground tracking-tight">Aucune carte active</h3>
+                    <p className="text-muted-foreground mt-1 text-sm font-medium">Créez votre première carte pour commencer à ajouter des catégories et des plats.</p>
                     <button
                         onClick={handleNewCard}
-                        className="mt-6 bg-[#C5A065] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#b08e5a] transition-colors"
+                        className="mt-6 bg-primary text-primary-foreground px-8 py-2 rounded-md font-bold text-xs hover:opacity-90 transition-all shadow-sm"
                     >
                         Créer ma première carte
                     </button>
                 </div>
             )}
 
-            {/* Modal Ajout/Édition */}
             <Modal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
                 title={editingCard ? 'Modifier la carte' : 'Nouvelle carte'}
                 size="md"
             >
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                            label="Nom (FR)"
+                <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Controller
                             name="name"
-                            type="text"
-                            value={formData.name}
-                            onChange={(v) => {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    name: v,
-                                    slug: prev.slug || generateSlug(v)
-                                }));
-                            }}
-                            required
-                            placeholder="Ex: Restaurant Le Nile"
+                            control={control}
+                            render={({ field }) => (
+                                <FormField
+                                    label="Nom (FR)"
+                                    type="text"
+                                    placeholder="Ex: Restaurant Le Nile"
+                                    required
+                                    error={errors.name?.message}
+                                    {...field}
+                                />
+                            )}
                         />
-                        <FormField
-                            label="Nom (EN)"
+                        <Controller
                             name="name_en"
-                            type="text"
-                            value={formData.name_en}
-                            onChange={(v) => setFormData(prev => ({ ...prev, name_en: v }))}
-                            placeholder="Ex: The Nile Restaurant"
+                            control={control}
+                            render={({ field }) => (
+                                <FormField
+                                    label="Nom (EN)"
+                                    type="text"
+                                    placeholder="Ex: The Nile Restaurant"
+                                    error={errors.name_en?.message}
+                                    {...field}
+                                />
+                            )}
                         />
                     </div>
 
-                    <FormField
-                        label="Slug (URL)"
+                    <Controller
                         name="slug"
-                        type="text"
-                        value={formData.slug}
-                        onChange={(v) => setFormData(prev => ({ ...prev, slug: generateSlug(v) }))}
-                        placeholder="restaurant-le-nile"
+                        control={control}
+                        render={({ field }) => (
+                            <FormField
+                                label="Identifiant URL (Slug)"
+                                type="text"
+                                placeholder="restaurant-le-nile"
+                                required
+                                error={errors.slug?.message}
+                                {...field}
+                                onChange={(v) => field.onChange(generateSlug(v))}
+                            />
+                        )}
                     />
 
-                    <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2">
-                            Image
-                        </label>
-                        <div className="flex items-start space-x-4">
-                            {formData.image_url ? (
-                                <img
-                                    src={formData.image_url}
-                                    alt=""
-                                    className="w-24 h-24 rounded-2xl object-cover"
-                                />
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Logo / Icône de la carte</label>
+                        <div className="flex items-start gap-4">
+                            {watch('image_url') ? (
+                                <div className="relative group">
+                                    <img src={watch('image_url')} alt="" className="w-20 h-20 rounded-md object-cover border border-border transition-all group-hover:opacity-75" />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            type="button"
+                                            onClick={() => setValue('image_url', '')}
+                                            className="bg-destructive text-destructive-foreground p-1 rounded-full shadow-lg"
+                                        >
+                                            <Trash2 className="w-3 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
                             ) : (
-                                <div className="w-24 h-24 rounded-2xl bg-[#F5F5F5] flex items-center justify-center">
-                                    <ImageIcon className="w-8 h-8 text-slate-300" />
+                                <div className="w-20 h-20 rounded-md bg-muted border border-border flex flex-col items-center justify-center group hover:bg-muted/40 transition-all">
+                                    <Building className="w-6 h-6 text-muted-foreground/50" />
                                 </div>
                             )}
                             <div className="flex-1">
@@ -422,100 +498,161 @@ export default function CardsPage() {
                                 />
                                 <label
                                     htmlFor="card-image-upload"
-                                    className="inline-flex items-center px-4 py-2 bg-[#F5F5F5] text-[#003058] rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-200 transition-colors"
+                                    className="inline-flex items-center px-4 py-2 bg-muted text-foreground rounded-md font-bold text-[10px] uppercase tracking-wider cursor-pointer hover:bg-accent transition-all border border-border shadow-sm"
                                 >
-                                    {uploadingImage ? (
-                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    ) : null}
+                                    {uploadingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <ImageIcon className="w-3.5 h-3.5 mr-2 opacity-50" />}
                                     {uploadingImage ? 'Upload...' : 'Choisir une image'}
                                 </label>
-                                <p className="text-xs text-slate-400 mt-2">JPG, PNG. Max 2MB</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            label="Type"
-                            name="is_event"
-                            type="select"
-                            value={formData.is_event ? 'event' : 'permanent'}
-                            onChange={(v) => setFormData(prev => ({ ...prev, is_event: v === 'event' }))}
-                            options={[
-                                { value: 'permanent', label: 'Permanent' },
-                                { value: 'event', label: 'Événement' }
-                            ]}
-                        />
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2">
-                                Statut
-                            </label>
-                            <FormField
-                                label=""
-                                name="is_active"
-                                type="toggle"
-                                value={formData.is_active}
-                                onChange={(v) => setFormData(prev => ({ ...prev, is_active: v }))}
+                    <div className="grid grid-cols-2 gap-6 bg-muted/30 p-4 rounded-md border border-border">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Type de carte</label>
+                            <Controller
+                                name="is_event"
+                                control={control}
+                                render={({ field }) => (
+                                    <FormField
+                                        label=""
+                                        type="select"
+                                        options={[
+                                            { value: 'false', label: 'Permanent' },
+                                            { value: 'true', label: 'Événement' }
+                                        ]}
+                                        value={field.value.toString()}
+                                        onChange={(v) => field.onChange(v === 'true')}
+                                        name={field.name}
+                                    />
+                                )}
                             />
-                            <span className="text-sm text-slate-500 ml-4">
-                                {formData.is_active ? 'Actif' : 'Inactif'}
-                            </span>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Statut initial</label>
+                            <div className="flex items-center gap-3 pt-1">
+                                <Controller
+                                    name="is_active"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <FormField
+                                            label=""
+                                            type="toggle"
+                                            {...field}
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                        />
+                                    )}
+                                />
+                                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Actif / Public</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex space-x-3 pt-4">
+                    <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
                         <button
+                            type="button"
                             onClick={() => setShowModal(false)}
-                            className="flex-1 h-12 bg-[#F5F5F5] text-[#003058] font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                            className="px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all"
                         >
                             Annuler
                         </button>
                         <button
-                            onClick={handleSave}
+                            type="submit"
                             disabled={saving}
-                            className="flex-1 h-12 bg-[#003058] text-white font-bold rounded-xl hover:bg-[#004a80] transition-colors disabled:opacity-50 flex items-center justify-center"
+                            className="flex items-center gap-2 px-8 py-2 bg-primary text-primary-foreground font-bold rounded-md hover:opacity-90 transition-all text-[10px] uppercase tracking-wider disabled:opacity-50 shadow-md"
                         >
-                            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingCard ? 'Mettre à jour' : 'Créer')}
+                            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (editingCard ? 'Mettre à jour' : 'Créer la carte')}
                         </button>
                     </div>
-                </div>
+                </form>
             </Modal>
 
-            {/* Modal QR Code */}
             <Modal
                 isOpen={showQRModal}
                 onClose={() => setShowQRModal(false)}
-                title="QR Code"
+                title="Génération du QR Code"
                 size="sm"
             >
                 {selectedCardForQR && (
-                    <div className="text-center space-y-6">
-                        <div className="bg-white p-4 rounded-2xl inline-block shadow-lg">
+                    <div className="text-center space-y-8 py-4">
+                        <div className="bg-white p-8 rounded-md border border-border inline-block shadow-sm">
                             <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                                    `${typeof window !== 'undefined' ? window.location.origin : ''}/menu/${selectedCardForQR.slug}`
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+                                    `${window.location.origin}/menu/${selectedCardForQR.slug}`
                                 )}`}
                                 alt="QR Code"
                                 className="w-48 h-48"
                             />
                         </div>
 
-                        <div>
-                            <p className="font-bold text-[#003058]">{selectedCardForQR.name}</p>
-                            <p className="text-xs text-slate-400 mt-1">
+                        <div className="space-y-2">
+                            <p className="font-bold text-foreground uppercase text-xs tracking-widest">{selectedCardForQR.name}</p>
+                            <div className="inline-flex items-center px-3 py-1 bg-muted rounded-md border border-border text-[10px] text-muted-foreground font-mono">
                                 /menu/{selectedCardForQR.slug}
-                            </p>
+                            </div>
                         </div>
 
-                        <button
-                            onClick={downloadQRCode}
-                            className="w-full h-12 bg-[#C5A065] text-white font-bold rounded-xl flex items-center justify-center space-x-2 hover:bg-[#b08e5a] transition-colors"
-                        >
-                            <Download className="w-5 h-5" />
-                            <span>Télécharger PNG</span>
-                        </button>
+                        <div className="grid grid-cols-1 gap-3 px-4">
+                            <button
+                                onClick={downloadQRCode}
+                                className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-md text-[10px] tracking-widest uppercase hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Télécharger le QR Code
+                            </button>
+                            <button
+                                onClick={() => window.open(`${window.location.origin}/menu/${selectedCardForQR.slug}`, '_blank')}
+                                className="w-full py-3 bg-muted text-foreground font-bold rounded-md text-[10px] tracking-widest uppercase hover:bg-accent transition-all border border-border flex items-center justify-center gap-2"
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                                Ouvrir le lien
+                            </button>
+                        </div>
+
+                        <p className="text-[9px] text-muted-foreground uppercase font-semibold tracking-wider opacity-60">
+                            Prêt pour l'impression (Format PNG HD)
+                        </p>
                     </div>
                 )}
+            </Modal>
+
+            {/* Modal de suppression */}
+            <Modal
+                isOpen={showDeleteConfirm}
+                onClose={() => !deleting && setShowDeleteConfirm(false)}
+                title="Confirmation de suppression"
+                size="sm"
+            >
+                <div className="space-y-6 pt-2">
+                    <div className="flex items-center gap-4 p-4 bg-destructive/5 border border-destructive/10 rounded-md">
+                        <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                            <AlertTriangle className="w-5 h-5 text-destructive" />
+                        </div>
+                        <p className="text-xs font-medium text-foreground leading-relaxed">
+                            Êtes-vous sûr de vouloir supprimer la carte <span className="font-bold underline">"{cardToDelete?.name}"</span> ?
+                            Cette action est irréversible et supprimera également les accès QR liés.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                        <button
+                            disabled={deleting}
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1 py-2.5 bg-muted text-muted-foreground rounded-md text-[10px] font-black uppercase tracking-widest hover:text-foreground transition-all"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            disabled={deleting}
+                            onClick={executeDelete}
+                            className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-md text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                        >
+                            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Supprimer"}
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

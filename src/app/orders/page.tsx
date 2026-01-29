@@ -18,6 +18,55 @@ interface HistoryItem {
     status: string;
 }
 
+// Validation de la structure d'un item d'historique
+const isValidHistoryItem = (item: unknown): item is HistoryItem => {
+    if (!item || typeof item !== 'object') return false;
+
+    const obj = item as Record<string, unknown>;
+
+    return (
+        typeof obj.id === 'string' &&
+        typeof obj.date === 'string' &&
+        Array.isArray(obj.items) &&
+        obj.items.every((i: unknown) => {
+            if (!i || typeof i !== 'object') return false;
+            const orderItem = i as Record<string, unknown>;
+            return (
+                typeof orderItem.name === 'string' &&
+                typeof orderItem.quantity === 'number' &&
+                typeof orderItem.price === 'number'
+            );
+        }) &&
+        typeof obj.totalPrice === 'number' &&
+        typeof obj.tableNumber === 'string' &&
+        typeof obj.status === 'string'
+    );
+};
+
+// Parser sécurisé pour l'historique des commandes
+const parseOrderHistory = (jsonString: string): HistoryItem[] => {
+    try {
+        const parsed = JSON.parse(jsonString);
+
+        if (!Array.isArray(parsed)) {
+            console.warn("Order history is not an array, resetting...");
+            return [];
+        }
+
+        // Filtrer les items invalides
+        const validItems = parsed.filter(isValidHistoryItem);
+
+        if (validItems.length !== parsed.length) {
+            console.warn(`Filtered out ${parsed.length - validItems.length} invalid history items`);
+        }
+
+        return validItems;
+    } catch (e) {
+        console.error("Failed to parse order history:", e);
+        return [];
+    }
+};
+
 export default function OrdersPage() {
     const { t, language } = useLanguage();
     const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -28,10 +77,12 @@ export default function OrdersPage() {
     useEffect(() => {
         const savedHistory = localStorage.getItem('order_history');
         if (savedHistory) {
-            try {
-                setHistory(JSON.parse(savedHistory));
-            } catch (e) {
-                console.error("Failed to load history");
+            const validHistory = parseOrderHistory(savedHistory);
+            setHistory(validHistory);
+
+            // Nettoyer le localStorage si des items invalides ont été filtrés
+            if (validHistory.length > 0) {
+                localStorage.setItem('order_history', JSON.stringify(validHistory));
             }
         }
     }, []);

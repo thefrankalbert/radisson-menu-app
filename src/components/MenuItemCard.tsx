@@ -3,6 +3,8 @@ import { useCart } from "@/context/CartContext";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
+import Image from "next/image";
+import { toast } from "react-hot-toast";
 
 // Types pour options et variantes
 interface ItemOption {
@@ -31,6 +33,7 @@ interface MenuItemProps {
         image_url?: string;
         is_vegetarian?: boolean;
         is_spicy?: boolean;
+        is_available?: boolean;
         options?: ItemOption[];
         price_variants?: ItemPriceVariant[];
     };
@@ -44,12 +47,16 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
     const { language } = useLanguage();
     const { formatPrice } = useCurrency();
     const [isAnimating, setIsAnimating] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     // État pour les sélections
     const [selectedOption, setSelectedOption] = useState<ItemOption | null>(null);
     const [selectedVariant, setSelectedVariant] = useState<ItemPriceVariant | null>(null);
     const [showVariantDropdown, setShowVariantDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Déterminer si c'est une boisson basé sur la catégorie
+    const isDrinkCategory = category.toLowerCase().match(/boisson|cocktail|vin|bière|beer|soda|jus|spirit|drink|beverage|wine|eau|water|soft|alcool|apéritif|digestif|champagne|whisky|rhum|vodka|gin/);
 
     // Initialiser les sélections par défaut
     useEffect(() => {
@@ -94,6 +101,12 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
     });
 
     const handleAdd = () => {
+        // Validation de disponibilité côté client
+        if (item.is_available === false) {
+            toast.error("Ce plat n'est plus disponible");
+            return;
+        }
+
         setIsAnimating(true);
 
         const cartItemData: any = {
@@ -134,27 +147,32 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
 
     const hasOptions = item.options && item.options.length > 0;
     const hasVariants = item.price_variants && item.price_variants.length > 0;
+    const isUnavailable = item.is_available === false;
 
     return (
-        <div className="group bg-white rounded-2xl p-3 border border-gray-200 flex flex-col hover:border-gray-300 transition-all duration-300 w-full overflow-hidden relative">
+        <div className={`group bg-white rounded-2xl p-3 border flex flex-col transition-all duration-300 w-full overflow-hidden relative ${isUnavailable ? 'border-gray-300 opacity-60' : 'border-gray-200 hover:border-gray-300'}`}>
+            {/* Badge indisponible */}
+            {isUnavailable && (
+                <div className="absolute top-2 right-2 bg-red-500 text-white text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full z-10">
+                    Indisponible
+                </div>
+            )}
             {/* Ligne principale */}
             <div className="flex items-start gap-4 min-h-24">
                 {/* 1. IMAGE (Left) */}
-                <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50 flex items-center justify-center">
-                    {(item.image_url && !item.image_url.includes('placeholder')) ? (
-                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                <div className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-50 flex items-center justify-center relative">
+                    {(item.image_url && !item.image_url.includes('placeholder') && !imageError) ? (
+                        <Image
+                            src={item.image_url}
+                            alt={item.name}
+                            fill
+                            sizes="96px"
+                            className="object-cover"
+                            onError={() => setImageError(true)}
+                            priority={priority}
+                        />
                     ) : (
-                        (category.toLowerCase().includes('boisson') ||
-                            category.toLowerCase().includes('cocktail') ||
-                            category.toLowerCase().includes('vin') ||
-                            category.toLowerCase().includes('bière') ||
-                            category.toLowerCase().includes('soda') ||
-                            category.toLowerCase().includes('jus') ||
-                            category.toLowerCase().includes('spirit') ||
-                            category.toLowerCase().includes('drink') ||
-                            category.toLowerCase().includes('beverage') ||
-                            category.toLowerCase().includes('wine') ||
-                            category.toLowerCase().includes('beer')) ? <Martini size={32} className="text-gray-400" /> : <Utensils size={32} className="text-gray-400" />
+                        isDrinkCategory ? <Martini size={32} className="text-gray-400" /> : <Utensils size={32} className="text-gray-400" />
                     )}
                 </div>
 

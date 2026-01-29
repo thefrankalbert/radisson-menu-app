@@ -4,118 +4,115 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
-    ShoppingBag,
-    ChefHat,
+    ClipboardList,
     BookOpen,
-    Folder,
-    UtensilsCrossed,
-    Megaphone,
     QrCode,
-    BarChart3,
     Settings,
     LogOut,
-    CreditCard,
+    ChefHat,
+    Megaphone,
+    Utensils,
+    Laptop,
+    ChevronRight,
+    BarChart3,
+    History as HistoryIcon,
     Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "@/context/LanguageContext";
+import type { AuthUser } from "@/types/auth";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+interface SidebarProps {
+    user?: AuthUser | null;
+    isCollapsed?: boolean;
+    onToggle?: () => void;
+}
 
-// Structure du menu avec groupes
-const menuGroups = [
-    {
-        items: [
-            { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
-            { icon: CreditCard, label: "Caisse (POS)", href: "/admin/pos", highlight: true },
-        ]
-    },
-    {
-        title: "Commandes",
-        items: [
-            { icon: ShoppingBag, label: "Commandes", href: "/admin/orders" },
-            { icon: ChefHat, label: "Cuisine (KDS)", href: "/admin/kitchen" },
-        ]
-    },
-    {
-        title: "Menu",
-        items: [
-            { icon: BookOpen, label: "Cartes", href: "/admin/cards" },
-            { icon: Folder, label: "Catégories", href: "/admin/categories" },
-            { icon: UtensilsCrossed, label: "Plats", href: "/admin/items" },
-        ]
-    },
-    {
-        title: "Marketing",
-        items: [
-            { icon: Megaphone, label: "Annonces", href: "/admin/announcements" },
-            { icon: QrCode, label: "QR Codes", href: "/admin/qrcodes" },
-        ]
-    },
-    {
-        title: "Back Office",
-        items: [
-            { icon: BarChart3, label: "Rapports", href: "/admin/reports" },
-            { icon: Users, label: "Utilisateurs", href: "/admin/users" },
-            { icon: Settings, label: "Paramètres", href: "/admin/settings" },
-        ]
-    },
-];
-
-export default function Sidebar() {
+export default function Sidebar({ user, isCollapsed = false, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
+    const { t } = useLanguage();
 
     const handleLogout = async () => {
         try {
-            const { error } = await supabase.auth.signOut();
-            if (error) throw error;
+            await supabase.auth.signOut();
             toast.success("Déconnexion réussie");
-            router.push("/admin/login");
-            router.refresh();
+            window.location.replace("/admin/login");
         } catch (error: any) {
-            toast.error("Erreur lors de la déconnexion");
+            window.location.replace("/admin/login");
         }
     };
 
+    const adminGroups = [
+        {
+            title: "Principal",
+            items: [
+                { href: "/admin", icon: LayoutDashboard, label: t('dashboard') },
+                { href: "/admin/orders", icon: ClipboardList, label: t('orders_mgmt') },
+            ]
+        },
+        {
+            title: "Organisation",
+            items: [
+                { href: "/admin/cards", icon: Utensils, label: t('menus_mgmt') },
+                { href: "/admin/items", icon: BookOpen, label: t('dishes_mgmt') },
+                { href: "/admin/announcements", icon: Megaphone, label: t('announcements_mgmt') },
+            ]
+        },
+        {
+            title: "Outils",
+            items: [
+                { href: "/admin/pos", icon: Laptop, label: t('pos_caisse'), highlight: true },
+                { href: "/admin/kitchen", icon: ChefHat, label: t('kitchen_kds'), highlight: true },
+                { href: "/admin/qrcodes", icon: QrCode, label: t('qr_generator') },
+                { href: "/admin/reports", icon: BarChart3, label: "Rapports" },
+            ]
+        },
+        {
+            title: t('sys_settings'),
+            items: [
+                { href: "/admin/settings", icon: Settings, label: t('sys_settings') },
+                { href: "/admin/logs", icon: HistoryIcon, label: t('audit_logs') || "Journal" },
+            ]
+        }
+    ];
+
     return (
-        <div className="w-full h-full bg-white flex flex-col border-r border-gray-100">
+        <div className={cn(
+            "h-full bg-background flex flex-col border-r border-border transition-all duration-300 relative",
+            isCollapsed ? "w-[80px]" : "w-full"
+        )}>
+            {/* Toggle Button for Desktop */}
+            <button
+                onClick={onToggle}
+                className="absolute -right-3 top-20 w-6 h-6 bg-background border border-border rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground shadow-none z-50 hidden md:flex"
+            >
+                <ChevronRight className={cn("w-3 h-3 transition-transform text-muted-foreground", !isCollapsed && "rotate-180")} />
+            </button>
+
             {/* Logo Section */}
-            <div className="p-6 border-b border-gray-100">
+            <div className={cn("p-6 border-b border-border", isCollapsed && "px-0 flex justify-center")}>
                 <Link href="/admin" className="flex items-center space-x-3 group">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#003058] to-[#004a87] rounded-xl flex items-center justify-center shadow-lg shadow-[#003058]/20 group-hover:shadow-[#003058]/30 transition-shadow">
-                        <span className="text-white font-black text-lg">R</span>
+                    <div className="w-10 h-10 bg-primary rounded-md flex items-center justify-center transition-all shrink-0">
+                        <span className="text-primary-foreground font-black text-lg">R</span>
                     </div>
-                    <div>
-                        <h2 className="font-bold text-gray-900 text-sm">Radisson Blu</h2>
-                        <p className="text-[10px] text-[#C5A065] font-semibold uppercase tracking-wider">N'Djamena</p>
-                    </div>
+                    {!isCollapsed && (
+                        <div>
+                            <h2 className="font-bold text-foreground text-sm tracking-tight uppercase">Radisson Blu</h2>
+                        </div>
+                    )}
                 </Link>
             </div>
 
-            {/* User Profile Mini */}
-            <div className="px-4 py-3 mx-3 mt-3 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl border border-gray-100">
-                <div className="flex items-center space-x-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#C5A065] to-[#a8864f] flex items-center justify-center text-white font-bold text-sm shadow-md">
-                        AD
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">Admin</p>
-                        <p className="text-[10px] text-gray-500 truncate">Super Admin</p>
-                    </div>
-                </div>
-            </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
-                {menuGroups.map((group, groupIndex) => (
+            <nav className={cn("flex-1 min-h-0 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar", isCollapsed && "px-2")}>
+                {adminGroups.map((group, groupIndex) => (
                     <div key={groupIndex}>
-                        {group.title && (
-                            <p className="px-3 mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        {group.title && !isCollapsed && (
+                            <p className="px-3 mb-2 text-[10px] font-bold text-gray-300 uppercase tracking-widest">
                                 {group.title}
                             </p>
                         )}
@@ -129,23 +126,28 @@ export default function Sidebar() {
                                     <Link
                                         key={item.href}
                                         href={item.href}
+                                        title={isCollapsed ? item.label : undefined}
                                         className={cn(
-                                            "group flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative",
+                                            "group flex items-center px-4 py-2.5 rounded-md transition-all duration-200 relative",
                                             isActive
-                                                ? "bg-[#003058] text-white shadow-lg shadow-[#003058]/25"
-                                                : isHighlight
-                                                    ? "bg-gradient-to-r from-orange-50 to-amber-50 text-orange-600 border border-orange-200 hover:border-orange-300"
-                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                ? "bg-accent text-accent-foreground font-semibold"
+                                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground font-medium",
+                                            isCollapsed ? "justify-center px-0" : "space-x-3",
+                                            isHighlight && !isActive && !isCollapsed && "bg-blue-50/50 border-blue-100/50 border"
                                         )}
                                     >
                                         <item.icon className={cn(
-                                            "w-[18px] h-[18px] transition-transform group-hover:scale-110",
-                                            isActive ? "text-white" : isHighlight ? "text-orange-500" : "text-gray-400 group-hover:text-gray-600"
+                                            "w-[18px] h-[18px] transition-transform group-hover:scale-105",
+                                            isActive ? "text-accent-foreground" :
+                                                isHighlight ? "text-blue-600" : "text-muted-foreground group-hover:text-accent-foreground"
                                         )} />
-                                        <span className="font-medium text-[13px]">{item.label}</span>
-
-                                        {isHighlight && !isActive && (
-                                            <span className="ml-auto w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                                        {!isCollapsed && (
+                                            <span className={cn(
+                                                "text-sm tracking-tight leading-none",
+                                                isHighlight && !isActive && "text-blue-900 font-bold"
+                                            )}>
+                                                {item.label}
+                                            </span>
                                         )}
                                     </Link>
                                 );
@@ -156,33 +158,19 @@ export default function Sidebar() {
             </nav>
 
             {/* Bottom Section */}
-            <div className="p-3 border-t border-gray-100">
-                {/* Logout */}
+            <div className={cn("p-4 border-t border-border", isCollapsed && "px-2")}>
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all group"
+                    title={isCollapsed ? t('logout') : undefined}
+                    className={cn(
+                        "w-full flex items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all group py-2.5",
+                        isCollapsed ? "justify-center" : "px-4 space-x-3"
+                    )}
                 >
-                    <LogOut className="w-[18px] h-[18px] transition-transform group-hover:-translate-x-0.5" />
-                    <span className="font-medium text-[13px]">Déconnexion</span>
+                    <LogOut className="w-[18px] h-[18px] text-muted-foreground group-hover:text-destructive" />
+                    {!isCollapsed && <span className="font-medium text-sm tracking-tight">{t('logout')}</span>}
                 </button>
             </div>
-
-            {/* Custom Scrollbar Styles */}
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #e5e7eb;
-                    border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #d1d5db;
-                }
-            `}</style>
         </div>
     );
 }

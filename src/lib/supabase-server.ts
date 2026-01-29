@@ -1,8 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-    const cookieStore = cookies()
+export async function createClient() {
+    const cookieStore = await cookies()
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -12,8 +12,8 @@ export function createClient() {
     }
 
     return createServerClient(
-        supabaseUrl,
-        supabaseAnonKey,
+        supabaseUrl || 'https://placeholder.supabase.co',
+        supabaseAnonKey || 'placeholder-key',
         {
             cookies: {
                 get(name: string) {
