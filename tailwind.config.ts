@@ -70,7 +70,6 @@ const config: Config = {
 				xl: 'none',
 				'2xl': 'none',
 				inner: 'none',
-				none: 'none',
 				none: 'none'
 			},
 			backgroundImage: {
