@@ -762,7 +762,10 @@ export default function HomeClient({
   return (
     <>
       <ClearStorage />
-      <QRScanner isOpen={showQRScanner} onClose={() => setShowQRScanner(false)} />
+      {/* Only render QRScanner if bypass is NOT active - prevents camera hardware activation */}
+      {!isDevBypassEnabled && (
+        <QRScanner isOpen={showQRScanner} onClose={() => setShowQRScanner(false)} />
+      )}
       <div className="flex-1 w-full bg-radisson-light min-h-screen pb-0">
         {/* STICKY HEADER WITH SEARCH - Appears when scrolling */}
         <div
