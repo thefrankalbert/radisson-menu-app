@@ -317,9 +317,41 @@ export default function HomeClient({
   const urlVenue = searchParams.get('v') || searchParams.get('restaurant') || searchParams.get('venue');
   const urlTable = searchParams.get('table');
 
+  // DEV BYPASS: Check for env var to skip QR scan
+  const isDevBypassEnabled = process.env.NEXT_PUBLIC_DEV_BYPASS_SCAN === 'true';
+
   // Ouvrir automatiquement le scanner QR uniquement quand on accède directement à la racine sans paramètres
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // DEV BYPASS: Skip scanner and set mock session data
+    if (isDevBypassEnabled) {
+      console.warn('⚠️ SCAN BYPASSED VIA ENV VAR (NEXT_PUBLIC_DEV_BYPASS_SCAN=true)');
+
+      // Set mock session data that the app expects after a real scan
+      const mockVenue = 'panorama';
+      const mockTable = 'DEV-01';
+
+      // Store in sessionStorage (like a real scan would)
+      sessionStorage.setItem('active_venue_filter', mockVenue);
+      localStorage.setItem('saved_table', mockTable);
+      localStorage.setItem('table_number', mockTable);
+
+      // Update URL with mock params if on root without params
+      const currentPath = window.location.pathname;
+      const hasParams = window.location.search.length > 0;
+
+      if (currentPath === '/' && !hasParams) {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('v', mockVenue);
+        newUrl.searchParams.set('table', mockTable);
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+
+      // Ensure scanner stays closed
+      setShowQRScanner(false);
+      return;
+    }
 
     const currentPath = window.location.pathname;
     const hasParams = window.location.search.length > 0;
@@ -363,7 +395,7 @@ export default function HomeClient({
       scannerCheckRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlVenue, urlTable]); // Réagir aux changements de paramètres URL
+  }, [urlVenue, urlTable, isDevBypassEnabled]); // Réagir aux changements de paramètres URL
 
   // Initialiser depuis URL et sessionStorage (pas localStorage car on le nettoie à la racine)
   useEffect(() => {
@@ -663,43 +695,30 @@ export default function HomeClient({
       if (!matched) {
         if (catName.includes('africain') || catNameEn.includes('african')) {
           foundCategoryIds.add('african');
-          console.log("[HomePage] Matched via keyword: african");
         } else if (catName.includes('burger') || catNameEn.includes('burger') || catName.includes('hamburger')) {
           foundCategoryIds.add('burgers');
-          console.log("[HomePage] Matched via keyword: burgers");
         } else if (catName.includes('pizza') || catNameEn.includes('pizza')) {
           foundCategoryIds.add('pizzas');
-          console.log("[HomePage] Matched via keyword: pizzas");
         } else if (catName.includes('pâte') || catNameEn.includes('pasta')) {
           foundCategoryIds.add('pasta');
-          console.log("[HomePage] Matched via keyword: pasta");
         } else if (catName.includes('grill') || catNameEn.includes('grill')) {
           foundCategoryIds.add('grills');
-          console.log("[HomePage] Matched via keyword: grills");
-        } else if (catName.includes('principal') || catNameEn.includes('main course')) {
+        } else if (catName.includes('principal') || catNameEn.includes('main course') || catName.includes('plat')) {
           foundCategoryIds.add('main');
-          console.log("[HomePage] Matched via keyword: main");
         } else if (catName.includes('végétarien') || catNameEn.includes('vegetarian')) {
           foundCategoryIds.add('vegetarian');
-          console.log("[HomePage] Matched via keyword: vegetarian");
         } else if (catName.includes('dessert') || catName.includes('douceur') ||
           catNameEn.includes('dessert') || catNameEn.includes('sweet')) {
           foundCategoryIds.add('desserts');
-          console.log("[HomePage] Matched via keyword: desserts");
         } else if (catName.includes('commencer') || catName.includes('entrée') ||
           catNameEn.includes('starter') || catNameEn.includes('start')) {
           foundCategoryIds.add('starters');
-          console.log("[HomePage] Matched via keyword: starters");
         } else if (catName.includes('boisson') || catName.includes('drink') ||
           catNameEn.includes('drink') || catNameEn.includes('beverage')) {
           foundCategoryIds.add('drinks');
-          console.log("[HomePage] Matched via keyword: drinks");
         } else if (catName.includes('cocktail') || catName.includes('apéritif') ||
           catNameEn.includes('cocktail') || catNameEn.includes('aperitif')) {
           foundCategoryIds.add('aperitifs');
-          console.log("[HomePage] Matched via keyword: aperitifs");
-        } else {
-          console.warn("[HomePage] No match found for category:", { catName, catNameEn, fullName: venueCat.name });
         }
       }
     });
@@ -917,7 +936,7 @@ export default function HomeClient({
                 <div className="mb-5 animate-fade-in">
                   <div className="text-left">
                     {/* Titre */}
-                    <h1 className="text-[#003058] text-xl sm:text-2xl font-bold mb-1 leading-tight">
+                    <h1 className="text-white text-xl sm:text-2xl font-bold mb-1 leading-tight">
                       {language === 'fr' ? (
                         'Découvrez nos délicieux plats'
                       ) : (
@@ -926,11 +945,40 @@ export default function HomeClient({
                     </h1>
 
                     {/* Sous-titre */}
-                    <p className="text-[#003058] text-sm sm:text-base font-normal -mt-1">
+                    <p className="text-white text-sm sm:text-base font-normal -mt-1">
                       {language === 'fr'
                         ? `Vous êtes à la table ${tableNumber}`
                         : `You are at table ${tableNumber}`}
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 0. ADS BANNER - DYNAMIC FROM DB */}
+              {announcement && announcement.image_url && (
+                <div className="mb-8 w-full animate-fade-in-up">
+                  <div className="relative w-full aspect-[22/9] rounded-[20px] overflow-hidden shadow-xl shadow-black/10">
+                    <img
+                      src={announcement.image_url}
+                      alt={announcement.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Optional gradient overlay for text readability if needed */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <span className="bg-white/20 backdrop-blur-md border border-white/30 text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider mb-1 inline-block">
+                        Promo
+                      </span>
+                      <h3 className="text-white font-bold text-lg leading-tight drop-shadow-sm">
+                        {announcement.title}
+                      </h3>
+                      {announcement.description && (
+                        <p className="text-white/90 text-xs font-medium line-clamp-1 drop-shadow-sm mt-0.5">
+                          {announcement.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
