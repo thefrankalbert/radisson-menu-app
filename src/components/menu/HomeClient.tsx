@@ -502,6 +502,8 @@ export default function HomeClient({
             'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
             'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
             'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
+            'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
+
           };
           const allowed = groupSlugs[activeVenue] || [activeVenue];
           const match = data.find(c => {
@@ -536,6 +538,8 @@ export default function HomeClient({
         'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
         'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
         'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
+        'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
+
       };
       const allowed = groupSlugs[activeVenue] || [activeVenue];
       list = restaurants.filter(r => allowed.some(s => r.slug.includes(s)));
@@ -559,6 +563,8 @@ export default function HomeClient({
       'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
       'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
       'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
+      'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
+
     };
 
     const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];
@@ -578,6 +584,8 @@ export default function HomeClient({
       'panorama': ['carte-panorama-restaurant'],
       'lobby': ['carte-lobby-bar-snacks'],
       'lobby-bar': ['carte-lobby-bar-snacks'],
+      'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
+
     };
     const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];
 
@@ -766,7 +774,8 @@ export default function HomeClient({
       {!isDevBypassEnabled && (
         <QRScanner isOpen={showQRScanner} onClose={() => setShowQRScanner(false)} />
       )}
-      <div className="flex-1 w-full bg-radisson-light min-h-screen pb-0">
+      <div className="flex-1 w-full bg-white min-h-screen pb-0">
+
         {/* STICKY HEADER WITH SEARCH - Appears when scrolling */}
         <div
           className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isSearchSticky
@@ -784,7 +793,8 @@ export default function HomeClient({
                   <input
                     type="text"
                     placeholder={language === 'fr' ? "Rechercher..." : "Search..."}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-full py-2.5 pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-radisson-blue/20 focus:border-radisson-blue transition-all outline-none"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-3xl py-2.5 pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-radisson-blue/20 focus:border-radisson-blue transition-all outline-none"
+
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -805,8 +815,11 @@ export default function HomeClient({
           {/* Gradient Background */}
           <div className="absolute inset-0 h-[380px] gradient-hero" />
 
+
+
           {/* Content over gradient */}
-          <div className="relative pt-4">
+          <div className="relative pt-6">
+
             {/* Original Header - only visible when not scrolled */}
             <div className={`transition-opacity duration-300 ${isSearchSticky ? 'opacity-0' : 'opacity-100'}`}>
               <div className="w-full px-4 py-3 flex items-center justify-between">
@@ -890,7 +903,8 @@ export default function HomeClient({
                   <input
                     type="text"
                     placeholder={language === 'fr' ? "Rechercher un plat, un menu..." : "Search for a dish, a menu..."}
-                    className="w-full bg-white border border-gray-300 rounded-xl py-3 pl-11 pr-5 text-sm font-medium text-gray-700 placeholder:text-gray-400 focus:border-gray-400 focus:outline-none transition-colors"
+                    className="w-full bg-white border border-gray-300 rounded-3xl py-3 pl-11 pr-5 text-sm font-medium text-gray-700 placeholder:text-gray-400 focus:border-gray-400 focus:outline-none transition-colors"
+
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -990,8 +1004,9 @@ export default function HomeClient({
               {items.length > 0 && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xs font-bold text-gray-700 uppercase tracking-widest">
+                    <h2 className="text-lg font-semibold text-gray-800 tracking-tight">
                       {language === 'fr' ? "Votre panier" : "Your cart"}
+
                     </h2>
                     <Link
                       href="/cart"
@@ -1015,8 +1030,9 @@ export default function HomeClient({
                             {item.name}
                           </h3>
                           <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-bold text-orange-500">
+                            <span className="text-[9px] font-bold text-orange-600">
                               {formatPrice(item.price)}
+
                             </span>
                             <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                               x{item.quantity}
@@ -1041,8 +1057,9 @@ export default function HomeClient({
               {(orderHistory.length > 0 || items.length > 0) && (
                 <div className="mb-10">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-radisson-blue text-xs font-bold tracking-[0.15em] uppercase">
-                      {language === 'fr' ? "SUIVI DE COMMANDE" : "ORDER TRACKING"}
+                    <h2 className="text-lg font-semibold text-gray-800 tracking-tight">
+                      {language === 'fr' ? "Suivi de commande" : "Order tracking"}
+
                     </h2>
                     {(orderHistory.length > 0 || items.length > 0) && (
                       <Link
@@ -1058,29 +1075,24 @@ export default function HomeClient({
                     {items.length > 0 && (
                       <Link
                         href="/cart"
-                        className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl p-3 transition-all group"
+                        className="flex-shrink-0 w-[240px] border border-gray-200 rounded-lg p-3 bg-white hover:border-gray-300 transition-all duration-150 active:scale-[0.98] select-none"
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
-                              {language === 'fr' ? "Commande en cours" : "Current Order"}
-                            </p>
-                            <span className="inline-block bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase">
-                              {language === 'fr' ? "En préparation" : "Processing"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-gray-500">🍽️</span>
-                          <span className="text-xs font-medium text-gray-600">
-                            {totalItems} {totalItems > 1 ? (language === 'fr' ? 'articles' : 'items') : (language === 'fr' ? 'article' : 'item')}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-900">
+                            {language === 'fr' ? "Commande en cours" : "Current Order"}
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md">
+                            {language === 'fr' ? "En préparation" : "Processing"}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">
+                            {totalItems} {totalItems > 1 ? (language === 'fr' ? 'articles' : 'items') : (language === 'fr' ? 'article' : 'item')}
+                          </span>
                           <span className="text-lg font-bold text-gray-900">{formatPrice(totalPrice)}</span>
-                          <span className="text-[10px] text-gray-400">{language === 'fr' ? "À l'instant" : "Just now"}</span>
                         </div>
                       </Link>
+
                     )}
 
                     {/* Cartes commandes récentes */}
@@ -1101,33 +1113,25 @@ export default function HomeClient({
                       return (
                         <Link
                           key={order.id}
-                          href="/orders"
-                          className="flex-shrink-0 w-[280px] bg-white border border-gray-300 rounded-xl p-3 transition-all group"
+                          href={`/orders`}
+                          className="flex-shrink-0 w-[240px] border border-gray-200 rounded-lg p-3 bg-white hover:border-gray-300 transition-all duration-150 active:scale-[0.98] select-none"
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                              {language === 'fr' ? "Commande" : "Order"} #{order.id.slice(-4)}
-                            </p>
-                            <span className={`${statusConfig.bg} ${statusConfig.text} px-2.5 py-1 rounded-full text-[10px] font-bold uppercase`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              #{order.id.slice(-4)}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-md ${order.status === 'delivered' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
                               {statusConfig.label}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs text-gray-500">🍽️</span>
-                            <span className="text-xs font-medium text-gray-600">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">
                               {order.items.length} {order.items.length > 1 ? (language === 'fr' ? 'articles' : 'items') : (language === 'fr' ? 'article' : 'item')}
                             </span>
-                          </div>
-                          <div className="flex items-center justify-between">
                             <span className="text-lg font-bold text-gray-900">{formatPrice(order.totalPrice)}</span>
                           </div>
-                          <div className="flex items-center justify-between text-[10px] text-gray-400">
-                            <span>{timeAgo}</span>
-                            {order.tableNumber && (
-                              <span>{language === 'fr' ? 'Table' : 'Table'} {order.tableNumber}</span>
-                            )}
-                          </div>
                         </Link>
+
                       );
                     })}
                   </div>
@@ -1139,8 +1143,9 @@ export default function HomeClient({
 
               {/* 4. CARTES PRINCIPALES - 3 VENUES */}
               <div className="mb-10 space-y-4">
-                <p className="text-radisson-blue text-xs font-bold tracking-[0.15em] uppercase">
+                <p className="text-lg font-semibold text-gray-800 tracking-tight">
                   {language === 'fr' ? "Nos Univers" : "Our Universes"}
+
                 </p>
 
                 <div className="space-y-4 relative z-20">
@@ -1153,7 +1158,8 @@ export default function HomeClient({
                         <Link
                           key={venue.id}
                           href={venue.href}
-                          className="bg-white rounded-[24px] overflow-hidden border border-gray-200 transition-all duration-300 cursor-pointer group block"
+                          className="bg-white rounded-xl overflow-hidden border border-gray-200 transition-all duration-150 active:scale-[0.98] cursor-pointer group block"
+
                         >
                           <div className="h-44 relative overflow-hidden">
                             <img
@@ -1181,9 +1187,9 @@ export default function HomeClient({
                           <div className="px-5 py-4 flex items-center justify-between">
                             <p className="text-gray-400 text-xs font-medium tracking-wide">{venueData.description}</p>
                             <div
-                              className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-[#C5A065] transition-all duration-300"
+                              className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-[#C5A065] transition-all duration-150"
                             >
-                              <ChevronRight size={16} className="text-gray-300 group-hover:text-white transition-colors" />
+                              <ChevronRight size={16} className="text-gray-300 group-hover:text-white transition-colors duration-150" />
                             </div>
                           </div>
                         </Link>

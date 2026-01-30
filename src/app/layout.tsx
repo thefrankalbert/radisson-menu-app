@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Playfair_Display, Public_Sans } from "next/font/google";
+import { Montserrat, Playfair_Display, Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -28,10 +28,10 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
-const publicSans = Public_Sans({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-public-sans",
+  variable: "--font-inter",
 });
 
 const playfair = Playfair_Display({
@@ -112,8 +112,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className="scroll-smooth">
-      <body className={`${publicSans.variable} ${montserrat.variable} ${playfair.variable} font-sans bg-background antialiased text-foreground`}>
+    <html lang="fr" className="scroll-smooth" suppressHydrationWarning>
+
+      <body className={`${inter.variable} ${montserrat.variable} ${playfair.variable} font-sans bg-background antialiased text-foreground`}>
+
         {/* Skip to main content link for accessibility */}
         <a
           href="#main-content"

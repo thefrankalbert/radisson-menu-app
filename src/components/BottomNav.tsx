@@ -59,8 +59,10 @@ export default function BottomNav() {
     return (
         <nav
             aria-label={language === 'fr' ? "Navigation principale" : "Main navigation"}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 pb-safe"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe shadow-none"
+            suppressHydrationWarning
         >
+
             <div className="flex justify-around items-center h-16 max-w-lg mx-auto px-2">
                 {navItems.map((item) => {
                     const Icon = item.icon;
@@ -78,20 +80,20 @@ export default function BottomNav() {
                             onClick={handleClick}
                             aria-label={item.badge ? `${item.label} (${item.badge} ${language === 'fr' ? 'articles' : 'items'})` : item.label}
                             aria-current={item.active ? "page" : undefined}
-                            className={`flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200 min-w-[72px] ${
-                                item.active
-                                    ? "text-[#002C5F]"
-                                    : "text-gray-400 hover:text-gray-600"
-                            }`}
+                            className={`relative flex flex-col items-center justify-center gap-1 py-2 px-3 transition-colors duration-150 min-w-[72px] ${item.active
+                                ? "text-black"
+                                : "text-gray-400 hover:text-gray-600"
+                                }`}
                         >
+                            {/* Active indicator top bar */}
+                            {item.active && (
+                                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-black rounded-b-sm" />
+                            )}
+
                             <div className="relative">
-                                {/* Active indicator background */}
-                                {item.active && (
-                                    <div className="absolute -inset-2 bg-[#002C5F]/5 rounded-full" aria-hidden="true" />
-                                )}
                                 <Icon
-                                    size={22}
-                                    strokeWidth={item.active ? 2.5 : 1.8}
+                                    size={24}
+                                    strokeWidth={item.active ? 2.5 : 2}
                                     className="relative z-10"
                                     aria-hidden="true"
                                 />
@@ -99,20 +101,20 @@ export default function BottomNav() {
                                 {item.badge && (
                                     <span
                                         aria-hidden="true"
-                                        className="absolute -top-2 -right-2 z-20 bg-[#C5A065] text-white text-[9px] font-bold h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full"
+                                        className="absolute -top-2 -right-2 z-20 bg-red-500 text-white text-[9px] font-bold h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full border border-white"
                                     >
                                         {item.badge > 9 ? '9+' : item.badge}
                                     </span>
                                 )}
                             </div>
-                            <span className={`text-[10px] font-semibold tracking-wide ${
-                                item.active ? "font-bold" : ""
-                            }`}>
+                            <span className={`text-[10px] font-medium tracking-wide ${item.active ? "font-semibold" : ""
+                                }`}>
                                 {item.label}
                             </span>
                         </Link>
                     );
                 })}
+
             </div>
         </nav>
     );

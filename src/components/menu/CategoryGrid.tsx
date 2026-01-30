@@ -22,8 +22,8 @@ export default function CategoryGrid({
     return (
         <div className="mb-10">
             <div className="flex justify-between items-center mb-5">
-                <h2 className="text-radisson-blue text-xs font-bold tracking-[0.15em] uppercase">
-                    {language === 'fr' ? "EXPLOREZ NOS SAVEURS" : "EXPLORE OUR FLAVORS"}
+                <h2 className="text-lg font-semibold text-gray-800 tracking-tight">
+                    {language === 'fr' ? "Explorez nos saveurs" : "Explore our flavors"}
                 </h2>
             </div>
 
@@ -43,7 +43,7 @@ export default function CategoryGrid({
                             onClick={() => onCategoryClick(cat.dbTerm)}
                         >
                             {/* Outer circle container */}
-                            <div className="w-[72px] h-[72px] mx-auto rounded-full bg-white/80 p-1 mb-2.5 transition-all duration-200 group-hover:scale-[1.05]">
+                            <div className="w-[80px] h-[80px] mx-auto rounded-full bg-white/80 p-1 mb-2.5 transition-all duration-150 group-hover:scale-[1.05]">
                                 {/* Inner circle with icon */}
                                 <div className="w-full h-full rounded-full category-icon-circle flex items-center justify-center border border-gray-100/50">
                                     <span className="text-[28px]">{cat.icon}</span>

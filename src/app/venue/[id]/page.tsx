@@ -456,7 +456,7 @@ export default function VenuePage({ params }: VenuePageProps) {
                         </div>
                     </div>
                 )}
-                <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 pt-6 space-y-8">
+                <div className="max-w-3xl lg:max-w-5xl mx-auto space-y-0 px-4 pb-12">
                     {[1, 2].map((i) => (
                         <div key={i}>
                             <div className="h-6 w-32 bg-gray-200 rounded mb-4 shimmer" />
@@ -510,47 +510,55 @@ export default function VenuePage({ params }: VenuePageProps) {
 
             {/* Padding pour compenser les éléments fixes */}
             <div className={`max-w-3xl lg:max-w-5xl mx-auto px-4 ${venueConfig.submenus.length > 1 && navCategories.length > 0 ? 'pt-28' : venueConfig.submenus.length > 1 ? 'pt-20' : navCategories.length > 0 ? 'pt-20' : 'pt-4'}`}>
-                {/* Categories Section */}
+                {/* Categories & Items Section */}
                 {categories && categories.length > 0 ? (
-                    <div className="space-y-8 mb-12">
-                        {categories.map((category: Category) => {
+                    <div className="flex flex-col">
+                        {categories.map((category, catIndex) => {
                             const categoryName = getTranslatedContent(language, category.name, category.name_en);
                             const categoryItems = getItemsForCategory(category.id);
 
                             return (
-                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-24">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <h2 className="text-sm font-bold text-[#002C5F] uppercase tracking-wider whitespace-nowrap">
+                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-28">
+                                    {/* SECTION HEADER - Sur fond gris séparé */}
+                                    <div className="py-4 bg-[#F8FAFC]">
+                                        <h2 className="text-lg md:text-xl font-bold text-[#003058]">
                                             {categoryName}
                                         </h2>
-                                        <div className="h-px flex-1 bg-[#C5A065]/30" />
                                     </div>
 
-                                    <div className="space-y-2">
+                                    {/* ITEMS LIST - Dans une carte blanche séparée */}
+                                    <div className="bg-white border-y border-gray-100">
                                         {categoryItems.length > 0 ? (
-                                            categoryItems.map((item: MenuItem, index: number) => (
-                                                <MenuItemCard
-                                                    key={item.id}
-                                                    item={{
-                                                        ...item,
-                                                        name: getTranslatedContent(language, item.name, item.name_en),
-                                                        description: getTranslatedContent(language, item.description, item.description_en),
-                                                        options: item.options,
-                                                        price_variants: item.price_variants
-                                                    }}
-                                                    restaurantId={restaurant?.id || ""}
-                                                    priority={index < 4 && categories.indexOf(category) === 0}
-                                                    category={categoryName}
-                                                />
-                                            ))
+                                            <div className="divide-y divide-gray-100">
+                                                {categoryItems.map((item, index) => (
+                                                    <MenuItemCard
+                                                        key={item.id}
+                                                        item={{
+                                                            ...item,
+                                                            name: getTranslatedContent(language, item.name, item.name_en),
+                                                            description: getTranslatedContent(language, item.description, item.description_en),
+                                                            options: item.options,
+                                                            price_variants: item.price_variants
+                                                        }}
+                                                        restaurantId={data?.restaurant?.id || ""}
+                                                        priority={index < 4 && catIndex === 0}
+                                                        category={categoryName}
+                                                    />
+                                                ))}
+                                            </div>
                                         ) : (
-                                            <div className="bg-white rounded-xl p-8 text-center text-gray-400 italic text-sm border border-gray-100">
-                                                {t('menu_empty') || (language === 'fr' ? 'Aucun article disponible' : 'No items available')}
+                                            <div className="py-10 text-center text-gray-400 italic text-sm">
+                                                {t('menu_empty')}
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Espace entre les sections */}
+                                    {catIndex < categories.length - 1 && (
+                                        <div className="h-2 bg-[#F8FAFC]" />
+                                    )}
                                 </section>
-                            );
+                            )
                         })}
                     </div>
                 ) : (

@@ -115,7 +115,7 @@ const fetchMenuData = async (slug: string): Promise<MenuData> => {
         .from('categories')
         .select('*, name_en')
         .in('restaurant_id', restaurantIds)
-        .order('id', { ascending: true });
+        .order('display_order', { ascending: true });
 
     // Trier les catégories : d'abord celles du restaurant principal, puis les autres (boissons)
     if (catData) {
@@ -251,7 +251,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                 const timer = setTimeout(() => {
                     const element = document.getElementById(`cat-${category.id}`);
                     if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        element.scrollIntoView({ behavior: 'auto', block: 'start' });
                     }
                 }, 500);
                 return () => clearTimeout(timer);
@@ -304,7 +304,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
             {/* Category Quick Nav Bar - Sticky Client Component */}
             {navCategories.length > 0 && <CategoryNav categories={navCategories} />}
 
-            <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 pt-6">
+            <div className="max-w-3xl lg:max-w-5xl mx-auto space-y-0">
 
                 {/* CONTEXTUAL BANNER */}
                 {announcement && (
@@ -342,41 +342,51 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
 
                 {/* Categories Section */}
                 {categories && categories.length > 0 ? (
-                    <div className="space-y-12 mb-12">
-                        {categories.map((category) => {
+                    <div className="flex flex-col">
+                        {categories.map((category, catIndex) => {
                             const categoryName = getTranslatedContent(language, category.name, category.name_en);
+                            const categoryItems = getItemsForCategory(category.id);
+
                             return (
-                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-32">
-                                    <div className="flex items-center gap-3 md:gap-6 mb-4">
-                                        <h2 className="text-base md:text-xl font-bold text-[#002C5F] uppercase tracking-[0.2em] whitespace-nowrap">
+                                <section key={category.id} id={`cat-${category.id}`} className="scroll-mt-28">
+                                    {/* SECTION HEADER - Sur fond gris séparé */}
+                                    <div className="px-4 py-4 bg-[#F8FAFC]">
+                                        <h2 className="text-lg md:text-xl font-bold text-[#003058] uppercase tracking-tight">
                                             {categoryName}
                                         </h2>
-                                        <div className="h-[1px] w-full bg-radisson-gold/20" />
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {getItemsForCategory(category.id).length > 0 ? (
-                                            getItemsForCategory(category.id).map((item, index) => (
-                                                <MenuItemCard
-                                                    key={item.id}
-                                                    item={{
-                                                        ...item,
-                                                        name: getTranslatedContent(language, item.name, item.name_en),
-                                                        description: getTranslatedContent(language, item.description, item.description_en),
-                                                        options: item.options,
-                                                        price_variants: item.price_variants
-                                                    }}
-                                                    restaurantId={restaurant?.id || ""}
-                                                    priority={index < 4 && categories.indexOf(category) === 0}
-                                                    category={categoryName}
-                                                />
-                                            ))
+                                    {/* ITEMS LIST - Dans une carte blanche séparée */}
+                                    <div className="bg-white border-y border-gray-100">
+                                        {categoryItems.length > 0 ? (
+                                            <div className="divide-y divide-gray-100">
+                                                {categoryItems.map((item, index) => (
+                                                    <MenuItemCard
+                                                        key={item.id}
+                                                        item={{
+                                                            ...item,
+                                                            name: getTranslatedContent(language, item.name, item.name_en),
+                                                            description: getTranslatedContent(language, item.description, item.description_en),
+                                                            options: item.options,
+                                                            price_variants: item.price_variants
+                                                        }}
+                                                        restaurantId={restaurant?.id || ""}
+                                                        priority={index < 4 && catIndex === 0}
+                                                        category={categoryName}
+                                                    />
+                                                ))}
+                                            </div>
                                         ) : (
-                                            <div className="col-span-full bg-white rounded-2xl p-10 text-center text-gray-400 italic text-sm border border-gray-300">
+                                            <div className="py-10 text-center text-gray-400 italic text-sm">
                                                 {t('menu_empty')}
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Espace entre les sections */}
+                                    {catIndex < categories.length - 1 && (
+                                        <div className="h-4 bg-[#F8FAFC]" />
+                                    )}
                                 </section>
                             )
                         })}

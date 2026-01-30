@@ -114,7 +114,7 @@ export default function ItemsPage() {
         const { data } = await supabase
             .from('categories')
             .select('*, restaurants(id, name)')
-            .order('name');
+            .order('display_order', { ascending: true });
 
         const formattedCategories = (data || []).map((cat: any) => ({
             ...cat,

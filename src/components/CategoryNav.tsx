@@ -45,10 +45,10 @@ export default function CategoryNav({ categories }: CategoryNavProps) {
                 const buttonLeft = activeButton.offsetLeft;
                 const buttonWidth = activeButton.offsetWidth;
                 const containerWidth = container.offsetWidth;
-                
+
                 // Calculer la position pour centrer le bouton
                 const targetScroll = buttonLeft - (containerWidth / 2) + (buttonWidth / 2);
-                
+
                 container.scrollTo({
                     left: targetScroll,
                     behavior: 'smooth'
@@ -97,7 +97,7 @@ export default function CategoryNav({ categories }: CategoryNavProps) {
             // Calculer l'offset en tenant compte de la hauteur du tab pane et de la navigation
             const navHeight = navRef.current?.offsetHeight || 60;
             const offset = tabPaneHeight + navHeight + 20; // 20px d'espace supplémentaire
-            
+
             const elementRect = element.getBoundingClientRect();
             const absoluteElementTop = elementRect.top + window.pageYOffset;
             const offsetPosition = absoluteElementTop - offset;
@@ -110,7 +110,7 @@ export default function CategoryNav({ categories }: CategoryNavProps) {
     };
 
     return (
-        <div ref={navRef} className="fixed left-0 right-0 z-30 bg-white border-b border-gray-200 overflow-x-auto scrollbar-hide py-3 transition-all duration-300" style={{ top: `${tabPaneHeight}px` }}>
+        <div ref={navRef} className="fixed left-0 right-0 z-30 bg-white border-b border-gray-200 overflow-x-auto scrollbar-hide py-3 transition-all duration-150" style={{ top: `${tabPaneHeight}px` }}>
             <div className="max-w-3xl lg:max-w-5xl mx-auto px-6 flex gap-2 md:gap-4 min-w-max">
                 {categories.map((category) => {
                     const isActive = activeCategory === category.id;
@@ -126,12 +126,13 @@ export default function CategoryNav({ categories }: CategoryNavProps) {
                             }}
                             onClick={() => scrollToCategory(category.id)}
                             className={`
-                                whitespace-nowrap px-4 py-2 md:px-6 md:py-2.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 border active:scale-95
+                                whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 border active:scale-[0.98]
                                 ${isActive
-                                    ? "bg-radisson-blue text-radisson-gold border-radisson-blue scale-105"
-                                    : "bg-white text-gray-400 border-gray-200 hover:border-gray-300 hover:text-radisson-blue"
+                                    ? "bg-[#002C5F] text-white border-[#002C5F]"
+                                    : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
                                 }
                             `}
+
                         >
                             {category.name}
                         </button>
