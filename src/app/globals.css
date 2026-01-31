@@ -55,12 +55,14 @@ body {
   .gradient-hero {
     background: linear-gradient(180deg,
         #003058 0%,
-        #0a4a78 30%,
-        #3a7a9a 55%,
-        #8ab8c8 72%,
-        #c8dce4 85%,
-        #e8f0f4 92%,
-        #F8FAFC 100%);
+        #0a4a78 22%,
+        #3a7a9a 40%,
+        #7aacbc 55%,
+        #a8ccd8 68%,
+        #d0e4ec 78%,
+        #e8f2f6 86%,
+        #f5fafb 93%,
+        #ffffff 100%);
   }
 
   /* Circle background for category icons */
