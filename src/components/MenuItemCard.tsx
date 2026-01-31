@@ -37,6 +37,7 @@ interface MenuItemProps {
         is_vegetarian?: boolean;
         is_spicy?: boolean;
         is_available?: boolean;
+        category_id?: string;
         options?: ItemOption[];
         price_variants?: ItemPriceVariant[];
     };
@@ -119,6 +120,8 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
             price: currentPrice,
             image_url: item.image_url,
             quantity: 1,
+            category_id: item.category_id,
+            category_name: category
         };
 
         if (selectedOption) {

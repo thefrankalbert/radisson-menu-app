@@ -5,12 +5,19 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
+import { useState, useEffect } from "react";
 
 export default function BottomNav() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { language } = useLanguage();
     const { totalItems } = useCart();
+    const [mounted, setMounted] = useState(false);
+
+    // Éviter les erreurs d'hydratation - attendre le montage côté client
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Ne pas afficher la navigation sur les pages admin
     if (pathname.startsWith("/admin")) {
@@ -34,23 +41,26 @@ export default function BottomNav() {
         return queryString ? `/?${queryString}` : '/';
     };
 
+    // Utiliser les labels français par défaut pour éviter les erreurs d'hydratation
+    const effectiveLanguage = mounted ? language : 'fr';
+
     const navItems = [
         {
             icon: Home,
-            label: language === 'fr' ? "Accueil" : "Home",
+            label: effectiveLanguage === 'fr' ? "Accueil" : "Home",
             href: getHomeHref(),
             active: isActive("/") && !isActive("/venue") && !isActive("/menu") && !isActive("/cart") && !isActive("/orders")
         },
         {
             icon: ShoppingBag,
-            label: language === 'fr' ? "Panier" : "Cart",
+            label: effectiveLanguage === 'fr' ? "Panier" : "Cart",
             href: "/cart",
             active: isActive("/cart"),
             badge: totalItems > 0 ? totalItems : null
         },
         {
             icon: Clock,
-            label: language === 'fr' ? "Historique" : "History",
+            label: effectiveLanguage === 'fr' ? "Historique" : "History",
             href: "/orders",
             active: isActive("/orders")
         }
@@ -58,7 +68,7 @@ export default function BottomNav() {
 
     return (
         <nav
-            aria-label={language === 'fr' ? "Navigation principale" : "Main navigation"}
+            aria-label={effectiveLanguage === 'fr' ? "Navigation principale" : "Main navigation"}
             className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe shadow-none"
             suppressHydrationWarning
         >
@@ -78,7 +88,7 @@ export default function BottomNav() {
                             key={item.href}
                             href={item.href}
                             onClick={handleClick}
-                            aria-label={item.badge ? `${item.label} (${item.badge} ${language === 'fr' ? 'articles' : 'items'})` : item.label}
+                            aria-label={item.badge ? `${item.label} (${item.badge} ${effectiveLanguage === 'fr' ? 'articles' : 'items'})` : item.label}
                             aria-current={item.active ? "page" : undefined}
                             className={`relative flex flex-col items-center justify-center gap-1 py-2 px-3 transition-colors duration-150 min-w-[72px] ${item.active
                                 ? "text-black"

@@ -15,6 +15,8 @@ type CartItem = {
     // Support pour options et variantes
     selectedOption?: { name_fr: string; name_en?: string }; // Option sélectionnée (même prix)
     selectedVariant?: { name_fr: string; name_en?: string; price: number }; // Variante sélectionnée (prix différent)
+    category_id?: string;
+    category_name?: string;
 };
 
 type CartContextType = {
@@ -33,6 +35,8 @@ type CartContextType = {
     pendingAddToCart: { item: CartItem; restaurantId: string } | null;
     confirmPendingAddToCart: () => Promise<void>;
     cancelPendingAddToCart: () => void;
+    notes: string;
+    setNotes: (notes: string) => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -119,16 +123,19 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const [currentRestaurantId, setCurrentRestaurantId] = useState<string | null>(null);
     const [lastVisitedMenuUrl, setLastVisitedMenuUrlState] = useState<string | null>(null);
     const [pendingAddToCart, setPendingAddToCart] = useState<{ item: CartItem; restaurantId: string } | null>(null);
+    const [notes, setNotes] = useState<string>("");
 
     // Chargement initial depuis localStorage
     useEffect(() => {
         const savedCart = localStorage.getItem('cart');
         const savedResto = localStorage.getItem('cart_restaurant_id');
         const savedLastMenu = localStorage.getItem('radisson_last_menu');
+        const savedNotes = localStorage.getItem('cart_notes');
 
         if (savedCart) setItems(JSON.parse(savedCart));
         if (savedResto) setCurrentRestaurantId(savedResto);
         if (savedLastMenu) setLastVisitedMenuUrlState(savedLastMenu);
+        if (savedNotes) setNotes(savedNotes);
     }, []);
 
     // Sauvegarde automatique
@@ -144,7 +151,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
             localStorage.removeItem("radisson_last_menu");
         }
-    }, [items, currentRestaurantId, lastVisitedMenuUrl]);
+        localStorage.setItem('cart_notes', notes);
+    }, [items, currentRestaurantId, lastVisitedMenuUrl, notes]);
 
     const addToCart = async (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false) => {
         // Capturer l'état actuel pour éviter les race conditions
@@ -226,6 +234,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentRestaurantId(null);
         localStorage.removeItem('cart');
         localStorage.removeItem('cart_restaurant_id');
+        localStorage.removeItem('cart_notes');
+        setNotes("");
     };
 
     const setLastVisitedMenuUrl = (url: string) => {
@@ -252,7 +262,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
                 setLastVisitedMenuUrl,
                 pendingAddToCart,
                 confirmPendingAddToCart,
-                cancelPendingAddToCart
+                cancelPendingAddToCart,
+                notes,
+                setNotes
             }}
         >
             {children}

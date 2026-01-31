@@ -4,7 +4,7 @@ import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { supabase } from "@/lib/supabase";
-import { Minus, Plus, ShoppingBag, Trash2, ChevronLeft, Coffee, IceCream, Package } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2, ChevronLeft, Coffee, IceCream, Package, Utensils } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,13 @@ interface HistoryItem {
     totalPrice: number;
     tableNumber: string;
     status: string;
+}
+
+interface CartRecommendation {
+    type: 'drinks' | 'desserts' | 'mains';
+    title: { fr: string; en: string };
+    searchQuery: string;
+    categorySlug?: string;
 }
 
 interface UpsellItem {
@@ -44,26 +51,37 @@ const getCartItemKey = (item: any): string => {
 const TIP_STEP = 500;
 
 export default function CartPage() {
-    const { items, updateQuantity, removeFromCart, clearCart, totalPrice, currentRestaurantId, addToCart } = useCart();
+    const { items, updateQuantity, removeFromCart, clearCart, totalPrice, currentRestaurantId, addToCart, notes, setNotes } = useCart();
     const { t, language } = useLanguage();
     const { formatPrice } = useCurrency();
     const router = useRouter();
-    const [notes, setNotes] = useState("");
     const [tableNumber, setTableNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [tipAmount, setTipAmount] = useState(0);
     const [upsellItems, setUpsellItems] = useState<UpsellItem[]>([]);
-    const [upsellType, setUpsellType] = useState<'drinks' | 'desserts' | null>(null);
+    const [activeRecommendation, setActiveRecommendation] = useState<CartRecommendation | null>(null);
+    const [restoSlug, setRestoSlug] = useState<string | null>(null);
 
-    // Detect if cart has drinks or desserts
+    // Detect cart content by category
     const cartAnalysis = useMemo(() => {
+        const hasMain = items.some(item =>
+            item.category_name?.toLowerCase().match(/plat|main|spécialité|grillade|burgers/) ||
+            item.name.toLowerCase().match(/riz|brochette|burger|filet|entrecôte|poulet|poisson|braisé|pâtes|pasta/)
+        );
         const hasDrinks = items.some(item =>
-            item.name.toLowerCase().match(/coca|fanta|sprite|eau|water|jus|juice|bière|beer|vin|wine|cocktail|soda|café|coffee|thé|tea/)
+            item.category_name?.toLowerCase().match(/boisson|drink|cocktail|wine|vin|coffee|cafe|thé|tea|soft|soda|bière|beer/) ||
+            item.name.toLowerCase().match(/coca|fanta|sprite|eau|water|jus|juice|bière|beer|vin|wine|cocktail|soda|café|coffee|thé|tea|tonic|ginger/)
         );
         const hasDesserts = items.some(item =>
-            item.name.toLowerCase().match(/dessert|glace|ice cream|gâteau|cake|crème|cream|fruit|tarte|mousse|fondant|tiramisu/)
+            item.category_name?.toLowerCase().match(/dessert|glace|sucre|sweet|fruit|pâtisserie/) ||
+            item.name.toLowerCase().match(/dessert|glace|ice cream|gâteau|cake|crème|cream|fruit|tarte|mousse|fondant|tiramisu|salade de fruit/)
         );
-        return { hasDrinks, hasDesserts };
+        const hasStarters = items.some(item =>
+            item.category_name?.toLowerCase().match(/entrée|starter|snack|tapas|apéritif/) ||
+            item.name.toLowerCase().match(/entrée|starter|salade|soup|velouté|nems|samoussa/)
+        );
+
+        return { hasMain, hasDrinks, hasDesserts, hasStarters };
     }, [items]);
 
     useEffect(() => {
@@ -74,47 +92,150 @@ export default function CartPage() {
         if (savedTable) setTableNumber(savedTable);
     }, []);
 
+    const [isLoadingUpsell, setIsLoadingUpsell] = useState(false);
+
     // Fetch upsell suggestions
     useEffect(() => {
         const fetchUpsellItems = async () => {
-            if (!currentRestaurantId || items.length === 0) return;
+            if (!currentRestaurantId || items.length === 0) {
+                setActiveRecommendation(null);
+                setUpsellItems([]);
+                return;
+            }
 
+            setIsLoadingUpsell(true);
             try {
-                // Determine what to suggest
-                let categoryFilter = '';
-                if (!cartAnalysis.hasDrinks) {
-                    setUpsellType('drinks');
-                    categoryFilter = 'boisson';
-                } else if (!cartAnalysis.hasDesserts) {
-                    setUpsellType('desserts');
-                    categoryFilter = 'dessert';
-                } else {
-                    setUpsellType(null);
+                let recommendation: CartRecommendation | null = null;
+
+                // Decision logic
+                if (cartAnalysis.hasMain && !cartAnalysis.hasDrinks) {
+                    recommendation = {
+                        type: 'drinks',
+                        title: { fr: 'Une boisson fraîche ?', en: 'A fresh drink?' },
+                        searchQuery: 'boisson',
+                        categorySlug: 'Boissons'
+                    };
+                } else if (cartAnalysis.hasMain && cartAnalysis.hasDrinks && !cartAnalysis.hasDesserts) {
+                    recommendation = {
+                        type: 'desserts',
+                        title: { fr: 'Une petite douceur ?', en: 'Something sweet?' },
+                        searchQuery: 'dessert',
+                        categorySlug: 'Desserts'
+                    };
+                } else if (cartAnalysis.hasStarters && !cartAnalysis.hasMain) {
+                    recommendation = {
+                        type: 'mains',
+                        title: { fr: 'Un plat de résistance ?', en: 'A main course?' },
+                        searchQuery: 'plat',
+                        categorySlug: 'Plats'
+                    };
+                } else if (cartAnalysis.hasMain && cartAnalysis.hasDrinks && cartAnalysis.hasDesserts) {
+                    // Fallback to drinks (specific types like Wine/Cocktails if exists, or just boisson)
+                    recommendation = {
+                        type: 'drinks',
+                        title: { fr: 'Un dernier verre ?', en: 'One last drink?' },
+                        searchQuery: 'boisson',
+                        categorySlug: 'Boissons'
+                    };
+                }
+
+                if (!recommendation) {
+                    setActiveRecommendation(null);
+                    setUpsellItems([]);
+                    setIsLoadingUpsell(false);
                     return;
                 }
 
-                // Fetch categories matching the filter
-                const { data: categories } = await supabase
-                    .from('categories')
-                    .select('id, name')
-                    .ilike('name', `%${categoryFilter}%`);
+                setActiveRecommendation(recommendation);
 
-                if (!categories || categories.length === 0) return;
+                // Determine restaurant IDs to search in (handle Panorama/Lobby + Drinks)
+                let searchRestaurantIds = [currentRestaurantId];
+
+                // Fetch current restaurant slug if not already known to check for compatibility
+                let effectiveRestoSlug = restoSlug;
+                if (!effectiveRestoSlug) {
+                    const { data: currentResto } = await supabase
+                        .from('restaurants')
+                        .select('slug')
+                        .eq('id', currentRestaurantId)
+                        .single();
+                    if (currentResto) {
+                        effectiveRestoSlug = currentResto.slug;
+                        setRestoSlug(effectiveRestoSlug);
+                    }
+                }
+
+                // If Panorama or Lobby, also look in Drinks restaurant
+                if (effectiveRestoSlug && (effectiveRestoSlug.includes('panorama') || effectiveRestoSlug.includes('lobby'))) {
+                    const { data: drinksResto } = await supabase
+                        .from('restaurants')
+                        .select('id')
+                        .eq('slug', 'carte-des-boissons')
+                        .single();
+                    if (drinksResto && !searchRestaurantIds.includes(drinksResto.id)) {
+                        searchRestaurantIds.push(drinksResto.id);
+                    }
+                }
+
+                // Fetch categories with improved search terms
+                let categoryQuery = supabase
+                    .from('categories')
+                    .select('id, name, name_en, restaurants!inner(id, slug)')
+                    .in('restaurants.id', searchRestaurantIds);
+
+                // More inclusive search filter
+                if (recommendation.type === 'drinks') {
+                    categoryQuery = categoryQuery.or('name.ilike.%boisson%,name.ilike.%soda%,name.ilike.%jus%,name.ilike.%bière%,name.ilike.%vin%,name.ilike.%cocktail%,name.ilike.%spiritueux%');
+                } else if (recommendation.type === 'desserts') {
+                    categoryQuery = categoryQuery.or('name.ilike.%dessert%,name.ilike.%douceur%,name.ilike.%glace%,name.ilike.%fruit%');
+                } else {
+                    categoryQuery = categoryQuery.ilike('name', `%${recommendation.searchQuery}%`);
+                }
+
+                const { data: categories } = await categoryQuery;
+
+                if (!categories || categories.length === 0) {
+                    setIsLoadingUpsell(false);
+                    return;
+                }
+
+                // Update categorySlug with the first category name (case-sensitive) for accurate navigation
+                recommendation.categorySlug = categories[0].name;
 
                 const categoryIds = categories.map(c => c.id);
 
-                // Fetch items from those categories
+                // Fetch items with category name for cart analysis
                 const { data: menuItems } = await supabase
                     .from('menu_items')
-                    .select('id, name, name_en, price, image_url')
+                    .select('id, name, name_en, price, image_url, category_id, categories(name)')
                     .in('category_id', categoryIds)
+                    .eq('is_available', true)
                     .limit(6);
 
                 if (menuItems) {
-                    setUpsellItems(menuItems);
+                    setUpsellItems(menuItems.map((mi: any) => ({
+                        id: mi.id,
+                        name: mi.name,
+                        name_en: mi.name_en,
+                        price: mi.price,
+                        image_url: mi.image_url,
+                        category_name: mi.categories?.name
+                    })));
+                }
+
+                // Also fetch the restaurant slug for navigation
+                if (currentRestaurantId) {
+                    const { data: resto } = await supabase
+                        .from('restaurants')
+                        .select('slug')
+                        .eq('id', currentRestaurantId)
+                        .single();
+                    if (resto) setRestoSlug(resto.slug);
                 }
             } catch (error) {
                 console.error('Error fetching upsell items:', error);
+            } finally {
+                setIsLoadingUpsell(false);
             }
         };
 
@@ -130,6 +251,7 @@ export default function CartPage() {
             name_en: item.name_en,
             price: item.price,
             image_url: item.image_url,
+            category_name: item.category_name,
             quantity: 1
         }, currentRestaurantId);
 
@@ -400,64 +522,98 @@ export default function CartPage() {
                         </section>
 
                         {/* SECTION: UPSELL SUGGESTIONS */}
-                        {upsellType && upsellItems.length > 0 && (
-                            <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                                    {upsellType === 'drinks' ? (
-                                        <Coffee size={16} className="text-[#C5A065]" />
-                                    ) : (
-                                        <IceCream size={16} className="text-[#C5A065]" />
-                                    )}
-                                    <h2 className="text-sm font-bold text-gray-900">
-                                        {upsellType === 'drinks'
-                                            ? (language === 'fr' ? 'Soif ?' : 'Thirsty?')
-                                            : (language === 'fr' ? 'Une petite douceur ?' : 'Something sweet?')
-                                        }
-                                    </h2>
-                                </div>
-
-                                <div className="p-3 overflow-x-auto scrollbar-hide">
-                                    <div className="flex gap-3 min-w-max">
-                                        {upsellItems.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                className="w-[120px] flex-shrink-0 bg-white rounded-lg p-2 border border-gray-200"
+                        <AnimatePresence>
+                            {(isLoadingUpsell || (activeRecommendation && upsellItems.length > 0)) && (
+                                <motion.section
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+                                >
+                                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            {activeRecommendation?.type === 'drinks' ? (
+                                                <Coffee size={16} className="text-[#C5A065]" />
+                                            ) : activeRecommendation?.type === 'desserts' ? (
+                                                <IceCream size={16} className="text-[#C5A065]" />
+                                            ) : (
+                                                <Utensils size={16} className="text-[#C5A065]" />
+                                            )}
+                                            <h2 className="text-sm font-bold text-gray-900">
+                                                {isLoadingUpsell ? (
+                                                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                                                ) : (
+                                                    language === 'fr' ? activeRecommendation?.title.fr : activeRecommendation?.title.en
+                                                )}
+                                            </h2>
+                                        </div>
+                                        {!isLoadingUpsell && activeRecommendation && (
+                                            <Link
+                                                href={restoSlug && activeRecommendation.categorySlug ? `/menu/${restoSlug}?section=${encodeURIComponent(activeRecommendation.categorySlug)}` : '/'}
+                                                className="text-[11px] font-bold text-[#00CCBC] hover:underline uppercase tracking-wider"
                                             >
-                                                <div className="w-full h-16 bg-gray-100 rounded-md mb-2 overflow-hidden relative">
-                                                    {item.image_url ? (
-                                                        <Image
-                                                            src={item.image_url}
-                                                            alt={item.name}
-                                                            fill
-                                                            className="object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                                            {upsellType === 'drinks' ? <Coffee size={20} /> : <IceCream size={20} />}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <h3 className="text-xs font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
-                                                    {language === 'en' && item.name_en ? item.name_en : item.name}
-                                                </h3>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-[#C5A065]">
-                                                        {formatPrice(item.price)}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleAddUpsellItem(item)}
-                                                        className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[#C5A065] hover:bg-[#C5A065] hover:text-white hover:border-[#C5A065] transition-colors"
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                                {language === 'fr' ? 'Voir tout →' : 'See all →'}
+                                            </Link>
+                                        )}
                                     </div>
-                                </div>
-                            </section>
-                        )}
+
+                                    <div className="p-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+                                        <div className="flex gap-3 min-w-max px-1">
+                                            {isLoadingUpsell ? (
+                                                // Loading State for Carousel
+                                                [1, 2, 3].map((i) => (
+                                                    <div key={i} className="w-[130px] flex-shrink-0 bg-white rounded-xl p-2.5 border border-gray-100 shadow-sm animate-pulse">
+                                                        <div className="w-full h-20 bg-gray-100 rounded-lg mb-2" />
+                                                        <div className="h-3 w-3/4 bg-gray-100 rounded mb-1" />
+                                                        <div className="h-3 w-1/2 bg-gray-100 rounded" />
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                upsellItems.map((item) => (
+                                                    <motion.div
+                                                        key={item.id}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        className="w-[130px] flex-shrink-0 bg-white rounded-xl p-2.5 border border-gray-100 shadow-sm snap-start"
+                                                    >
+                                                        <div className="w-full h-20 bg-gray-50 rounded-lg mb-2.5 overflow-hidden relative border border-gray-50">
+                                                            {item.image_url ? (
+                                                                <Image
+                                                                    src={item.image_url}
+                                                                    alt={item.name}
+                                                                    fill
+                                                                    className="object-cover transition-transform duration-500 hover:scale-110"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-gray-200 bg-gray-50">
+                                                                    {activeRecommendation?.type === 'drinks' ? <Coffee size={24} /> : activeRecommendation?.type === 'desserts' ? <IceCream size={24} /> : <Utensils size={24} />}
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute top-1 right-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleAddUpsellItem(item)}
+                                                                    className="w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#C5A065] hover:bg-[#C5A065] hover:text-white transition-all active:scale-90"
+                                                                >
+                                                                    <Plus size={16} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <h3 className="text-[11px] font-bold text-gray-800 line-clamp-2 leading-tight mb-2 h-7">
+                                                            {getTranslatedContent(language, item.name, item.name_en)}
+                                                        </h3>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs font-black text-[#C5A065]">
+                                                                {formatPrice(item.price)}
+                                                            </span>
+                                                        </div>
+                                                    </motion.div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.section>
+                            )}
+                        </AnimatePresence>
 
                         {/* SECTION: POURBOIRE - Stepper Style */}
                         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
