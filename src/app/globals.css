@@ -10,14 +10,6 @@
   --radisson-gold: #C5A065;
 }
 
-.font-montserrat {
-  font-family: var(--font-montserrat), sans-serif;
-}
-
-.font-playfair {
-  font-family: var(--font-playfair), serif;
-}
-
 body {
   background: rgb(var(--background-rgb));
   -webkit-tap-highlight-color: transparent;

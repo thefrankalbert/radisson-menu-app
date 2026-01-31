@@ -92,7 +92,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
                 return `$${converted.toFixed(2)}`;
             case "XAF":
             default:
-                return `${priceXAF.toLocaleString('fr-FR')} F`;
+                return `${priceXAF.toLocaleString('fr-FR')} FCFA`;
         }
     }, [currency, convertPrice]);
 

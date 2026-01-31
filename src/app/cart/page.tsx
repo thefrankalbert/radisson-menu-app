@@ -457,27 +457,26 @@ export default function CartPage() {
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        onClick={() => setTipAmount(Math.max(0, tipAmount - TIP_STEP))}
+                                        onClick={() => setTipAmount(prev => prev === 1000 ? 0 : Math.max(0, prev - 500))}
                                         disabled={tipAmount === 0}
-                                        className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
-                                            tipAmount === 0
-                                                ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                                        className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${tipAmount === 0
+                                                ? 'border-gray-100 text-gray-300 cursor-not-allowed'
                                                 : 'border-gray-300 text-gray-500 hover:border-gray-400 hover:bg-gray-50'
-                                        }`}
+                                            }`}
                                     >
-                                        <Minus size={16} />
+                                        <Minus size={20} />
                                     </button>
 
-                                    <span className="text-base font-bold text-gray-900 min-w-[80px] text-center">
+                                    <span className="text-lg font-bold text-gray-900 min-w-[100px] text-center">
                                         {formatPrice(tipAmount)}
                                     </span>
 
                                     <button
                                         type="button"
-                                        onClick={() => setTipAmount(tipAmount + TIP_STEP)}
-                                        className="w-8 h-8 rounded-full border border-[#C5A065] text-[#C5A065] flex items-center justify-center hover:bg-[#C5A065]/10 transition-all"
+                                        onClick={() => setTipAmount(prev => prev === 0 ? 1000 : prev + 500)}
+                                        className="w-10 h-10 rounded-full border border-[#00CCBC] text-[#00CCBC] flex items-center justify-center hover:bg-[#00CCBC]/10 transition-all active:scale-90"
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={20} />
                                     </button>
                                 </div>
                             </div>
@@ -536,12 +535,12 @@ export default function CartPage() {
                             whileTap={{ scale: 0.99 }}
                             onClick={handleSubmit}
                             disabled={isSubmitting}
-                            className="w-full bg-[#002C5F] text-white h-14 rounded-lg font-bold text-base hover:bg-[#003B7A] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                            className="w-full bg-[#00CCBC] text-white h-14 rounded-xl font-bold text-lg hover:bg-[#00B4A6] transition-all flex items-center justify-center shadow-lg shadow-[#00CCBC]/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                         >
                             {isSubmitting ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                <span>{language === 'fr' ? 'Finaliser la commande' : 'Place order'}</span>
+                                <span>{language === 'fr' ? 'Finaliser la commande' : 'Finalize order'}</span>
                             )}
                         </motion.button>
                     </div>

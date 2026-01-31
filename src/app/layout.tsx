@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Playfair_Display, Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -22,22 +22,11 @@ import ClearStorage from "@/components/ClearStorage";
 
 
 
-const montserrat = Montserrat({
+// Geometric, Clean, Modern typography
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-montserrat",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-inter",
-});
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-playfair",
+  display: "swap",
+  variable: "--font-jakarta",
 });
 
 export const metadata: Metadata = {
@@ -114,7 +103,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className="scroll-smooth" suppressHydrationWarning>
 
-      <body className={`${inter.variable} ${montserrat.variable} ${playfair.variable} font-sans bg-background antialiased text-foreground`}>
+      <body className={`${plusJakartaSans.variable} font-sans bg-background antialiased text-foreground`}>
 
         {/* Skip to main content link for accessibility */}
         <a

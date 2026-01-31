@@ -866,7 +866,7 @@ export default function HomeClient({
 
                     {/* Content */}
                     <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 z-10">
-                      <h3 className="text-white text-xl md:text-3xl font-playfair font-bold uppercase tracking-widest mb-2">
+                      <h3 className="text-white text-xl md:text-3xl font-sans font-bold uppercase tracking-widest mb-2">
                         {announcement.title}
                       </h3>
                       {announcement.description && (

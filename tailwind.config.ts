@@ -10,9 +10,7 @@ const config: Config = {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ["var(--font-inter)", "sans-serif"],
-
-				montserrat: ["var(--font-montserrat)", "sans-serif"],
+				sans: ["var(--font-jakarta)", "Plus Jakarta Sans", "sans-serif"],
 			},
 			colors: {
 				radisson: {

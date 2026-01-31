@@ -327,7 +327,7 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                 <div className="bg-white/10 backdrop-blur-md rounded-full px-3 py-1 mb-3 w-fit border border-white/20">
                                     <span className="text-white text-[10px] uppercase font-bold tracking-widest">Offre Spéciale</span>
                                 </div>
-                                <h3 className="text-white text-xl md:text-2xl font-playfair font-bold uppercase tracking-widest mb-2">
+                                <h3 className="text-white text-xl md:text-2xl font-sans font-bold uppercase tracking-widest mb-2">
                                     {announcement.title}
                                 </h3>
                                 {announcement.description && (
