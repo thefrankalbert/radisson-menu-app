@@ -91,6 +91,37 @@ export default function OrdersPage() {
         init();
     }, [loadOrders]);
 
+    // Supabase Realtime: écouter les nouvelles commandes et mises à jour
+    useEffect(() => {
+        const channel = supabase.channel('orders_realtime')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'orders' },
+                () => {
+                    // Nouvelle commande reçue - recharger la liste
+                    loadOrders();
+                    // Son de notification (si activé)
+                    if (soundEnabled && audioRef.current) {
+                        try {
+                            const audio = new Audio('/sounds/notification.mp3');
+                            audio.play().catch(() => {});
+                        } catch {}
+                    }
+                }
+            )
+            .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'orders' },
+                () => {
+                    // Commande mise à jour - recharger la liste
+                    loadOrders();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [loadOrders, soundEnabled]);
+
     const columns = useMemo(() => [
         {
             key: "table_number", label: "Table", sortable: true,

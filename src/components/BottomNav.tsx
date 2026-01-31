@@ -90,6 +90,7 @@ export default function BottomNav() {
                             onClick={handleClick}
                             aria-label={item.badge ? `${item.label} (${item.badge} ${effectiveLanguage === 'fr' ? 'articles' : 'items'})` : item.label}
                             aria-current={item.active ? "page" : undefined}
+                            suppressHydrationWarning
                             className={`relative flex flex-col items-center justify-center gap-1 py-2 px-3 transition-colors duration-150 min-w-[72px] ${item.active
                                 ? "text-black"
                                 : "text-gray-400 hover:text-gray-600"

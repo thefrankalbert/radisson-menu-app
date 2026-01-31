@@ -56,7 +56,15 @@ export default function AnnouncementsPage() {
                 .select('*')
                 .order('sort_order', { ascending: true });
 
-            if (error) throw error;
+            if (error) {
+                // Handle table not existing gracefully
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    console.warn('Table "ads" n\'existe pas encore');
+                    setAds([]);
+                    return;
+                }
+                throw error;
+            }
             setAds(data || []);
         } catch (error) {
             console.error('Erreur chargement ads:', error);
@@ -104,7 +112,13 @@ export default function AnnouncementsPage() {
                     .from('images')
                     .upload(filePath, selectedFile);
 
-                if (uploadError) throw uploadError;
+                if (uploadError) {
+                    // Handle specific bucket errors
+                    if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('bucket')) {
+                        throw new Error('Le bucket "images" n\'existe pas. Créez-le dans Supabase Dashboard > Storage.');
+                    }
+                    throw uploadError;
+                }
 
                 const { data: { publicUrl } } = supabase.storage
                     .from('images')

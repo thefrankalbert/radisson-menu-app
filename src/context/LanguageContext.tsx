@@ -1,8 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 type Language = "fr" | "en";
+
+// Clés de stockage isolées pour Admin et Client
+const STORAGE_KEYS = {
+    admin: "admin_prefs_lang",
+    client: "client_prefs_lang"
+} as const;
 
 interface Translations {
     [key: string]: {
@@ -161,21 +168,29 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-    const [language, setLanguageState] = useState<Language>("en");
+    const [language, setLanguageState] = useState<Language>("fr");
+    const pathname = usePathname();
+
+    // Déterminer le contexte (Admin ou Client)
+    const isAdmin = pathname?.startsWith('/admin');
+    const storageKey = isAdmin ? STORAGE_KEYS.admin : STORAGE_KEYS.client;
 
     useEffect(() => {
-        const savedLang = localStorage.getItem("radisson_lang") as Language;
+        // Charger la langue sauvegardée selon le contexte
+        const savedLang = localStorage.getItem(storageKey) as Language;
         if (savedLang && (savedLang === "fr" || savedLang === "en")) {
             setLanguageState(savedLang);
         } else if (typeof navigator !== 'undefined' && navigator.language) {
+            // Fallback: détection navigateur
             const browserLang = navigator.language.toLowerCase();
             setLanguageState(browserLang.startsWith('fr') ? 'fr' : 'en');
         }
-    }, []);
+    }, [storageKey]);
 
     const setLanguage = (lang: Language) => {
         setLanguageState(lang);
-        localStorage.setItem("radisson_lang", lang);
+        // Sauvegarder avec la clé spécifique au contexte
+        localStorage.setItem(storageKey, lang);
     };
 
     const t = (key: string) => {

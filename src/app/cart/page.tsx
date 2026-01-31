@@ -260,8 +260,8 @@ export default function CartPage() {
 
     const finalTotal = totalPrice + tipAmount;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+        if (e) e.preventDefault();
 
         const cleanedTableNumber = tableNumber.trim().toUpperCase();
 
@@ -297,20 +297,73 @@ export default function CartPage() {
         setIsSubmitting(true);
 
         try {
-            const { data: order, error: orderError } = await supabase
+            // Essayer d'abord avec les colonnes minimales requises
+            const baseOrderData = {
+                restaurant_id: currentRestaurantId,
+                table_number: cleanedTableNumber,
+                total_price: finalTotal,
+                status: 'pending'
+            };
+
+            let order: any = null;
+            let orderError: any = null;
+
+            // Première tentative: avec notes et tip_amount
+            const fullOrderData = {
+                ...baseOrderData,
+                notes: notes || null,
+                ...(tipAmount > 0 ? { tip_amount: tipAmount } : {})
+            };
+
+            const result1 = await supabase
                 .from('orders')
-                .insert({
-                    restaurant_id: currentRestaurantId,
-                    table_number: cleanedTableNumber,
-                    total_price: finalTotal,
-                    tip_amount: tipAmount,
-                    notes: notes,
-                    status: 'pending'
-                })
+                .insert(fullOrderData)
                 .select()
                 .single();
 
-            if (orderError) throw orderError;
+            order = result1.data;
+            orderError = result1.error;
+
+            // Si erreur, réessayer sans les colonnes optionnelles
+            if (orderError) {
+                console.warn('First attempt failed:', orderError.message || orderError.code);
+
+                // Deuxième tentative: sans tip_amount
+                const result2 = await supabase
+                    .from('orders')
+                    .insert({ ...baseOrderData, notes: notes || null })
+                    .select()
+                    .single();
+
+                if (!result2.error) {
+                    order = result2.data;
+                    orderError = null;
+                } else {
+                    // Troisième tentative: colonnes minimales seulement
+                    const result3 = await supabase
+                        .from('orders')
+                        .insert(baseOrderData)
+                        .select()
+                        .single();
+
+                    if (!result3.error) {
+                        order = result3.data;
+                        orderError = null;
+                    } else {
+                        orderError = result3.error;
+                    }
+                }
+            }
+
+            if (orderError || !order) {
+                console.error('All order insert attempts failed:', orderError);
+                throw new Error(
+                    orderError?.message ||
+                    orderError?.details ||
+                    orderError?.hint ||
+                    'Impossible de créer la commande. Vérifiez votre connexion.'
+                );
+            }
 
             const orderItems = items.map(item => ({
                 order_id: order.id,
@@ -323,7 +376,10 @@ export default function CartPage() {
                 .from('order_items')
                 .insert(orderItems);
 
-            if (itemsError) throw itemsError;
+            if (itemsError) {
+                console.error('Order items insert error:', itemsError);
+                throw new Error(itemsError.message || 'Erreur lors de l\'ajout des articles');
+            }
 
             const newOrder: HistoryItem = {
                 id: order.id,
@@ -350,16 +406,19 @@ export default function CartPage() {
             clearCart();
             toast.success(t('order_sent_success'));
             router.push(`/order-confirmed?orderId=${order.id}`);
-        } catch (error) {
-            console.error('Error submitting order:', error);
-            toast.error(t("error_sending_order") || "Une erreur est survenue lors de l'envoi.");
+        } catch (error: any) {
+            console.error('Error submitting order:', error?.message || error);
+            const errorMsg = error?.message || error?.details || "Une erreur est survenue";
+            toast.error(language === 'fr'
+                ? `Erreur: ${errorMsg}`
+                : `Error: ${errorMsg}`);
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <main className="min-h-screen bg-[#F7F7F7] pb-32 animate-fade-in">
+        <main className="min-h-screen bg-[#F7F7F7] pb-44 animate-fade-in">
             {/* HEADER - Only show if items > 0 */}
             {items.length > 0 && (
                 <div className="sticky top-0 z-40 bg-white border-b border-gray-200 animate-fade-in-down">
@@ -615,71 +674,63 @@ export default function CartPage() {
                             )}
                         </AnimatePresence>
 
-                        {/* SECTION: POURBOIRE - Stepper Style */}
+                        {/* SECTION: POURBOIRE (carte séparée) */}
                         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                            <div className="px-4 py-4 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-gray-900">
-                                        {language === 'fr' ? 'Pourboire serveur(se)' : 'Server tip'}
+                            <div className="px-4 py-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-bold text-gray-900">
+                                        {language === 'fr' ? 'Pourboire' : 'Tip'}
                                     </span>
-                                    <span className="text-base">😊</span>
-                                </div>
-
-                                {/* Stepper Control */}
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setTipAmount(prev => prev === 1000 ? 0 : Math.max(0, prev - 500))}
-                                        disabled={tipAmount === 0}
-                                        className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${tipAmount === 0
-                                            ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                                            : 'border-gray-300 text-gray-500 hover:border-gray-400 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        <Minus size={20} />
-                                    </button>
-
-                                    <span className="text-lg font-bold text-gray-900 min-w-[100px] text-center">
-                                        {formatPrice(tipAmount)}
-                                    </span>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setTipAmount(prev => prev === 0 ? 1000 : prev + 500)}
-                                        className="w-10 h-10 rounded-full border border-[#00CCBC] text-[#00CCBC] flex items-center justify-center hover:bg-[#00CCBC]/10 transition-all active:scale-90"
-                                    >
-                                        <Plus size={20} />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTipAmount(prev => prev === 1000 ? 0 : Math.max(0, prev - 500))}
+                                            disabled={tipAmount === 0}
+                                            className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${tipAmount === 0
+                                                ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                                                : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50 active:scale-95'
+                                                }`}
+                                        >
+                                            <Minus size={16} />
+                                        </button>
+                                        <span className="text-sm font-bold text-gray-900 min-w-[80px] text-center">
+                                            {formatPrice(tipAmount)}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTipAmount(prev => prev === 0 ? 1000 : prev + 500)}
+                                            className="w-8 h-8 rounded-full border border-[#C5A065] text-[#C5A065] flex items-center justify-center hover:bg-[#C5A065]/10 transition-all active:scale-95"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </section>
 
                         {/* SECTION: RÉCAPITULATIF */}
                         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-gray-100">
-                                <h2 className="text-sm font-bold text-gray-900">
-                                    {language === 'fr' ? 'Récapitulatif' : 'Summary'}
-                                </h2>
-                            </div>
-
-                            <div className="px-4 py-3 space-y-2">
+                            <div className="px-4 py-3 space-y-3">
+                                {/* Sous-total */}
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-500">
                                         {language === 'fr' ? 'Sous-total' : 'Subtotal'}
                                     </span>
-                                    <span className="text-gray-900">{formatPrice(totalPrice)}</span>
+                                    <span className="text-gray-900 font-medium">{formatPrice(totalPrice)}</span>
                                 </div>
 
+                                {/* Pourboire (affichage seulement si > 0) */}
                                 {tipAmount > 0 && (
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-[#C5A065]">
+                                        <span className="text-gray-500">
                                             {language === 'fr' ? 'Pourboire' : 'Tip'}
                                         </span>
-                                        <span className="text-[#C5A065] font-medium">{formatPrice(tipAmount)}</span>
+                                        <span className="text-gray-900 font-medium">{formatPrice(tipAmount)}</span>
                                     </div>
                                 )}
 
-                                <div className="border-t border-gray-200 pt-3 mt-3">
+                                {/* Total */}
+                                <div className="border-t border-gray-200 pt-3">
                                     <div className="flex justify-between items-center">
                                         <span className="text-base font-bold text-gray-900">Total</span>
                                         <span className="text-xl font-black text-gray-900">{formatPrice(finalTotal)}</span>
@@ -691,23 +742,17 @@ export default function CartPage() {
                 )}
             </div>
 
-            {/* STICKY FOOTER CTA */}
+            {/* STICKY FOOTER CTA - Au-dessus du BottomNav */}
             {items.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe">
+                <div className="fixed bottom-[64px] left-0 right-0 z-[60] bg-white border-t border-gray-200 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
                     <div className="max-w-lg mx-auto">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm text-gray-500">
-                                {language === 'fr' ? 'Total de la commande' : 'Order total'}
-                            </span>
-                            <span className="text-lg font-black text-gray-900">{formatPrice(finalTotal)}</span>
-                        </div>
-
                         <motion.button
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="button"
                             onClick={handleSubmit}
                             disabled={isSubmitting}
-                            className="w-full bg-[#00CCBC] text-white h-14 rounded-xl font-bold text-lg hover:bg-[#00B4A6] transition-all flex items-center justify-center shadow-lg shadow-[#00CCBC]/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                            className="w-full bg-[#14b8a6] text-white h-14 rounded-lg font-bold text-lg hover:bg-[#0d9488] transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -25,10 +25,19 @@ const AdsSlider = () => {
                     .eq('active', true)
                     .order('sort_order', { ascending: true });
 
-                if (error) throw error;
-                if (data) setAds(data);
-            } catch (err) {
-                console.error('Error fetching ads:', err);
+                if (error) {
+                    // Table might not exist or RLS policy issue - fail silently
+                    if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                        // Table doesn't exist - this is expected in some environments
+                        setAds([]);
+                    } else {
+                        console.warn('Ads loading skipped:', error.message);
+                    }
+                } else if (data && data.length > 0) {
+                    setAds(data);
+                }
+            } catch {
+                // Silently fail - ads are not critical
             } finally {
                 setIsLoading(false);
             }

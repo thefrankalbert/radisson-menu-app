@@ -1,8 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 
 type Currency = "XAF" | "EUR" | "USD";
+
+// Clés de stockage isolées pour Admin et Client
+const STORAGE_KEYS = {
+    admin: "admin_prefs_currency",
+    client: "client_prefs_currency"
+} as const;
 
 interface CurrencyContextType {
     currency: Currency;
@@ -25,14 +32,19 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     const [currency, setCurrencyState] = useState<Currency>("XAF");
     const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
     const [isLoadingRates, setIsLoadingRates] = useState(false);
+    const pathname = usePathname();
 
-    // Charger la devise sauvegardée
+    // Déterminer le contexte (Admin ou Client)
+    const isAdmin = pathname?.startsWith('/admin');
+    const storageKey = isAdmin ? STORAGE_KEYS.admin : STORAGE_KEYS.client;
+
+    // Charger la devise sauvegardée selon le contexte
     useEffect(() => {
-        const savedCurrency = localStorage.getItem("radisson_currency") as Currency;
+        const savedCurrency = localStorage.getItem(storageKey) as Currency;
         if (savedCurrency && ["XAF", "EUR", "USD"].includes(savedCurrency)) {
             setCurrencyState(savedCurrency);
         }
-    }, []);
+    }, [storageKey]);
 
     // Récupérer les taux de change
     const fetchExchangeRates = useCallback(async () => {
@@ -70,7 +82,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
     const setCurrency = (newCurrency: Currency) => {
         setCurrencyState(newCurrency);
-        localStorage.setItem("radisson_currency", newCurrency);
+        // Sauvegarder avec la clé spécifique au contexte
+        localStorage.setItem(storageKey, newCurrency);
     };
 
     // Convertir un prix de XAF vers la devise sélectionnée
