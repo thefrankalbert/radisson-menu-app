@@ -4,13 +4,14 @@ import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { supabase } from "@/lib/supabase";
-import { Minus, Plus, ShoppingBag, Trash2, ChevronLeft, Coffee, IceCream } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2, ChevronLeft, Coffee, IceCream, Package } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import EmptyState from "@/components/EmptyState";
 
 interface HistoryItem {
     id: string;
@@ -236,50 +237,64 @@ export default function CartPage() {
 
     return (
         <main className="min-h-screen bg-[#F7F7F7] pb-32 animate-fade-in">
-            {/* HEADER */}
-            <div className="sticky top-0 z-40 bg-white border-b border-gray-200">
-                <div className="max-w-lg mx-auto px-4 py-3 flex items-center">
-                    <Link href="/" className="p-2 -ml-2 text-gray-600 hover:text-gray-900">
-                        <ChevronLeft size={24} />
-                    </Link>
-                    <div className="flex-1 text-center">
-                        <h1 className="text-base font-bold text-gray-900">
-                            {language === 'fr' ? 'Votre commande' : 'Your order'}
-                        </h1>
-                        {tableNumber && (
-                            <p className="text-xs text-gray-500">Table {tableNumber}</p>
-                        )}
-                    </div>
-                    {items.length > 0 && (
+            {/* HEADER - Only show if items > 0 */}
+            {items.length > 0 && (
+                <div className="sticky top-0 z-40 bg-white border-b border-gray-200 animate-fade-in-down">
+                    <div className="max-w-lg mx-auto px-4 py-3 flex items-center">
+                        <button
+                            onClick={() => router.back()}
+                            className="p-2 -ml-2 text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        <div className="flex-1 text-center">
+                            <h1 className="text-base font-bold text-gray-900">
+                                {language === 'fr' ? 'Votre commande' : 'Your order'}
+                            </h1>
+                            {tableNumber && (
+                                <p className="text-xs text-gray-500">Table {tableNumber}</p>
+                            )}
+                        </div>
                         <button
                             onClick={() => {
                                 if (confirm(language === 'fr' ? 'Vider le panier ?' : 'Clear cart?')) {
                                     clearCart();
                                 }
                             }}
-                            className="p-2 -mr-2 text-gray-400 hover:text-red-500"
+                            className="p-2 -mr-2 text-gray-400 hover:text-red-500 transition-colors"
                         >
                             <Trash2 size={20} />
                         </button>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Title for Empty State (Standardized with History) */}
+            {items.length === 0 && (
+                <div className="max-w-lg mx-auto px-4 pt-10 pb-2 relative flex items-center justify-center">
+                    <button
+                        onClick={() => router.back()}
+                        className="absolute left-4 p-2 text-gray-400 hover:text-gray-900 transition-colors"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                    <h1 className="text-lg font-bold text-gray-800 uppercase tracking-widest">
+                        {language === 'fr' ? 'Votre commande' : 'Your order'}
+                    </h1>
+                </div>
+            )}
 
             <div className="max-w-lg mx-auto px-4 pt-4">
                 {items.length === 0 ? (
-                    <div className="bg-white rounded-lg p-12 text-center border border-gray-200 mt-4">
-                        <ShoppingBag size={48} className="text-gray-200 mx-auto mb-4" />
-                        <h2 className="text-lg font-bold text-gray-700 mb-2">{t('cart_empty')}</h2>
-                        <p className="text-sm text-gray-400 mb-6">
-                            {language === 'fr' ? 'Ajoutez des articles pour commencer' : 'Add items to get started'}
-                        </p>
-                        <Link
-                            href="/"
-                            className="inline-block bg-[#002C5F] text-white px-6 py-3 rounded-lg font-medium text-sm hover:bg-[#003B7A] transition-colors"
-                        >
-                            {language === 'fr' ? 'Parcourir le menu' : 'Browse menu'}
-                        </Link>
-                    </div>
+                    <EmptyState
+                        icon={ShoppingBag}
+                        title={language === 'fr' ? 'Votre panier est vide' : 'Your cart is empty'}
+                        subtitle={language === 'fr'
+                            ? 'Découvrez nos délices et commencez votre festin !'
+                            : 'Explore our menu and start your feast!'}
+                        actionLabel={language === 'fr' ? 'Voir le menu' : 'Browse menu'}
+                        actionHref="/"
+                    />
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -460,8 +475,8 @@ export default function CartPage() {
                                         onClick={() => setTipAmount(prev => prev === 1000 ? 0 : Math.max(0, prev - 500))}
                                         disabled={tipAmount === 0}
                                         className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${tipAmount === 0
-                                                ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                                                : 'border-gray-300 text-gray-500 hover:border-gray-400 hover:bg-gray-50'
+                                            ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                                            : 'border-gray-300 text-gray-500 hover:border-gray-400 hover:bg-gray-50'
                                             }`}
                                     >
                                         <Minus size={20} />

@@ -1,11 +1,13 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
-import { CheckCircle, Calendar, Package, XCircle, Trash2, Home, Utensils } from "lucide-react";
+import { CheckCircle, Calendar, Package, XCircle, Trash2, Home, Utensils, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import EmptyState from "@/components/EmptyState";
 
 
 
@@ -68,6 +70,7 @@ const parseOrderHistory = (jsonString: string): HistoryItem[] => {
 };
 
 export default function OrdersPage() {
+    const router = useRouter();
     const { t, language } = useLanguage();
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [showClearModal, setShowClearModal] = useState(false);
@@ -157,9 +160,17 @@ export default function OrdersPage() {
 
             <div className="max-w-md mx-auto px-6">
 
-                <h1 className="text-lg font-bold text-gray-800 my-6 text-center uppercase tracking-widest">
-                    {t('my_orders') || "Mes Commandes"}
-                </h1>
+                <div className="mt-6 mb-8 relative flex items-center justify-center">
+                    <button
+                        onClick={() => router.back()}
+                        className="absolute left-0 p-2 text-gray-400 hover:text-gray-900 transition-colors"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                    <h1 className="text-lg font-bold text-gray-800 uppercase tracking-widest">
+                        {t('my_orders') || "Mes Commandes"}
+                    </h1>
+                </div>
 
                 <div className="flex justify-end mb-4">
                     {history.length > 0 && (
@@ -179,22 +190,15 @@ export default function OrdersPage() {
                 </div>
 
                 {history.length === 0 ? (
-                    <div className="bg-white rounded-[24px] p-12 text-center border border-gray-200 animate-fade-in-up">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Package size={32} className="text-gray-200" />
-                        </div>
-                        <h2 className="text-lg font-bold text-[#002C5F] mb-2">Aucune commande</h2>
-                        <p className="text-gray-400 font-medium italic text-xs md:text-sm mb-8">
-                            Vous n&apos;avez pas encore passé de commande.
-                        </p>
-                        <Link
-                            href="/"
-                            className="inline-flex items-center gap-2 bg-[#002C5F] text-white px-6 py-3 rounded-xl font-bold text-xs tracking-widest hover:bg-[#00428C] transition-all active:scale-95"
-                        >
-                            <Utensils size={14} />
-                            COMMANDER
-                        </Link>
-                    </div>
+                    <EmptyState
+                        icon={Package}
+                        title={language === 'fr' ? 'Aucune commande' : 'No orders yet'}
+                        subtitle={language === 'fr'
+                            ? "Découvrez notre menu et commencez votre commande !"
+                            : "Explore our menu and start your order!"}
+                        actionLabel={language === 'fr' ? 'Commander' : 'Place order'}
+                        actionHref="/"
+                    />
                 ) : (
                     <div className="space-y-6">
                         {history.map((order, index) => (
