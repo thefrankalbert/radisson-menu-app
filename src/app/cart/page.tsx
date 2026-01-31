@@ -12,6 +12,7 @@ import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import EmptyState from "@/components/EmptyState";
+import { getTranslatedContent } from "@/utils/translation";
 
 interface HistoryItem {
     id: string;
@@ -339,7 +340,7 @@ export default function CartPage() {
                                                 {/* Name & Options */}
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="text-sm font-bold text-gray-900 leading-tight">
-                                                        {item.name}
+                                                        {getTranslatedContent(language, item.name, item.name_en)}
                                                     </h3>
                                                     {(optionLabel || variantLabel) && (
                                                         <p className="text-xs text-gray-400 mt-0.5">

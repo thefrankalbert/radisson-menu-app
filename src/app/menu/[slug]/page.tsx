@@ -365,8 +365,10 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
                                                         key={item.id}
                                                         item={{
                                                             ...item,
-                                                            name: getTranslatedContent(language, item.name, item.name_en),
-                                                            description: getTranslatedContent(language, item.description, item.description_en),
+                                                            name: item.name,
+                                                            name_en: item.name_en,
+                                                            description: item.description,
+                                                            description_en: item.description_en,
                                                             options: item.options,
                                                             price_variants: item.price_variants
                                                         }}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Martini, Utensils } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 
 // --- HELPERS ---
 const getTranslatedContent = (
@@ -33,6 +34,7 @@ interface ProductGridProps {
 
 export default function ProductGrid({ items }: ProductGridProps) {
     const { language } = useLanguage();
+    const { formatPrice } = useCurrency();
 
     if (!items || items.length === 0) return null;
 
@@ -48,9 +50,11 @@ export default function ProductGrid({ items }: ProductGridProps) {
                     const categoryData = getCategoryData(item.categories);
                     const resto = categoryData?.restaurant;
                     const restoSlug = Array.isArray(resto) ? resto[0]?.slug : resto?.slug;
-                    const categoryName = categoryData?.name || "";
+                    const categoryName = language === 'en' && (item.categories?.[0]?.name_en || item.categories?.name_en)
+                        ? (item.categories?.[0]?.name_en || item.categories?.name_en)
+                        : (categoryData?.name || "");
                     const itemName = getTranslatedContent(language, item.name || "", item.name_en || null);
-                    const price = typeof item.price === 'number' ? item.price.toLocaleString() : '0';
+                    const priceFormatted = formatPrice(item.price || 0);
 
                     return (
                         <Link
@@ -81,9 +85,9 @@ export default function ProductGrid({ items }: ProductGridProps) {
                                         )}
                                     </div>
                                 )}
-                                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/20">
-                                    <span className="text-xs font-black text-gray-900">
-                                        {price}
+                                <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/20 shadow-sm transition-all duration-300 min-w-[70px] text-center">
+                                    <span className="text-[11px] font-black text-gray-900 whitespace-nowrap">
+                                        {priceFormatted}
                                     </span>
                                 </div>
                             </div>
@@ -92,7 +96,7 @@ export default function ProductGrid({ items }: ProductGridProps) {
                                     {itemName}
                                 </h3>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {categoryData?.name}
+                                    {categoryName}
                                 </p>
                             </div>
                         </Link>

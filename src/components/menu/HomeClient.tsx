@@ -18,6 +18,7 @@ import QRScanner, { preloadScanner } from "@/components/QRScanner";
 import ClearStorage from "@/components/ClearStorage";
 import CategoryGrid from "@/components/menu/CategoryGrid";
 import ProductGrid from "@/components/menu/ProductGrid";
+import AdsSlider from "@/components/menu/AdsSlider";
 // IMPORTS LOCAL REMOVED TO PREVENT MODULE ERRORS
 // import { getSafeImageUrl } from "@/lib/imageUtils";
 // import { getTranslatedContent } from "@/utils/translation";
@@ -843,6 +844,9 @@ export default function HomeClient({
                 </Link>
               </div>
             </div>
+
+            {/* ADS BANNER SECTION */}
+            {!isSearchSticky && <AdsSlider />}
 
             <div className="w-full px-4">
 

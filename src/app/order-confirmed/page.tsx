@@ -10,6 +10,7 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { getTranslatedContent } from "@/utils/translation";
 
 function OrderConfirmedContent() {
     const { lastVisitedMenuUrl, items, addToCart, clearCart } = useCart();
@@ -40,7 +41,7 @@ function OrderConfirmedContent() {
 
             const { data: itemsData, error: itemsError } = await supabase
                 .from('order_items')
-                .select(`id, quantity, price_at_order, menu_item_id, menu_item:menu_items ( name )`)
+                .select(`id, quantity, price_at_order, menu_item_id, menu_item:menu_items ( name, name_en )`)
                 .eq('order_id', orderId);
 
             if (itemsData) setOrderItems(itemsData);
@@ -195,7 +196,7 @@ function OrderConfirmedContent() {
                             <div key={item.id} className="flex justify-between items-start w-full">
                                 <div className="flex gap-3">
                                     <span className="font-bold text-radisson-blue w-5">{item.quantity}x</span>
-                                    <span className="text-gray-700">{item.menu_item?.name}</span>
+                                    <span className="text-gray-700">{getTranslatedContent(language, item.menu_item?.name, item.menu_item?.name_en)}</span>
                                 </div>
                                 <span className="text-gray-900 font-semibold tabular-nums ml-4">
                                     {formatPrice(item.price_at_order * item.quantity)}

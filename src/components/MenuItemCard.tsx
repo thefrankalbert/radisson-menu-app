@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
+import { getTranslatedContent } from "@/utils/translation";
 
 // Types pour options et variantes
 interface ItemOption {
@@ -28,7 +29,9 @@ interface MenuItemProps {
     item: {
         id: string;
         name: string;
+        name_en?: string | null;
         description: string;
+        description_en?: string | null;
         price: number;
         image_url?: string;
         is_vegetarian?: boolean;
@@ -112,6 +115,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
         const cartItemData: any = {
             id: item.id,
             name: item.name,
+            name_en: item.name_en,
             price: currentPrice,
             image_url: item.image_url,
             quantity: 1,
@@ -158,7 +162,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
             <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-1.5 mb-1">
                     <h3 className="text-[15px] font-semibold text-gray-900 leading-tight line-clamp-2">
-                        {item.name}
+                        {getTranslatedContent(language, item.name, item.name_en)}
                     </h3>
                     <div className="flex gap-1 flex-shrink-0 mt-0.5">
                         {item.is_vegetarian && <Leaf size={12} className="text-green-500" />}
@@ -167,7 +171,7 @@ export default function MenuItemCard({ item, restaurantId, priority = false, cat
                 </div>
 
                 <p className="text-[13px] text-gray-500 leading-snug line-clamp-2 mb-2">
-                    {item.description}
+                    {getTranslatedContent(language, item.description, item.description_en)}
                 </p>
 
                 <div className="flex items-center gap-2 mt-auto">

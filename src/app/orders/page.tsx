@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { CheckCircle, Calendar, Package, XCircle, Trash2, Home, Utensils, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -72,6 +73,7 @@ const parseOrderHistory = (jsonString: string): HistoryItem[] => {
 export default function OrdersPage() {
     const router = useRouter();
     const { t, language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [showClearModal, setShowClearModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -255,7 +257,7 @@ export default function OrdersPage() {
                                                 <span className="uppercase text-[11px] md:text-xs leading-tight">{item.name}</span>
                                             </div>
                                             <div className="flex-1 border-b border-dotted border-gray-300 mx-2 relative top-[-4px] opacity-30"></div>
-                                            <span className="font-bold">{(item.price * item.quantity).toLocaleString()}</span>
+                                            <span className="font-bold">{formatPrice(item.price * item.quantity)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -264,7 +266,7 @@ export default function OrdersPage() {
                                 <div className="border-t-2 border-dashed border-gray-200 pt-3 flex justify-between items-end">
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</span>
                                     <span className="text-lg font-black text-gray-900 font-mono">
-                                        {order.totalPrice.toLocaleString()} <span className="text-[9px] text-gray-400 font-sans">FCFA</span>
+                                        {formatPrice(order.totalPrice)}
                                     </span>
                                 </div>
                             </div>

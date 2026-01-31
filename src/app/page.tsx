@@ -50,6 +50,7 @@ export default async function Page() {
         categories (
           id,
           name,
+          name_en,
           restaurant_id,
           restaurants (
             slug,
