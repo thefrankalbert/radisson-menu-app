@@ -57,18 +57,24 @@ export default function AnnouncementsPage() {
                 .order('sort_order', { ascending: true });
 
             if (error) {
-                // Handle table not existing gracefully
-                if (error.code === '42P01' || error.message?.includes('does not exist')) {
-                    console.warn('Table "ads" n\'existe pas encore');
+                // Handle table not existing or any other error gracefully
+                const errorCode = error.code || '';
+                const errorMsg = error.message || '';
+                if (errorCode === '42P01' || errorMsg.includes('does not exist') || errorCode === 'PGRST116') {
+                    console.warn('Table "ads" n\'existe pas encore - création automatique nécessaire');
                     setAds([]);
                     return;
                 }
-                throw error;
+                // For any other error, just log it and show empty
+                console.warn('Erreur lors du chargement des ads:', errorMsg || errorCode || 'Unknown error');
+                setAds([]);
+                return;
             }
             setAds(data || []);
-        } catch (error) {
-            console.error('Erreur chargement ads:', error);
-            toast.error('Erreur lors du chargement');
+        } catch (error: any) {
+            // Silently handle - table might not exist
+            console.warn('Ads non disponibles:', error?.message || 'Table non configurée');
+            setAds([]);
         } finally {
             setLoading(false);
         }
@@ -114,10 +120,11 @@ export default function AnnouncementsPage() {
 
                 if (uploadError) {
                     // Handle specific bucket errors
-                    if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('bucket')) {
-                        throw new Error('Le bucket "images" n\'existe pas. Créez-le dans Supabase Dashboard > Storage.');
+                    const errMsg = uploadError.message || '';
+                    if (errMsg.includes('Bucket not found') || errMsg.includes('bucket') || errMsg.includes('not found') || errMsg.includes('Invalid')) {
+                        throw new Error('Le bucket "images" n\'existe pas. Créez-le dans Supabase Dashboard > Storage (public).');
                     }
-                    throw uploadError;
+                    throw new Error(errMsg || 'Erreur lors de l\'upload de l\'image');
                 }
 
                 const { data: { publicUrl } } = supabase.storage

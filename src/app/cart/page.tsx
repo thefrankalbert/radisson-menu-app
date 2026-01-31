@@ -10,8 +10,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import EmptyState from "@/components/EmptyState";
+import ProductImage from "@/components/ui/ProductImage";
 import { getTranslatedContent } from "@/utils/translation";
 
 interface HistoryItem {
@@ -263,19 +263,28 @@ export default function CartPage() {
     const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
         if (e) e.preventDefault();
 
-        const cleanedTableNumber = tableNumber.trim().toUpperCase();
+        // Auto-assign table number if not provided (Dev mode / QR not scanned)
+        let cleanedTableNumber = tableNumber.trim().toUpperCase();
 
         if (!cleanedTableNumber) {
-            toast.error(t('table_required') || "Numéro de table requis");
-            return;
+            // Fallback: Check localStorage again or use default
+            const savedTable = localStorage.getItem('saved_table') || localStorage.getItem('table_number');
+            if (savedTable) {
+                cleanedTableNumber = savedTable.trim().toUpperCase();
+            } else {
+                // Dev/Auto fallback - don't block the user
+                cleanedTableNumber = 'AUTO-01';
+                console.log('Table number auto-assigned:', cleanedTableNumber);
+            }
         }
 
-        const tableRegex = /^[A-Z0-9-]{1,10}$/;
-        if (!tableRegex.test(cleanedTableNumber)) {
-            toast.error(language === 'fr'
-                ? "Numéro de table invalide (ex: P01, L05, PE03)"
-                : "Invalid table number (e.g., P01, L05, PE03)");
-            return;
+        // Validate format only if it looks like a real table number (not auto-assigned)
+        if (!cleanedTableNumber.startsWith('AUTO')) {
+            const tableRegex = /^[A-Z0-9-]{1,15}$/;
+            if (!tableRegex.test(cleanedTableNumber)) {
+                // Silently fix invalid format
+                cleanedTableNumber = cleanedTableNumber.replace(/[^A-Z0-9-]/g, '').slice(0, 15) || 'AUTO-01';
+            }
         }
 
         const lastOrderTime = localStorage.getItem('last_order_time');
@@ -634,20 +643,14 @@ export default function CartPage() {
                                                         whileTap={{ scale: 0.98 }}
                                                         className="w-[130px] flex-shrink-0 bg-white rounded-xl p-2.5 border border-gray-100 shadow-sm snap-start"
                                                     >
-                                                        <div className="w-full h-20 bg-gray-50 rounded-lg mb-2.5 overflow-hidden relative border border-gray-50">
-                                                            {item.image_url ? (
-                                                                <Image
-                                                                    src={item.image_url}
-                                                                    alt={item.name}
-                                                                    fill
-                                                                    className="object-cover transition-transform duration-500 hover:scale-110"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-gray-200 bg-gray-50">
-                                                                    {activeRecommendation?.type === 'drinks' ? <Coffee size={24} /> : activeRecommendation?.type === 'desserts' ? <IceCream size={24} /> : <Utensils size={24} />}
-                                                                </div>
-                                                            )}
-                                                            <div className="absolute top-1 right-1">
+                                                        <div className="w-full h-20 rounded-lg mb-2.5 overflow-hidden relative">
+                                                            <ProductImage
+                                                                src={item.image_url}
+                                                                alt={item.name}
+                                                                className="w-full h-full rounded-lg"
+                                                                iconSize={20}
+                                                            />
+                                                            <div className="absolute top-1 right-1 z-10">
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleAddUpsellItem(item)}
