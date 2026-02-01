@@ -103,7 +103,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className="scroll-smooth" suppressHydrationWarning>
 
-      <body className={`${plusJakartaSans.variable} font-sans bg-background antialiased text-foreground`}>
+      <body className={`${plusJakartaSans.variable} font-sans bg-background antialiased text-foreground`} suppressHydrationWarning>
 
         {/* Skip to main content link for accessibility */}
         <a
