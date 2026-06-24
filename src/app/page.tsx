@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase-server";
 import HomeClient, { Restaurant, MenuItem, Announcement } from "@/components/menu/HomeClient";
 
-// Nous forçons le rendu dynamique car les données (menus, annonces) changent souvent
-// et dépendent potentiellement de la date du jour (annonces)
-export const dynamic = 'force-dynamic';
+// Cache ISR : revalidation toutes les 60 secondes (équilibre fraîcheur/performance)
+export const revalidate = 60;
 
 export default async function Page() {
   const supabase = await createClient();

@@ -104,6 +104,16 @@ const config: Config = {
 						transform: 'scale(1)'
 					}
 				},
+				scaleIn: {
+					'0%': {
+						opacity: '0',
+						transform: 'scale(0.5)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					}
+				},
 				shimmer: {
 					'0%': {
 						backgroundPosition: '-1000px 0'
@@ -117,6 +127,7 @@ const config: Config = {
 				'fade-in': 'fadeIn 0.3s ease-out forwards',
 				'fade-in-up': 'fadeInUp 0.4s ease-out forwards',
 				'scale-up': 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+				'scale-in': 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
 				shimmer: 'shimmer 2s infinite linear'
 			},
 			borderRadius: {

@@ -5,7 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import Link from "next/link";
 import { Utensils, ChevronLeft } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
 import { getTranslatedContent } from "@/utils/translation";
@@ -23,53 +23,56 @@ function OrderConfirmedContent() {
     const [loading, setLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isModifying, setIsModifying] = useState(false);
+    const statusRef = useRef<string | null>(null);
 
     const EDIT_WINDOW = 7 * 60 * 1000; // 7 minutes
 
+    // Token d'acces (anti-IDOR) stocke a la creation de la commande
+    const orderToken = orderId ? `order_token_${orderId}` : null;
+
     const fetchOrderDetails = async () => {
-        if (!orderId) return;
+        if (!orderId) { setLoading(false); return; }
+        const token = orderToken ? localStorage.getItem(orderToken) : null;
+        if (!token) { setLoading(false); return; }
         try {
-            const { data: orderData } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('id', orderId)
-                .single();
+            const { data, error } = await supabase.rpc('get_order', { p_id: orderId, p_token: token });
+            if (error || !data) return;
 
-            if (orderData) setOrder(orderData);
+            // Notif de changement de statut (le polling remplace le Realtime cote anon)
+            if (data.status !== statusRef.current) {
+                if (data.status === 'ready') {
+                    toast.success(language === 'fr' ? "Votre commande est prête !" : "Your order is ready!");
+                } else if (data.status === 'preparing' && statusRef.current) {
+                    toast.success(language === 'fr' ? "La cuisine prépare votre commande" : "Kitchen is preparing your order");
+                }
+                statusRef.current = data.status;
+            }
 
-            const { data: itemsData } = await supabase
-                .from('order_items')
-                .select(`id, quantity, price_at_order, menu_item_id, menu_item:menu_items ( name, name_en )`)
-                .eq('order_id', orderId);
-
-            if (itemsData) setOrderItems(itemsData);
-        } catch (e) {
-            toast.error(language === 'fr' ? "Erreur de chargement" : "Loading error");
+            setOrder({
+                id: data.id,
+                status: data.status,
+                created_at: data.created_at,
+                table_number: data.table_number,
+                total_price: data.total_price,
+                restaurant_id: data.restaurant_id,
+            });
+            setOrderItems((data.items || []).map((i: any) => ({
+                menu_item_id: i.menu_item_id,
+                quantity: i.quantity,
+                price_at_order: i.price_at_order,
+                menu_item: { name: i.name, name_en: i.name_en },
+            })));
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
+        if (!orderId) { setLoading(false); return; }
         fetchOrderDetails();
-
-        const channel = supabase.channel(`order_sync_${orderId}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'orders',
-                filter: `id=eq.${orderId}`
-            }, (payload) => {
-                setOrder(payload.new);
-                if (payload.new.status === 'ready') {
-                    toast.success(language === 'fr' ? "Votre commande est prête !" : "Your order is ready!");
-                } else if (payload.new.status === 'preparing') {
-                    toast.success(language === 'fr' ? "La cuisine prépare votre commande" : "Kitchen is preparing your order");
-                }
-            })
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
+        // Polling token-safe (8s) : suit le statut sans exposer les commandes en lecture anon
+        const interval = setInterval(fetchOrderDetails, 8000);
+        return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [orderId]);
 
@@ -114,8 +117,10 @@ function OrderConfirmedContent() {
 
         setIsModifying(true);
         try {
-            const { error: deleteError } = await supabase.from('orders').delete().eq('id', orderId);
-            if (deleteError) throw deleteError;
+            // Annulation cote serveur (statut 'cancelled', fenetre 7 min verifiee en DB) - pas de DELETE
+            const token = orderToken ? localStorage.getItem(orderToken) : null;
+            const { error: cancelError } = await supabase.rpc('cancel_order', { p_id: orderId, p_token: token });
+            if (cancelError) throw cancelError;
 
             clearCart();
 

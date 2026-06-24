@@ -24,7 +24,6 @@ const CategoryPieChart = dynamic(() => import("@/components/admin/reports/Catego
 });
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
-import { jsPDF } from "jspdf";
 import Skeleton, { StatsCardSkeleton } from "@/components/admin/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -148,9 +147,10 @@ export default function ReportsPage() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    const exportPDF = () => {
+    const exportPDF = async () => {
         setExporting(true);
         try {
+            const { jsPDF } = await import("jspdf");
             const doc = new jsPDF();
             const primaryColor = [0, 48, 88]; // #003058
             const accentColor = [197, 160, 101]; // #C5A065

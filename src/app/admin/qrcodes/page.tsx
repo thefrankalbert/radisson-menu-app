@@ -18,8 +18,6 @@ import { Restaurant } from "@/types/admin";
 import FormField from "@/components/admin/FormField";
 import { toast } from "react-hot-toast";
 import QRCode from 'qrcode';
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 import { QRCodeSkeleton } from "@/components/admin/Skeleton";
 
 type QRConfig = {

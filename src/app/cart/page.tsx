@@ -306,88 +306,33 @@ export default function CartPage() {
         setIsSubmitting(true);
 
         try {
-            // Essayer d'abord avec les colonnes minimales requises
-            const baseOrderData = {
-                restaurant_id: currentRestaurantId,
-                table_number: cleanedTableNumber,
-                total_price: finalTotal,
-                status: 'pending'
-            };
+            // Creation securisee via RPC : les prix sont valides ET le total recalcule
+            // cote serveur (anti-tampering). Le client ne peut plus imposer un prix.
+            const { data: rpcData, error: rpcError } = await supabase.rpc('create_order', {
+                p_restaurant_id: currentRestaurantId,
+                p_table_number: cleanedTableNumber,
+                p_payment_method: 'cash',
+                p_tip_amount: tipAmount > 0 ? tipAmount : 0,
+                p_notes: notes || null,
+                p_items: items.map(item => ({
+                    menu_item_id: item.id,
+                    quantity: item.quantity,
+                    price_at_order: item.price,
+                })),
+            });
 
-            let order: any = null;
-            let orderError: any = null;
-
-            // Première tentative: avec notes et tip_amount
-            const fullOrderData = {
-                ...baseOrderData,
-                notes: notes || null,
-                ...(tipAmount > 0 ? { tip_amount: tipAmount } : {})
-            };
-
-            const result1 = await supabase
-                .from('orders')
-                .insert(fullOrderData)
-                .select()
-                .single();
-
-            order = result1.data;
-            orderError = result1.error;
-
-            // Si erreur, réessayer sans les colonnes optionnelles
-            if (orderError) {
-                console.warn('First attempt failed:', orderError.message || orderError.code);
-
-                // Deuxième tentative: sans tip_amount
-                const result2 = await supabase
-                    .from('orders')
-                    .insert({ ...baseOrderData, notes: notes || null })
-                    .select()
-                    .single();
-
-                if (!result2.error) {
-                    order = result2.data;
-                    orderError = null;
-                } else {
-                    // Troisième tentative: colonnes minimales seulement
-                    const result3 = await supabase
-                        .from('orders')
-                        .insert(baseOrderData)
-                        .select()
-                        .single();
-
-                    if (!result3.error) {
-                        order = result3.data;
-                        orderError = null;
-                    } else {
-                        orderError = result3.error;
-                    }
-                }
-            }
-
-            if (orderError || !order) {
-                console.error('All order insert attempts failed:', orderError);
+            if (rpcError || !rpcData) {
+                console.error('create_order RPC failed:', rpcError);
                 throw new Error(
-                    orderError?.message ||
-                    orderError?.details ||
-                    orderError?.hint ||
+                    rpcError?.message ||
                     'Impossible de créer la commande. Vérifiez votre connexion.'
                 );
             }
 
-            const orderItems = items.map(item => ({
-                order_id: order.id,
-                menu_item_id: item.id,
-                quantity: item.quantity,
-                price_at_order: item.price
-            }));
-
-            const { error: itemsError } = await supabase
-                .from('order_items')
-                .insert(orderItems);
-
-            if (itemsError) {
-                console.error('Order items insert error:', itemsError);
-                throw new Error(itemsError.message || 'Erreur lors de l\'ajout des articles');
+            const order = { id: rpcData.id as string };
+            // Token d'acces (anti-IDOR) : requis pour relire/suivre cette commande
+            if (rpcData.access_token) {
+                localStorage.setItem(`order_token_${rpcData.id}`, rpcData.access_token as string);
             }
 
             const newOrder: HistoryItem = {

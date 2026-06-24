@@ -27,7 +27,7 @@ export default function SplashScreen() {
         // Sinon, afficher le splash screen
         setIsVisible(true);
         
-        // Cacher le splash screen après le chargement complet
+        // Cacher le splash screen rapidement
         timerRef.current = setTimeout(() => {
           setIsFading(true);
           fadeTimerRef.current = setTimeout(() => {
@@ -36,8 +36,8 @@ export default function SplashScreen() {
             if (typeof window !== 'undefined') {
               sessionStorage.setItem("hasSeenSplash", "true");
             }
-          }, 500); // Durée de l'animation de fondu
-        }, 2000); // Afficher pendant 2 secondes minimum
+          }, 300); // Animation de fondu rapide
+        }, 1000); // Afficher pendant 1 seconde seulement
 
         return () => {
           if (timerRef.current) clearTimeout(timerRef.current);
@@ -51,8 +51,8 @@ export default function SplashScreen() {
           setIsFading(true);
           fadeTimerRef.current = setTimeout(() => {
             setIsVisible(false);
-          }, 500);
-        }, 2000);
+          }, 300);
+        }, 1000);
       }
     };
 

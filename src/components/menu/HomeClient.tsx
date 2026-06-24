@@ -500,11 +500,10 @@ export default function HomeClient({
         let selected = data[0];
         if (activeVenue) {
           const groupSlugs: Record<string, string[]> = {
-            'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
-            'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
-            'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
-            'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
-
+            'panorama': ['carte-panorama-restaurant'],
+            'lobby': ['carte-lobby-bar-snacks'],
+            'lobby-bar': ['carte-lobby-bar-snacks'],
+            'drinks': ['carte-des-boissons'],
           };
           const allowed = groupSlugs[activeVenue] || [activeVenue];
           const match = data.find(c => {
@@ -536,11 +535,10 @@ export default function HomeClient({
     let list = restaurants;
     if (activeVenue) {
       const groupSlugs: Record<string, string[]> = {
-        'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
-        'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
-        'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
-        'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
-
+        'panorama': ['carte-panorama-restaurant'],
+        'lobby': ['carte-lobby-bar-snacks'],
+        'lobby-bar': ['carte-lobby-bar-snacks'],
+        'drinks': ['carte-des-boissons'],
       };
       const allowed = groupSlugs[activeVenue] || [activeVenue];
       list = restaurants.filter(r => allowed.some(s => r.slug.includes(s)));
@@ -561,11 +559,10 @@ export default function HomeClient({
     if (!activeVenue) return menuItems;
 
     const groupSlugs: Record<string, string[]> = {
-      'panorama': ['carte-panorama-restaurant', 'carte-des-boissons'],
-      'lobby': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
-      'lobby-bar': ['carte-lobby-bar-snacks', 'carte-des-boissons'], // Compatibilité
-      'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
-
+      'panorama': ['carte-panorama-restaurant'],
+      'lobby': ['carte-lobby-bar-snacks'],
+      'lobby-bar': ['carte-lobby-bar-snacks'],
+      'drinks': ['carte-des-boissons'],
     };
 
     const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];
@@ -585,8 +582,7 @@ export default function HomeClient({
       'panorama': ['carte-panorama-restaurant'],
       'lobby': ['carte-lobby-bar-snacks'],
       'lobby-bar': ['carte-lobby-bar-snacks'],
-      'drinks': ['carte-des-boissons', 'carte-drinks', 'boissons'],
-
+      'drinks': ['carte-des-boissons'],
     };
     const allowedSlugs = groupSlugs[activeVenue] || [activeVenue];
 

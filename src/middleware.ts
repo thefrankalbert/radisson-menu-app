@@ -85,6 +85,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
+    // Defense en profondeur : verifier que l'utilisateur est bien un admin (pas juste authentifie).
+    // is_admin() (SECURITY DEFINER) verifie l'appartenance a admin_users par id OU email.
+    // Fail-open sur erreur reseau (isAdmin null/undefined) pour ne pas bloquer un admin legitime.
+    const { data: isAdmin } = await supabase.rpc('is_admin')
+    if (isAdmin === false) {
+        return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+
     return response
 }
 

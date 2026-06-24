@@ -385,7 +385,7 @@ export default function KitchenPage() {
 
     useEffect(() => {
         loadOrders();
-        const interval = setInterval(loadOrders, 10000);
+        const interval = setInterval(loadOrders, 60000); // Fallback 60s ; le Realtime ci-dessous gere les updates en direct
         const channel = supabase.channel('kds_realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
                 if (soundEnabled && audioRef.current) playNotificationSound();

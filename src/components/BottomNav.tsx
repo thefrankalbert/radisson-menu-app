@@ -56,7 +56,7 @@ export default function BottomNav() {
             label: effectiveLanguage === 'fr' ? "Panier" : "Cart",
             href: "/cart",
             active: isActive("/cart"),
-            badge: totalItems > 0 ? totalItems : null
+            badge: mounted && totalItems > 0 ? totalItems : null // Attendre le montage pour éviter hydration mismatch
         },
         {
             icon: Clock,
@@ -112,7 +112,7 @@ export default function BottomNav() {
                                 {item.badge && (
                                     <span
                                         aria-hidden="true"
-                                        className="absolute -top-2 -right-2 z-20 bg-red-500 text-white text-[9px] font-bold h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full border border-white"
+                                        className="absolute -top-2 -right-2 z-20 bg-[#00CC3F] text-white text-[9px] font-bold h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full border border-white shadow-sm"
                                     >
                                         {item.badge > 9 ? '9+' : item.badge}
                                     </span>

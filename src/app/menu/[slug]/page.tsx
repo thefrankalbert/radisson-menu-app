@@ -85,10 +85,11 @@ interface MenuData {
 
 // --- Fetcher optimisé pour SWR ---
 const fetchMenuData = async (slug: string): Promise<MenuData> => {
-    // Configuration pour les QR codes : Panorama et Lobby doivent inclure les boissons
+    // Configuration pour les QR codes : Chaque carte est autonome
     const QR_CONFIG: Record<string, string[]> = {
-        'carte-panorama-restaurant': ['carte-panorama-restaurant', 'carte-des-boissons'],
-        'carte-lobby-bar-snacks': ['carte-lobby-bar-snacks', 'carte-des-boissons'],
+        'carte-panorama-restaurant': ['carte-panorama-restaurant'],
+        'carte-lobby-bar-snacks': ['carte-lobby-bar-snacks'],
+        'carte-des-boissons': ['carte-des-boissons'],
     };
 
     // Déterminer les slugs à charger
@@ -195,16 +196,17 @@ export default function MenuDetailPage({ params }: MenuPageProps) {
     const { slug } = use(params);
     const { t, language } = useLanguage();
 
-    // SWR Implementation avec sync améliorée
+    // SWR Implementation optimisée pour performance
     const { data, error, isLoading, mutate } = useSWR<MenuData>(
         slug ? `menu-${slug}` : null,
         () => fetchMenuData(slug),
         {
-            revalidateOnFocus: true, // Recharge quand user revient sur l'onglet
+            revalidateOnFocus: false, // Désactivé - Realtime gère les updates
             revalidateOnReconnect: true,
-            dedupingInterval: 15000, // 15 secondes (réduit de 60s)
-            refreshInterval: 30000, // Auto-refresh toutes les 30 secondes
+            dedupingInterval: 60000, // 60 secondes - évite requêtes dupliquées
+            refreshInterval: 0, // Désactivé - Realtime gère les updates
             errorRetryCount: 2,
+            keepPreviousData: true, // Garde les données pendant le refetch
             onError: (err) => {
                 console.error("SWR Error:", err);
                 toast.error("Une erreur est survenue lors du chargement du menu.");
