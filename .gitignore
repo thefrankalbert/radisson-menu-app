@@ -53,3 +53,13 @@ next-env.d.ts
 
 # PM2 logs
 logs/
+
+# PWA build artifacts (générés par next-pwa au build)
+public/sw.js
+public/workbox-*.js
+public/fallback-*.js
+
+# outils locaux
+.tokensave/
+.swarm/
+.playwright-mcp/

@@ -132,7 +132,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         const savedLastMenu = localStorage.getItem('radisson_last_menu');
         const savedNotes = localStorage.getItem('cart_notes');
 
-        if (savedCart) setItems(JSON.parse(savedCart));
+        if (savedCart) {
+            try {
+                const parsed = JSON.parse(savedCart);
+                if (Array.isArray(parsed)) setItems(parsed);
+                else localStorage.removeItem('cart');
+            } catch {
+                // Panier corrompu : on repart à vide plutôt que de crasher toute l'app
+                localStorage.removeItem('cart');
+            }
+        }
         if (savedResto) setCurrentRestaurantId(savedResto);
         if (savedLastMenu) setLastVisitedMenuUrlState(savedLastMenu);
         if (savedNotes) setNotes(savedNotes);

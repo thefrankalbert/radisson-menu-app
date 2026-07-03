@@ -50,6 +50,12 @@ const AdsSlider = () => {
         setCurrentIndex((prev) => (prev + 1) % ads.length);
     }, [ads.length]);
 
+    // Image morte (fichier supprimé du storage) : on retire la pub au lieu d'afficher un cadre cassé
+    const handleImageError = useCallback(() => {
+        setAds((prev) => prev.filter((_, i) => i !== currentIndex));
+        setCurrentIndex(0);
+    }, [currentIndex]);
+
     useEffect(() => {
         if (ads.length <= 1) return;
         const interval = setInterval(nextSlide, 5000);
@@ -78,6 +84,7 @@ const AdsSlider = () => {
                                     fill
                                     className="object-cover"
                                     priority
+                                    onError={handleImageError}
                                 />
                             </a>
                         ) : (
@@ -87,6 +94,7 @@ const AdsSlider = () => {
                                 fill
                                 className="object-cover"
                                 priority
+                                onError={handleImageError}
                             />
                         )}
                     </motion.div>
