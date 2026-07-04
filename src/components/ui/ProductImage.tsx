@@ -27,7 +27,9 @@ export default function ProductImage({
     const [hasError, setHasError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    const showFallback = !src || hasError;
+    // Traite les URLs "placeholder" (ex: /images/placeholder.png, absent en prod)
+    // comme "pas d'image" -> fallback direct, sans requete next/image vouee a echouer.
+    const showFallback = !src || hasError || src.includes('placeholder');
 
     if (showFallback) {
         return (
