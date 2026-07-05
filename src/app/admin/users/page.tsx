@@ -264,7 +264,7 @@ export default function UsersPage() {
         if (!confirm(`Supprimer l'utilisateur ${user.email} ?`)) return;
 
         try {
-            const result = await deleteAdminUserAction(user.id, user.user_id);
+            const result = await deleteAdminUserAction(user.id);
             if (result.error) {
                 toast.error(result.error);
                 return;

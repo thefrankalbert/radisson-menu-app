@@ -127,8 +127,18 @@ export async function createAdminUserAction(formData: any) {
 /**
  * Suppression d'un administrateur
  */
-export async function deleteAdminUserAction(adminId: string, authUserId?: string) {
+export async function deleteAdminUserAction(adminId: string) {
     return protectedAction(async (supabase) => {
+        // user_id résolu côté serveur depuis la ligne admin_users — on ne fait
+        // pas confiance à un id de compte Auth fourni par le client.
+        const { data: target, error: fetchError } = await supabase
+            .from('admin_users')
+            .select('user_id')
+            .eq('id', adminId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
         // Suppression du profil
         const { error } = await supabase
             .from('admin_users')
@@ -137,10 +147,10 @@ export async function deleteAdminUserAction(adminId: string, authUserId?: string
 
         if (error) throw error;
 
-        // Si on a le user_id, on supprime aussi le compte Auth
-        if (authUserId) {
+        // Si le profil est lié à un compte Auth, on le supprime aussi
+        if (target?.user_id) {
             const adminClient = createAdminClient();
-            await adminClient.auth.admin.deleteUser(authUserId);
+            await adminClient.auth.admin.deleteUser(target.user_id);
         }
 
         revalidatePath('/admin/users');
