@@ -26,6 +26,7 @@ async function protectedAction<T>(
         .from('admin_users')
         .select('role')
         .eq('email', user.email)
+        .eq('is_active', true)
         .single();
 
     if (!adminUser || !requiredRole.includes(adminUser.role as AdminRole)) {
