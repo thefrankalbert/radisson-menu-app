@@ -47,6 +47,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.development
 
 # vercel
 .vercel
@@ -67,3 +68,4 @@ public/fallback-*.js
 .tokensave/
 .swarm/
 .playwright-mcp/
+agentdb.rvf*

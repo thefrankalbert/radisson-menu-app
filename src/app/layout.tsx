@@ -18,7 +18,6 @@ import CartConfirmModal from "@/components/CartConfirmModal";
 import SplashScreen from "@/components/SplashScreen";
 import PageTransition from "@/components/layout/PageTransition";
 import TableCapture from "@/components/TableCapture";
-import ClearStorage from "@/components/ClearStorage";
 
 
 
@@ -112,7 +111,6 @@ export default function RootLayout({
         >
           Aller au contenu principal
         </a>
-        {/* <ClearStorage /> */}
         <SplashScreen />
         <ThemeProvider
           attribute="class"
