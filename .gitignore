@@ -27,8 +27,12 @@ Thumbs.db
 radisson-next/
 _old_local_setup/
 test_npm.sh
-*.png
-*.sql
+# NE PAS ignorer *.sql / *.png globalement : supabase/migrations/*.sql et
+# public/*.png doivent être versionnés. Ignorer seulement les dumps locaux.
+/*.sql
+!/schema.sql
+ruvector.db
+.claude-flow/
 
 # production
 /build
