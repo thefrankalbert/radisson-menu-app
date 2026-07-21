@@ -13,6 +13,10 @@
 -- précédentes (projet hors MCP).
 -- ============================================================================
 
+-- Ensure the column exists before anything references it (idempotent, backfills existing admins to active).
+alter table public.admin_users
+  add column if not exists is_active boolean not null default true;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
