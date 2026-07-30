@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ChevronLeft, X, Utensils } from "lucide-react";
+import { Search, ChevronLeft, X, Utensils, MapPin } from "lucide-react";
 import { CategoryNav } from "./CategoryNav";
 import { MenuItemCard, type ClientMenuItem } from "./MenuItemCard";
 import { CardAddControl } from "./CardAddControl";
@@ -19,9 +19,12 @@ const COPY = {
     empty: { fr: "Aucun plat disponible pour le moment.", en: "No dishes available right now." },
     noResults: { fr: "Aucun résultat", en: "No results" },
     menuOf: { fr: "Carte", en: "Menu" },
+    table: { fr: "Table", en: "Table" },
 } as const;
 
 const MIN_SEARCH_LENGTH = 2;
+
+const noopSubscribe = () => () => {};
 
 function normalize(s: string): string {
     return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -55,6 +58,20 @@ export function MenuScreen({
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategoryId, setActiveCategoryId] = useState<string>("");
+
+    // La table est rangée par TableCapture juste après l'arrivée depuis le QR.
+    // useSyncExternalStore garde le rendu serveur à null : pas d'écart d'hydratation.
+    const tableNumber = useSyncExternalStore(
+        noopSubscribe,
+        () => {
+            try {
+                return localStorage.getItem("saved_table");
+            } catch {
+                return null;
+            }
+        },
+        () => null,
+    );
 
     const translate = useCallback(
         (item: MenuItem): ClientMenuItem => {
@@ -151,9 +168,19 @@ export function MenuScreen({
                     >
                         <ChevronLeft className="h-5 w-5 text-[var(--color-ink)]" />
                     </button>
-                    <h1 className="min-w-0 flex-1 truncate text-[16px] font-semibold leading-[1.15] tracking-[-0.4px] text-[var(--color-ink)]">
-                        {title}
-                    </h1>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="truncate text-[16px] font-semibold leading-[1.15] tracking-[-0.4px] text-[var(--color-ink)]">
+                            {title}
+                        </h1>
+                        {tableNumber && (
+                            <div className="mt-px flex items-center gap-1 text-[11.5px] text-[var(--color-ink-muted)]">
+                                <MapPin className="h-[11px] w-[11px] shrink-0" strokeWidth={2} />
+                                <span className="truncate">
+                                    {say("table")} {tableNumber}
+                                </span>
+                            </div>
+                        )}
+                    </div>
                     <button
                         type="button"
                         onClick={() => {

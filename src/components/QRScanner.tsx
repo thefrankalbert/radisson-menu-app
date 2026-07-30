@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, Camera, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { normalizeTableNumber } from "@/lib/venue-routing";
 
 declare global {
   interface Window {
@@ -49,27 +50,45 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
       }, 150); // Réduit de 300ms à 150ms
     };
 
+    // Le QR vient du monde extérieur : on n'en retient que ce qu'on sait lire
+    // (le lieu et la table) et on le rejoue toujours sur notre propre origine.
+    // Recopier tels quels les paramètres d'une URL scannée reviendrait à laisser
+    // n'importe quel code injecter des paramètres dans l'application.
+    const goTo = (path: string, venue: string | null, table: string | null) => {
+      const target = new URL(path, window.location.origin);
+      if (venue) target.searchParams.set('v', venue);
+      if (table) target.searchParams.set('table', table);
+      processAndRedirect(target.toString());
+    };
+
     if (cleanText.startsWith('http://') || cleanText.startsWith('https://')) {
       try {
-        const scannedUrl = new URL(cleanText);
-        const newUrl = new URL('/', window.location.origin);
+        const scanned = new URL(cleanText);
+        const venue =
+          scanned.searchParams.get('v') ??
+          scanned.searchParams.get('venue') ??
+          scanned.searchParams.get('restaurant');
+        const table = normalizeTableNumber(scanned.searchParams.get('table'));
 
-        scannedUrl.searchParams.forEach((value, key) => {
-          if (key === 'v' || key === 'venue' || key === 'restaurant') {
-            newUrl.searchParams.set('v', value);
-          } else {
-            newUrl.searchParams.set(key, value);
-          }
-        });
-
-        processAndRedirect(newUrl.toString());
+        // Les QR d'origine pointent sur `/?v=…`, mais certains visent une carte
+        // directement (`/menu/<slug>`) : conserver ce chemin, sinon le convive
+        // retombe sur l'accueil au lieu de sa carte.
+        const path = /^\/menu\/[a-z0-9-]+\/?$/i.test(scanned.pathname) ? scanned.pathname : '/';
+        goTo(path, venue, table);
       } catch {
         onClose();
       }
+      return;
+    }
+
+    // QR sans URL : soit un numéro de table (il contient un chiffre), soit un
+    // identifiant de lieu. L'ancien code traitait tout comme un lieu, ce qui
+    // faisait perdre la table des codes qui n'encodent que « P05 ».
+    const bare = normalizeTableNumber(cleanText);
+    if (bare && /\d/.test(bare)) {
+      goTo('/', null, bare);
     } else {
-      const newUrl = new URL('/', window.location.origin);
-      newUrl.searchParams.set('v', cleanText);
-      processAndRedirect(newUrl.toString());
+      goTo('/', cleanText, null);
     }
   }, [onClose]);
 

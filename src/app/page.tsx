@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { HomeScreen } from "@/components/client/HomeScreen";
 import { APP_CONFIG } from "@/lib/constants";
+import { resolveVenueSlug, normalizeTableNumber } from "@/lib/venue-routing";
 import type { MenuItem, Category, Restaurant } from "@/types/admin";
 
 // ISR : la carte bouge peu, 60s gardent le TTFB bas sans servir du périmé.
@@ -17,7 +19,27 @@ const MENU_ITEM_COLUMNS = `id, name, name_en, description, description_en, price
     options:item_options(*),
     price_variants:item_price_variants(*)`;
 
-export default async function Page() {
+export default async function Page({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+    const params = await searchParams;
+    const first = (key: string) => {
+        const raw = params[key];
+        return Array.isArray(raw) ? raw[0] : raw;
+    };
+
+    // Les QR posés sur les tables encodent `/?v=<venue>&table=<n>`. Le convive
+    // est assis dans un restaurant précis : on l'emmène directement sur cette
+    // carte plutôt que sur l'accueil de l'hôtel, qui reste accessible par
+    // l'onglet Accueil. `table` est conservé pour que TableCapture le range.
+    const venueSlug = resolveVenueSlug(first("v") ?? first("restaurant") ?? first("venue"));
+    if (venueSlug) {
+        const table = normalizeTableNumber(first("table"));
+        redirect(`/menu/${venueSlug}${table ? `?table=${encodeURIComponent(table)}` : ""}`);
+    }
+
     const supabase = await createClient();
 
     const [restaurantsRes, categoriesRes, menuItemsRes] = await Promise.all([
