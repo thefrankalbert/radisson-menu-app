@@ -21,7 +21,8 @@ export type CartItem = {
 
 type CartContextType = {
     items: CartItem[];
-    addToCart: (item: CartItem, restaurantId: string, skipConfirm?: boolean) => Promise<void>;
+    /** Résout à `false` quand l'ajout attend la confirmation d'un changement de carte. */
+    addToCart: (item: CartItem, restaurantId: string, skipConfirm?: boolean) => Promise<boolean>;
     removeFromCart: (id: string) => void;
     updateQuantity: (id: string, quantity: number) => void;
     clearCart: () => void;
@@ -167,10 +168,20 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('cart_notes', notes);
     }, [items, currentRestaurantId, lastVisitedMenuUrl, notes]);
 
-    const addToCart = async (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false) => {
+    /**
+     * Ajoute au panier et indique si l'ajout a bien eu lieu.
+     *
+     * `false` signifie que la demande attend une confirmation (changement de
+     * carte incompatible) : l'appelant ne doit alors pas afficher de succès.
+     */
+    const addToCart = async (newItem: CartItem, restaurantId: string, skipConfirm: boolean = false): Promise<boolean> => {
         // Capturer l'état actuel pour éviter les race conditions
         const currentItems = items;
         const currentRestoId = currentRestaurantId;
+
+        // La quantité demandée fait foi (sélecteur de la fiche plat, reprise
+        // d'une commande) ; 1 n'est qu'un repli pour les appels qui l'omettent.
+        const addedQty = Math.max(1, Math.min(newItem.quantity || 1, MAX_ITEM_QTY));
 
         // Vérification Multi-Restaurant AVANT de modifier le state
         const isDifferentRestaurant = currentItems.length > 0 && currentRestoId && currentRestoId !== restaurantId;
@@ -180,7 +191,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
             const compatible = await areRestaurantsCompatible(currentRestoId, restaurantId);
             if (!compatible) {
                 setPendingAddToCart({ item: newItem, restaurantId });
-                return;
+                return false;
             }
             // Si compatibles, on continue sans modal
         }
@@ -198,7 +209,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         setItems((prevItems) => {
             // Si on doit vider le panier (changement de restaurant confirmé)
             if (shouldClearCart) {
-                return [{ ...newItem, quantity: 1, restaurant_id: restaurantId }];
+                return [{ ...newItem, quantity: addedQty, restaurant_id: restaurantId }];
             }
 
             // Vérification si l'item existe déjà (avec même option/variante)
@@ -207,12 +218,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (existingItem) {
                 return prevItems.map((i) =>
-                    getCartItemKey(i) === cartItemKey ? { ...i, quantity: i.quantity + 1 } : i
+                    getCartItemKey(i) === cartItemKey
+                        ? { ...i, quantity: Math.min(i.quantity + addedQty, MAX_ITEM_QTY) }
+                        : i
                 );
             }
 
-            return [...prevItems, { ...newItem, quantity: 1, restaurant_id: restaurantId }];
+            return [...prevItems, { ...newItem, quantity: addedQty, restaurant_id: restaurantId }];
         });
+
+        return true;
     };
 
     const confirmPendingAddToCart = async () => {

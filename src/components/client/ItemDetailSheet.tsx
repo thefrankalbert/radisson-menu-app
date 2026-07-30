@@ -120,13 +120,13 @@ export default function ItemDetailSheet({
     const unitPrice = selectedVariant?.price ?? item?.price ?? 0;
     const currentPrice = useMemo(() => unitPrice * quantity, [unitPrice, quantity]);
 
-    const handleAddToCart = useCallback(() => {
+    const handleAddToCart = useCallback(async () => {
         if (!item) return;
         // Point de passage unique : un plat indisponible n'entre jamais au panier,
         // quel que soit le chemin d'ouverture (liste, recherche, lien direct).
         if (item.is_available === false) return;
 
-        void addToCart(
+        const added = await addToCart(
             {
                 id: item.id,
                 name: item.name,
@@ -147,6 +147,11 @@ export default function ItemDetailSheet({
             },
             restaurantId,
         );
+
+        // L'ajout peut être mis en attente d'une confirmation (changement de
+        // carte incompatible) : afficher la coche et refermer laisserait croire
+        // que le plat est au panier alors que la question est encore posée.
+        if (!added) return;
 
         if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
 
