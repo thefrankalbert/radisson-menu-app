@@ -77,6 +77,7 @@ export type Restaurant = {
     is_event?: boolean;
     is_active?: boolean;
     qr_code_url?: string;
+    city?: string;
     created_at: string;
 };
 
@@ -84,11 +85,22 @@ export type Category = {
     id: string;
     name: string;
     name_en?: string;
+    description?: string;
     restaurant_id: string;
     display_order?: number;
+    sort_order?: number;
     created_at: string;
 };
 
+// Régimes alimentaires : la base stocke un tableau `dietary_flags`, pas des
+// booléens par régime.
+export type DietaryFlag = 'vegetarian' | 'vegan' | 'spicy' | 'gluten_free' | 'halal' | string;
+
+// ATTENTION — aligné sur les colonnes réelles de `public.menu_items`.
+// Il n'existe pas de `is_vegetarian`, `is_spicy`, `rating`, `allergens`, `calories`
+// ni `image_back_url`. PostgREST répond 400 dès qu'un `select` nomme une colonne
+// absente, et le client Supabase met alors `data` à null sans lever d'exception :
+// l'écran se rend vide, sans aucune erreur visible.
 export type MenuItem = {
     id: string;
     name: string;
@@ -97,12 +109,24 @@ export type MenuItem = {
     description_en?: string;
     price: number;
     image_url?: string;
-    image_back_url?: string; // Image verso/détail du plat
     is_available: boolean;
     is_featured: boolean;
+    is_popular?: boolean;
+    /**
+     * ⚠️ Cette colonne N'EXISTE PAS en base. Le formulaire admin
+     * (`app/admin/items/page.tsx`) l'écrit quand même, ce qui fait échouer
+     * l'enregistrement d'un plat. Champ conservé le temps de corriger l'admin —
+     * ne pas l'utiliser côté convive.
+     */
+    image_back_url?: string;
+    dietary_flags?: DietaryFlag[] | null;
+    preparation_time?: number | null;
     category_id: string;
+    /** Dénormalisé sur l'item : évite de repasser par la catégorie. */
+    restaurant_id?: string;
     category?: Category;
     display_order?: number;
+    sort_order?: number;
     created_at: string;
     // Relations pour options et variantes
     options?: ItemOption[];

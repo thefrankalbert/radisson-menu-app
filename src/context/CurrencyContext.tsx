@@ -17,6 +17,7 @@ interface CurrencyContextType {
     exchangeRates: { EUR: number; USD: number };
     convertPrice: (priceXAF: number) => number;
     formatPrice: (priceXAF: number) => string;
+    formatPriceParts: (priceXAF: number) => { amount: string; unit: string };
     isLoadingRates: boolean;
 }
 
@@ -94,20 +95,27 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         return Math.round((priceXAF / rate) * 100) / 100;
     }, [currency, exchangeRates]);
 
-    // Formater le prix avec le symbole de devise
-    const formatPrice = useCallback((priceXAF: number): string => {
+    // Montant et symbole séparés : l'UI convive les compose avec deux styles
+    // typographiques distincts (chiffre en gras, unité en mono plus discrète).
+    const formatPriceParts = useCallback((priceXAF: number): { amount: string; unit: string } => {
         const converted = convertPrice(priceXAF);
 
         switch (currency) {
             case "EUR":
-                return `${converted.toFixed(2)} €`;
+                return { amount: converted.toFixed(2), unit: "€" };
             case "USD":
-                return `$${converted.toFixed(2)}`;
+                return { amount: converted.toFixed(2), unit: "$" };
             case "XAF":
             default:
-                return `${priceXAF.toLocaleString('fr-FR')} FCFA`;
+                return { amount: priceXAF.toLocaleString('fr-FR'), unit: "FCFA" };
         }
     }, [currency, convertPrice]);
+
+    // Formater le prix avec le symbole de devise
+    const formatPrice = useCallback((priceXAF: number): string => {
+        const { amount, unit } = formatPriceParts(priceXAF);
+        return currency === "USD" ? `${unit}${amount}` : `${amount} ${unit}`;
+    }, [currency, formatPriceParts]);
 
     return (
         <CurrencyContext.Provider value={{
@@ -116,6 +124,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
             exchangeRates,
             convertPrice,
             formatPrice,
+            formatPriceParts,
             isLoadingRates
         }}>
             {children}

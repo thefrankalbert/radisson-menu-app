@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Définition des types
-type CartItem = {
+export type CartItem = {
     id: string; // ou number selon ta BDD
     name: string;
     price: number;
@@ -41,8 +41,12 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Quantité maximale par ligne de panier — garde-fou client contre les saisies
+// aberrantes (le serveur revalide de son côté à la création de commande).
+export const MAX_ITEM_QTY = 30;
+
 // Génère une clé unique pour identifier un item du panier (inclut option/variante)
-const getCartItemKey = (item: CartItem): string => {
+export const getCartItemKey = (item: CartItem): string => {
     let key = item.id;
     if (item.selectedOption) {
         key += `-opt-${item.selectedOption.name_fr}`;

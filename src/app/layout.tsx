@@ -3,20 +3,16 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import Header from "@/components/Header";
-import CartSummary from "@/components/CartSummary";
 import MenuVisitedTracker from "@/components/MenuVisitedTracker";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { VenueProvider } from "@/contexts/VenueContext";
-import BottomNav from "@/components/BottomNav";
+import { ClientShell } from "@/components/client/ClientShell";
 import InstallPrompt from "@/components/InstallPrompt";
 import ToastProvider from "@/components/ToastProvider";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import CartConfirmModal from "@/components/CartConfirmModal";
-import SplashScreen from "@/components/SplashScreen";
-import PageTransition from "@/components/layout/PageTransition";
 import TableCapture from "@/components/TableCapture";
 
 
@@ -111,7 +107,6 @@ export default function RootLayout({
         >
           Aller au contenu principal
         </a>
-        <SplashScreen />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -126,23 +121,9 @@ export default function RootLayout({
                   <Suspense fallback={null}>
                     <TableCapture />
                   </Suspense>
-                  <Suspense fallback={<div className="h-16 bg-white animate-pulse" />}>
-                    <Header />
-                  </Suspense>
-                  <main id="main-content">
-                    <PageTransition>
-                      <Suspense fallback={
-                        <div className="min-h-screen bg-radisson-light flex items-center justify-center">
-                          <div className="w-12 h-12 border-4 border-radisson-gold/20 border-t-radisson-gold rounded-full animate-spin" />
-                        </div>
-                      }>
-                        {children}
-                      </Suspense>
-                    </PageTransition>
-                  </main>
-                  <Suspense fallback={<div className="h-16 bg-white" />}>
-                    <BottomNav />
-                  </Suspense>
+                  <ClientShell>
+                    <Suspense fallback={null}>{children}</Suspense>
+                  </ClientShell>
                   <InstallPrompt />
                   <OfflineIndicator />
                   <ToastProvider />
