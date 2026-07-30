@@ -90,6 +90,10 @@ export function CardAddControl({
             onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                // Second point de passage, en plus de la fiche détail : un plat
+                // indisponible glissé dans le panier ferait échouer la commande
+                // ENTIÈRE au moment de l'envoi (la RPC rejette l'article).
+                if (item.is_available === false) return;
                 if (isSimple) {
                     void addToCart(
                         {

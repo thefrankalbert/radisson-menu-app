@@ -151,11 +151,12 @@ export default function ItemDetailSheet({
         if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
 
         setShowSuccess(true);
-        const timer = setTimeout(() => {
+        // Laisse la coche s'afficher avant de refermer. Le bouton est désactivé
+        // pendant ce délai, donc pas de double envoi possible.
+        setTimeout(() => {
             setShowSuccess(false);
             onClose();
         }, 400);
-        return () => clearTimeout(timer);
     }, [
         item,
         unitPrice,

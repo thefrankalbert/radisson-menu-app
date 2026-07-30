@@ -29,6 +29,8 @@ interface HistoryItem {
  *  double-tap, pas une vraie deuxième commande. */
 const ORDER_COOLDOWN_MS = 30_000;
 const TABLE_PATTERN = /^[A-Z0-9-]{1,15}$/;
+/** Marqueur pour une commande sans table exploitable : le service la rattache. */
+const AUTO_TABLE = "AUTO-01";
 
 const COPY = {
     title: { fr: "Votre commande", en: "Your order" },
@@ -133,16 +135,23 @@ export default function CartPage() {
     const handleSubmit = async () => {
         // La table vient du QR ; sans elle on ne bloque pas le convive, on marque
         // la commande pour que le service la rattache manuellement.
-        let cleanedTableNumber = tableNumber.trim().toUpperCase();
-        if (!cleanedTableNumber) {
-            const savedTable =
-                localStorage.getItem("saved_table") || localStorage.getItem("table_number");
-            cleanedTableNumber = savedTable ? savedTable.trim().toUpperCase() : "AUTO-01";
-        }
-        if (!cleanedTableNumber.startsWith("AUTO") && !TABLE_PATTERN.test(cleanedTableNumber)) {
-            cleanedTableNumber =
-                cleanedTableNumber.replace(/[^A-Z0-9-]/g, "").slice(0, 15) || "AUTO-01";
-        }
+        const rawTable = (
+            tableNumber.trim() ||
+            localStorage.getItem("saved_table") ||
+            localStorage.getItem("table_number") ||
+            ""
+        )
+            .trim()
+            .toUpperCase();
+
+        // Le numéro vient de l'URL (`?table=`) : il est entièrement contrôlé par
+        // l'appelant et finit stocké en base puis affiché aux équipes. On le
+        // valide donc systématiquement — aucune valeur n'échappe au filtre — et
+        // ce qui ne passe pas retombe sur le marqueur AUTO, que le service
+        // rattachera à la main.
+        const cleanedTableNumber = TABLE_PATTERN.test(rawTable)
+            ? rawTable
+            : rawTable.replace(/[^A-Z0-9-]/g, "").slice(0, 15) || AUTO_TABLE;
 
         const lastOrderTime = localStorage.getItem("last_order_time");
         const now = Date.now();
@@ -164,8 +173,13 @@ export default function CartPage() {
 
         setIsSubmitting(true);
         try {
-            // Création via RPC : les prix sont validés et le total recalculé côté
-            // serveur. Le client ne peut pas imposer un montant.
+            // Création via RPC : chaque prix est confronté au prix réel de
+            // l'article et le total est recalculé côté serveur — le client ne
+            // peut pas imposer un montant.
+            // En revanche, la quantité et le pourboire ne sont PAS plafonnés
+            // côté serveur, et le délai de 30s ci-dessus vit dans localStorage :
+            // ce sont des garde-fous d'interface, pas des protections. Voir
+            // supabase/migrations/20260730_cap_order_quantity_and_tip.sql.
             const { data: rpcData, error: rpcError } = await supabase.rpc("create_order", {
                 p_restaurant_id: currentRestaurantId,
                 p_table_number: cleanedTableNumber,
@@ -200,7 +214,10 @@ export default function CartPage() {
                     option: i.selectedOption?.name_fr,
                     variant: i.selectedVariant?.name_fr,
                 })),
-                totalPrice: finalTotal,
+                // Le total qui fait foi est celui recalculé par la RPC, pas la
+                // somme côté client : afficher un autre montant dans l'historique
+                // que celui réellement enregistré serait trompeur.
+                totalPrice: (rpcData.total_price as number) ?? finalTotal,
                 tableNumber: cleanedTableNumber,
                 status: "sent",
             };
