@@ -8,86 +8,27 @@ import { toast } from "react-hot-toast";
 import Link from "next/link";
 import ConfirmModal from "@/components/ConfirmModal";
 import { OrderCard } from "@/components/client/OrderCard";
-
-interface HistoryItem {
-    id: string;
-    date: string;
-    items: { name: string; quantity: number; price: number }[];
-    totalPrice: number;
-    tableNumber: string;
-    status: string;
-}
-
-// Validation de la structure d'un item d'historique
-const isValidHistoryItem = (item: unknown): item is HistoryItem => {
-    if (!item || typeof item !== 'object') return false;
-
-    const obj = item as Record<string, unknown>;
-
-    return (
-        typeof obj.id === 'string' &&
-        typeof obj.date === 'string' &&
-        Array.isArray(obj.items) &&
-        obj.items.every((i: unknown) => {
-            if (!i || typeof i !== 'object') return false;
-            const orderItem = i as Record<string, unknown>;
-            return (
-                typeof orderItem.name === 'string' &&
-                typeof orderItem.quantity === 'number' &&
-                typeof orderItem.price === 'number'
-            );
-        }) &&
-        typeof obj.totalPrice === 'number' &&
-        typeof obj.tableNumber === 'string' &&
-        typeof obj.status === 'string'
-    );
-};
-
-// Parser sécurisé pour l'historique des commandes
-const parseOrderHistory = (jsonString: string): HistoryItem[] => {
-    try {
-        const parsed = JSON.parse(jsonString);
-
-        if (!Array.isArray(parsed)) {
-            console.warn("Order history is not an array, resetting...");
-            return [];
-        }
-
-        const validItems = parsed.filter(isValidHistoryItem);
-
-        if (validItems.length !== parsed.length) {
-            console.warn(`Filtered out ${parsed.length - validItems.length} invalid history items`);
-        }
-
-        return validItems;
-    } catch (e) {
-        console.error("Failed to parse order history:", e);
-        return [];
-    }
-};
+import {
+    readOrderHistory,
+    writeOrderHistory,
+    ORDER_HISTORY_KEY,
+    type HistoryOrder,
+} from "@/lib/order-history";
 
 export default function OrdersPage() {
     const router = useRouter();
     const { t, language } = useLanguage();
-    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [history, setHistory] = useState<HistoryOrder[]>([]);
     const [showClearModal, setShowClearModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
     useEffect(() => {
-        const savedHistory = localStorage.getItem('order_history');
-        if (savedHistory) {
-            const validHistory = parseOrderHistory(savedHistory);
-            setHistory(validHistory);
-
-            if (validHistory.length > 0) {
-                localStorage.setItem('order_history', JSON.stringify(validHistory));
-            }
-        }
+        setHistory(readOrderHistory());
     }, []);
 
     const clearHistory = () => {
-        localStorage.removeItem('order_history');
+        localStorage.removeItem(ORDER_HISTORY_KEY);
         setHistory([]);
         toast.success(language === 'fr'
             ? "Historique effacé avec succès !"
@@ -98,7 +39,7 @@ export default function OrdersPage() {
         if (!orderToDelete) return;
         const newHistory = history.filter(o => o.id !== orderToDelete);
         setHistory(newHistory);
-        localStorage.setItem('order_history', JSON.stringify(newHistory));
+        writeOrderHistory(newHistory);
         toast.success(language === 'fr'
             ? "Commande supprimée !"
             : "Order deleted!");
@@ -201,6 +142,7 @@ export default function OrdersPage() {
                             labels={{
                                 table: language === 'fr' ? "Table" : "Table",
                                 sent: language === 'fr' ? "Envoyée" : "Sent",
+                                cancelled: language === 'fr' ? "Annulée" : "Cancelled",
                                 delete: language === 'fr' ? "Supprimer la commande" : "Delete order",
                             }}
                         />

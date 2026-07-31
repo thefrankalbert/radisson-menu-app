@@ -1,90 +1,29 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase-server";
 import { HomeScreen } from "@/components/client/HomeScreen";
+import { loadHomeData } from "@/lib/menu-data";
 import { APP_CONFIG } from "@/lib/constants";
-import { resolveVenueSlug, normalizeTableNumber } from "@/lib/venue-routing";
-import type { MenuItem, Category, Restaurant } from "@/types/admin";
 
-// ISR : la carte bouge peu, 60s gardent le TTFB bas sans servir du périmé.
+// La carte bouge peu : la page est mise en cache et régénérée toutes les 60s.
+// Elle ne lit ni cookies ni paramètres d'URL — la redirection des QR (`?v=`)
+// est faite par le middleware, précisément pour préserver ce cache.
 export const revalidate = 60;
 
 /** N'Djamena est en UTC+1 toute l'année — pas d'heure d'été à gérer. */
 const VENUE_UTC_OFFSET_HOURS = 1;
 
-/** Colonnes réellement présentes sur `menu_items` (cf. types/admin.ts).
- *  Nommer une colonne absente fait échouer la requête entière en 400. */
-const MENU_ITEM_COLUMNS = `id, name, name_en, description, description_en, price, image_url,
-    is_available, is_featured, is_popular, dietary_flags, preparation_time,
-    category_id, restaurant_id, display_order, created_at,
-    options:item_options(*),
-    price_variants:item_price_variants(*)`;
+export default async function Page() {
+    const { restaurants, categories, items } = await loadHomeData();
 
-export default async function Page({
-    searchParams,
-}: {
-    searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-    const params = await searchParams;
-    const first = (key: string) => {
-        const raw = params[key];
-        return Array.isArray(raw) ? raw[0] : raw;
-    };
-
-    // Les QR posés sur les tables encodent `/?v=<venue>&table=<n>`. Le convive
-    // est assis dans un restaurant précis : on l'emmène directement sur cette
-    // carte plutôt que sur l'accueil de l'hôtel, qui reste accessible par
-    // l'onglet Accueil. `table` est conservé pour que TableCapture le range.
-    const venueSlug = resolveVenueSlug(first("v") ?? first("restaurant") ?? first("venue"));
-    if (venueSlug) {
-        const table = normalizeTableNumber(first("table"));
-        redirect(`/menu/${venueSlug}${table ? `?table=${encodeURIComponent(table)}` : ""}`);
-    }
-
-    const supabase = await createClient();
-
-    const [restaurantsRes, categoriesRes, menuItemsRes] = await Promise.all([
-        supabase
-            .from("restaurants")
-            .select("id, name, name_en, slug, image_url, is_active, created_at")
-            .order("created_at", { ascending: true }),
-
-        supabase
-            .from("categories")
-            .select("id, name, name_en, restaurant_id, display_order, created_at")
-            .order("display_order", { ascending: true }),
-
-        supabase
-            .from("menu_items")
-            .select(MENU_ITEM_COLUMNS)
-            .eq("is_available", true)
-            .order("display_order", { ascending: true }),
-    ]);
-
-    // Une requête en échec renvoie `data: null` sans lever : sans ce log, l'accueil
-    // se rendrait vide et muet (c'est exactement ce qui est arrivé avec une colonne
-    // inexistante dans le select).
-    for (const [label, res] of [
-        ["restaurants", restaurantsRes],
-        ["categories", categoriesRes],
-        ["menu_items", menuItemsRes],
-    ] as const) {
-        if (res.error) console.error(`[home] échec du chargement ${label}:`, res.error.message);
-    }
-
-    const activeRestaurants = ((restaurantsRes.data ?? []) as Restaurant[]).filter(
-        (r) => r.is_active !== false,
-    );
-
-    // L'heure sert au message d'accueil : la calculer sur le serveur évite un
-    // écart d'hydratation et reflète l'heure du lieu, pas celle de l'appareil.
+    // L'heure sert au message d'accueil. Elle est figée à la régénération de la
+    // page, donc au plus 60s de décalage : sans conséquence pour un message qui
+    // ne change qu'à 11h et 17h.
     const venueHour = (new Date().getUTCHours() + VENUE_UTC_OFFSET_HOURS) % 24;
 
     return (
         <HomeScreen
             venueName={APP_CONFIG.hotel}
-            restaurants={activeRestaurants}
-            categories={(categoriesRes.data ?? []) as Category[]}
-            items={(menuItemsRes.data ?? []) as unknown as MenuItem[]}
+            restaurants={restaurants}
+            categories={categories}
+            items={items}
             hour={venueHour}
         />
     );

@@ -1,10 +1,12 @@
 "use client";
 
-import { Trash2, Clock } from "lucide-react";
+import { Trash2, Clock, XCircle } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 
 export interface OrderCardOrder {
     id: string;
+    /** Statut journalisé localement : « sent » ou « cancelled ». */
+    status?: string;
     date: string;
     tableNumber: string;
     totalPrice: number;
@@ -15,7 +17,7 @@ interface Props {
     order: OrderCardOrder;
     lang: "fr" | "en";
     onDelete: () => void;
-    labels: { table: string; sent: string; delete: string };
+    labels: { table: string; sent: string; cancelled: string; delete: string };
 }
 
 /** Un identifiant complet n'aide personne ; les 6 derniers caractères suffisent
@@ -26,6 +28,9 @@ function shortRef(id: string): string {
 
 export function OrderCard({ order, lang, onDelete, labels }: Props) {
     const { formatPrice } = useCurrency();
+    const isCancelled = order.status === "cancelled";
+    const itemsTotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const tipAmount = Math.max(0, order.totalPrice - itemsTotal);
     const when = new Date(order.date);
     const time = when.toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB", {
         hour: "2-digit",
@@ -44,9 +49,19 @@ export function OrderCard({ order, lang, onDelete, labels }: Props) {
                         <span className="font-mono text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-ink-muted)]">
                             #{shortRef(order.id)}
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-[var(--radius-tag)] bg-[var(--color-brand-light)] px-2 py-[3px] text-[10.5px] font-semibold text-[var(--color-brand)]">
-                            <Clock className="h-[11px] w-[11px]" strokeWidth={2.2} />
-                            {labels.sent}
+                        <span
+                            className={`inline-flex items-center gap-1 rounded-[var(--radius-tag)] px-2 py-[3px] text-[10.5px] font-semibold ${
+                                isCancelled
+                                    ? "bg-[#fdeeec] text-[var(--color-promo)]"
+                                    : "bg-[var(--color-brand-light)] text-[var(--color-brand)]"
+                            }`}
+                        >
+                            {isCancelled ? (
+                                <XCircle className="h-[11px] w-[11px]" strokeWidth={2.2} />
+                            ) : (
+                                <Clock className="h-[11px] w-[11px]" strokeWidth={2.2} />
+                            )}
+                            {isCancelled ? labels.cancelled : labels.sent}
                         </span>
                     </div>
                     <div className="mt-0.5 truncate text-[13px] text-[var(--color-ink-muted)]">
@@ -82,13 +97,28 @@ export function OrderCard({ order, lang, onDelete, labels }: Props) {
                 ))}
             </ul>
 
-            <footer className="flex items-center justify-between border-t border-[var(--color-divider)] px-4 py-3">
-                <span className="text-[13px] font-semibold tracking-[-0.2px] text-[var(--color-ink)]">
-                    Total
-                </span>
-                <span className="text-[16px] font-bold tabular-nums text-[var(--color-ink)]">
-                    {formatPrice(order.totalPrice)}
-                </span>
+            <footer className="border-t border-[var(--color-divider)] px-4 py-3">
+                {/* Le pourboire n'est pas stocké séparément dans l'historique : il se
+                    déduit de l'écart entre le total et la somme des lignes. Sans cette
+                    ligne, le total paraissait supérieur au détail sans raison. */}
+                {tipAmount > 0 && (
+                    <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[13px] text-[var(--color-ink-muted)]">
+                            {lang === "fr" ? "Pourboire" : "Tip"}
+                        </span>
+                        <span className="text-[13px] tabular-nums text-[var(--color-ink-2)]">
+                            {formatPrice(tipAmount)}
+                        </span>
+                    </div>
+                )}
+                <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-semibold tracking-[-0.2px] text-[var(--color-ink)]">
+                        Total
+                    </span>
+                    <span className="text-[16px] font-bold tabular-nums text-[var(--color-ink)]">
+                        {formatPrice(order.totalPrice)}
+                    </span>
+                </div>
             </footer>
         </article>
     );

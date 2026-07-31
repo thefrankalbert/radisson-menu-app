@@ -36,8 +36,6 @@ interface Props {
     restaurantId: string;
     categories: Category[];
     items: MenuItem[];
-    /** Catégorie à révéler à l'arrivée (ancre `#cat-<id>` ou `?section=`). */
-    initialCategoryId?: string | null;
 }
 
 export function MenuScreen({
@@ -46,7 +44,6 @@ export function MenuScreen({
     restaurantId,
     categories,
     items,
-    initialCategoryId,
 }: Props) {
     const router = useRouter();
     const { language } = useLanguage();
@@ -124,15 +121,29 @@ export function MenuScreen({
 
     const isSearching = searchQuery.trim().length >= MIN_SEARCH_LENGTH;
 
-    // Arrivée via une ancre de catégorie : on attend que les sections soient
-    // montées avant de faire défiler, sinon l'ancre n'existe pas encore.
+    // `?section=` porte un nom de catégorie (lien depuis les tuiles de l'accueil)
+    // et fait défiler jusqu'à elle une fois les sections montées.
+    //
+    // Le paramètre est lu ici, dans un effet, et NON via `useSearchParams` :
+    // ce hook dans un composant client retire tout le sous-arbre du pré-rendu,
+    // et la carte repartait alors en rendu côté navigateur — précisément ce
+    // qu'on cherche à éviter. L'effet ne s'exécute que sur le client de toute
+    // façon, puisqu'il touche au défilement.
     useEffect(() => {
-        if (!initialCategoryId || sections.length === 0) return;
+        if (sections.length === 0) return;
+        const wanted = new URLSearchParams(window.location.search).get("section")?.toLowerCase();
+        if (!wanted) return;
+
+        const match = categories.find(
+            (c) => c.name.toLowerCase() === wanted || c.name_en?.toLowerCase() === wanted,
+        );
+        if (!match) return;
+
         const timer = setTimeout(() => {
-            document.getElementById(`cat-${initialCategoryId}`)?.scrollIntoView({ block: "start" });
+            document.getElementById(`cat-${match.id}`)?.scrollIntoView({ block: "start" });
         }, 300);
         return () => clearTimeout(timer);
-    }, [initialCategoryId, sections.length]);
+    }, [categories, sections.length]);
 
     const addControlFor = (item: MenuItem, onOpen: () => void) => (
         <CardAddControl

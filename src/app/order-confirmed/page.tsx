@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { getTranslatedContent } from "@/utils/translation";
 import { OrderStatusCard, type OrderStatus } from "@/components/client/OrderStatusCard";
 import ConfirmModal from "@/components/ConfirmModal";
+import { markOrderCancelledInHistory } from "@/lib/order-history";
 
 /** Fenêtre pendant laquelle le convive peut renvoyer sa commande au panier.
  *  La base applique la même limite dans `cancel_order` — celle-ci n'est
@@ -158,6 +159,11 @@ function OrderConfirmedContent() {
             const token = localStorage.getItem(`order_token_${orderId}`);
             const { error } = await supabase.rpc("cancel_order", { p_id: orderId, p_token: token });
             if (error) throw error;
+
+            // L'historique local est le journal du convive : sans cette mise à
+            // jour, la commande qu'il vient d'annuler continuait d'y figurer
+            // comme « Envoyée », juste à côté de son panier reconstitué.
+            markOrderCancelledInHistory(orderId);
 
             clearCart();
             for (const item of orderItems) {

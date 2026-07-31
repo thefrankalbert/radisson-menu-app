@@ -15,15 +15,7 @@ import { UpsellSection, type UpsellItem } from "@/components/client/cart/UpsellS
 import { useCartUpsell } from "@/components/client/cart/useCartUpsell";
 import { Price } from "@/components/client/Price";
 import ConfirmModal from "@/components/ConfirmModal";
-
-interface HistoryItem {
-    id: string;
-    date: string;
-    items: { name: string; quantity: number; price: number; option?: string; variant?: string }[];
-    totalPrice: number;
-    tableNumber: string;
-    status: string;
-}
+import { readOrderHistory, writeOrderHistory, type HistoryOrder } from "@/lib/order-history";
 
 /** Deux commandes identiques envoyées coup sur coup sont presque toujours un
  *  double-tap, pas une vraie deuxième commande. */
@@ -204,7 +196,7 @@ export default function CartPage() {
                 localStorage.setItem(`order_token_${rpcData.id}`, rpcData.access_token as string);
             }
 
-            const newOrder: HistoryItem = {
+            const newOrder: HistoryOrder = {
                 id: rpcData.id as string,
                 date: new Date().toISOString(),
                 items: items.map((i) => ({
@@ -222,9 +214,7 @@ export default function CartPage() {
                 status: "sent",
             };
 
-            const currentHistJSON = localStorage.getItem("order_history");
-            const currentHist = currentHistJSON ? JSON.parse(currentHistJSON) : [];
-            localStorage.setItem("order_history", JSON.stringify([newOrder, ...currentHist]));
+            writeOrderHistory([newOrder, ...readOrderHistory()]);
             localStorage.setItem("last_order_time", now.toString());
             localStorage.setItem("saved_table", cleanedTableNumber);
 

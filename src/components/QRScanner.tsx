@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, Camera, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { normalizeTableNumber } from "@/lib/venue-routing";
+import { normalizeTableNumber, resolveVenueSlug } from "@/lib/venue-routing";
 
 declare global {
   interface Window {
@@ -43,22 +43,28 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
   const processQRCode = useCallback((decodedText: string) => {
     const cleanText = decodedText.trim().replace(/\s+/g, '');
 
-    const processAndRedirect = (targetUrl: string) => {
+    // Navigation côté client : `window.location.href` rechargeait toute
+    // l'application (re-téléchargement, ré-hydratation, panier relu depuis le
+    // stockage) alors que les cartes sont désormais pré-générées. Le convive
+    // voyait un écran blanc de plusieurs secondes après le scan et croyait que
+    // ça n'avait pas marché.
+    const processAndRedirect = (target: string) => {
       onClose();
-      setTimeout(() => {
-        window.location.href = targetUrl;
-      }, 150); // Réduit de 300ms à 150ms
+      router.push(target);
     };
 
     // Le QR vient du monde extérieur : on n'en retient que ce qu'on sait lire
     // (le lieu et la table) et on le rejoue toujours sur notre propre origine.
     // Recopier tels quels les paramètres d'une URL scannée reviendrait à laisser
     // n'importe quel code injecter des paramètres dans l'application.
-    const goTo = (path: string, venue: string | null, table: string | null) => {
-      const target = new URL(path, window.location.origin);
-      if (venue) target.searchParams.set('v', venue);
-      if (table) target.searchParams.set('table', table);
-      processAndRedirect(target.toString());
+    // Le lieu est résolu ici plutôt que laissé au middleware : passer par
+    // `/?v=…` coûterait une redirection réseau supplémentaire avant d'atteindre
+    // la carte, juste après un scan où chaque seconde se voit.
+    const goTo = (rawPath: string, venue: string | null, table: string | null) => {
+      const slug = resolveVenueSlug(venue);
+      const path = slug ? `/menu/${slug}` : rawPath;
+      const query = table ? `?table=${encodeURIComponent(table)}` : '';
+      processAndRedirect(`${path}${query}`);
     };
 
     if (cleanText.startsWith('http://') || cleanText.startsWith('https://')) {

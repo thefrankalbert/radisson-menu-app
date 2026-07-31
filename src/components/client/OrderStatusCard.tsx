@@ -60,6 +60,10 @@ export function OrderStatusCard({
     isModifying,
 }: Props) {
     const { formatPrice } = useCurrency();
+    // `get_order` ne renvoie pas le pourboire séparément : il se déduit de
+    // l'écart entre le total enregistré et la somme des lignes.
+    const itemsTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const tipAmount = Math.max(0, totalPrice - itemsTotal);
     const StatusIcon = STATUS_ICON[status];
     const canModify = typeof onModify === "function" && timeLeftMs !== null && timeLeftMs > 0;
 
@@ -101,13 +105,27 @@ export function OrderStatusCard({
                 ))}
             </ul>
 
-            <div className="flex items-center justify-between border-t border-[var(--color-divider)] px-4 py-3">
-                <span className="text-[13px] font-semibold tracking-[-0.2px] text-[var(--color-ink)]">
-                    Total
-                </span>
-                <span className="text-[16px] font-bold tabular-nums text-[var(--color-ink)]">
-                    {formatPrice(totalPrice)}
-                </span>
+            <div className="border-t border-[var(--color-divider)] px-4 py-3">
+                {/* Le pourboire est déduit du total serveur moins les lignes : sans
+                    cette ligne, le total dépassait la somme affichée sans explication. */}
+                {tipAmount > 0 && (
+                    <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[13px] text-[var(--color-ink-muted)]">
+                            {lang === "fr" ? "Pourboire" : "Tip"}
+                        </span>
+                        <span className="text-[13px] tabular-nums text-[var(--color-ink-2)]">
+                            {formatPrice(tipAmount)}
+                        </span>
+                    </div>
+                )}
+                <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-semibold tracking-[-0.2px] text-[var(--color-ink)]">
+                        Total
+                    </span>
+                    <span className="text-[16px] font-bold tabular-nums text-[var(--color-ink)]">
+                        {formatPrice(totalPrice)}
+                    </span>
+                </div>
             </div>
 
             {canModify && (
