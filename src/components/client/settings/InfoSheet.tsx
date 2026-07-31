@@ -78,7 +78,7 @@ export function InfoSheet({
                                 type="button"
                                 onClick={onClose}
                                 aria-label={closeLabel}
-                                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
                             >
                                 <X className="h-[18px] w-[18px] text-[var(--color-ink)]" strokeWidth={2.2} />
                             </button>

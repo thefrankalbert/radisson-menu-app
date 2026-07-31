@@ -262,7 +262,7 @@ export default function CartPage() {
                         type="button"
                         onClick={() => router.back()}
                         aria-label={say("back")}
-                        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
                     >
                         <ChevronLeft className="h-5 w-5 text-[var(--color-ink)]" />
                     </button>
@@ -280,7 +280,7 @@ export default function CartPage() {
                         type="button"
                         onClick={() => setClearConfirmOpen(true)}
                         aria-label={say("clear")}
-                        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full transition-transform duration-150 active:scale-95"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform duration-150 active:scale-95"
                     >
                         <Trash2 className="h-[18px] w-[18px] text-[var(--color-ink-muted)]" strokeWidth={2} />
                     </button>

@@ -111,7 +111,12 @@ export function CardAddControl({
                     onOpen();
                 }
             }}
-            className={`absolute ${pos} flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white transition-transform duration-150 active:scale-95 ${PLUS_SHADOW}`}
+            /* Le disque reste à 34px pour ne pas écraser la photo, mais la zone
+               tactile est étendue à 44px par un pseudo-élément invisible : c'est
+               le bouton le plus sollicité de l'application, et 34px se rate au
+               pouce. Seul ce bouton isolé est agrandi — étendre de la même façon
+               le « − » et le « + » du stepper les ferait se chevaucher. */
+            className={`absolute ${pos} flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white transition-transform duration-150 before:absolute before:-inset-[5px] before:content-[''] active:scale-95 ${PLUS_SHADOW}`}
         >
             <Plus className="h-[18px] w-[18px] text-[var(--color-ink)]" strokeWidth={2.6} />
         </button>

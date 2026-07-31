@@ -175,7 +175,7 @@ export function MenuScreen({
                         type="button"
                         onClick={() => router.push("/")}
                         aria-label={say("back")}
-                        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
                     >
                         <ChevronLeft className="h-5 w-5 text-[var(--color-ink)]" />
                     </button>
@@ -200,7 +200,7 @@ export function MenuScreen({
                         }}
                         aria-label={say("search")}
                         aria-expanded={showSearch}
-                        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full transition-transform duration-150 active:scale-95"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform duration-150 active:scale-95"
                     >
                         {showSearch ? (
                             <X className="h-5 w-5 text-[var(--color-ink)]" />

@@ -139,8 +139,21 @@ export function HomeScreen({
         // Une catégorie sans plat disponible n'a rien à montrer — on la masque
         // plutôt que d'offrir une tuile qui mène à une liste vide.
         const withItems = new Set(available.map((i) => i.category_id));
+
+        // Plusieurs cartes ont des catégories au libellé identique (« Entrées »
+        // au Panorama et au Pool deviennent deux fois « Starters »). Deux tuiles
+        // visuellement jumelles n'aident personne : on n'en garde qu'une, la
+        // première dans l'ordre d'affichage.
+        const seenLabels = new Set<string>();
+
         return categories
             .filter((c) => withItems.has(c.id))
+            .filter((c) => {
+                const key = getTranslatedContent(lang, c.name, c.name_en).trim().toLowerCase();
+                if (seenLabels.has(key)) return false;
+                seenLabels.add(key);
+                return true;
+            })
             .slice(0, CATEGORY_TILE_COUNT)
             .map((c) => {
                 const label = getTranslatedContent(lang, c.name, c.name_en);
