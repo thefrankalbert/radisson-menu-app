@@ -54,6 +54,22 @@ npm run menu -- photo 782eb0bc none                    # retire la photo
 npm run menu -- feature 'Hamburger Simple' on          # mise en avant accueil
 ```
 
+### Commandes clients
+
+Les commandes sont invisibles à la clé anon (les politiques RLS les réservent au
+personnel) : ces commandes exigent donc la clé de service.
+
+```bash
+npm run menu -- orders --today                         # la journée
+npm run menu -- orders --status pending                # en attente cuisine
+npm run menu -- orders --table P05
+npm run menu -- orders:delete --table TEST-01          # purge des essais
+npm run menu -- orders:delete --ids b1cb9f5c-…,775ffecb-…
+```
+
+`orders:delete` supprime aussi les lignes de commande, et affiche la liste avant
+de demander confirmation.
+
 ## Sécurité d'usage
 
 - Toute écriture affiche l'**avant/après** et demande confirmation.

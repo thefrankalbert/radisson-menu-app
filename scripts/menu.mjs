@@ -35,6 +35,7 @@ import {
     hasRealPhoto,
     ITEM_COLUMNS,
 } from "./lib/resolve.mjs";
+import { listOrders, deleteOrders } from "./lib/orders.mjs";
 
 const { flags, positional } = parseArgs(process.argv.slice(2));
 const command = positional[0];
@@ -350,6 +351,100 @@ async function cmdFeature() {
     });
 }
 
+// --- Commandes (lecture et purge) -----------------------------------------
+
+const STATUS_LABEL = {
+    pending: "reçue",
+    preparing: "en préparation",
+    ready: "prête",
+    delivered: "servie",
+    cancelled: "annulée",
+};
+
+async function cmdOrders() {
+    const params = {
+        select: "id,table_number,status,total_price,created_at,restaurant_id",
+        order: "created_at.desc",
+        limit: String(flags.limit ?? 30),
+    };
+    if (typeof flags.status === "string") params.status = `eq.${flags.status}`;
+    if (typeof flags.table === "string") params.table_number = `eq.${flags.table.toUpperCase()}`;
+    if (flags.today) {
+        const midnight = new Date();
+        midnight.setHours(0, 0, 0, 0);
+        params.created_at = `gte.${midnight.toISOString()}`;
+    }
+
+    const rows = await listOrders(params);
+    const restaurants = await select("restaurants", { select: "id,slug" });
+    const slugOf = Object.fromEntries(restaurants.map((r) => [r.id, r.slug]));
+
+    console.log(`\n${bold(`${rows.length} commande${rows.length > 1 ? "s" : ""}`)}\n`);
+    table(rows, [
+        { header: "ID", value: (o) => dim(o.id.slice(0, 8)) },
+        { header: "TABLE", value: (o) => o.table_number ?? dim("—") },
+        { header: "CARTE", value: (o) => slugOf[o.restaurant_id] ?? "?" },
+        { header: "STATUT", value: (o) => STATUS_LABEL[o.status] ?? o.status },
+        { header: "TOTAL", value: (o) => formatPrice(o.total_price) },
+        {
+            header: "QUAND",
+            value: (o) =>
+                new Date(o.created_at).toLocaleString("fr-FR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                }),
+        },
+    ]);
+    console.log();
+}
+
+async function cmdOrdersDelete() {
+    const ids = typeof flags.ids === "string" ? flags.ids.split(",").map((s) => s.trim()) : null;
+    const tableFilter = typeof flags.table === "string" ? flags.table.toUpperCase() : null;
+
+    if (!ids && !tableFilter) {
+        exitWith(
+            "Précisez ce qu'il faut supprimer :",
+            "  --ids <id1,id2>      commandes précises",
+            "  --table <TEST-01>    toutes les commandes d'une table",
+        );
+    }
+
+    const params = { select: "id,table_number,status,total_price,created_at", order: "created_at.desc" };
+    if (ids) params.id = `in.(${ids.join(",")})`;
+    if (tableFilter) params.table_number = `eq.${tableFilter}`;
+
+    const rows = await listOrders(params);
+    if (rows.length === 0) {
+        console.log(`\n${dim("Aucune commande ne correspond.")}\n`);
+        return;
+    }
+
+    console.log(`\n${bold(`${rows.length} commande${rows.length > 1 ? "s" : ""} à supprimer`)}\n`);
+    table(rows, [
+        { header: "ID", value: (o) => dim(o.id.slice(0, 8)) },
+        { header: "TABLE", value: (o) => o.table_number ?? dim("—") },
+        { header: "STATUT", value: (o) => STATUS_LABEL[o.status] ?? o.status },
+        { header: "TOTAL", value: (o) => formatPrice(o.total_price) },
+    ]);
+
+    console.log(`\n${red("La suppression est définitive")} — les lignes de commande partent aussi.\n`);
+
+    if (DRY) {
+        console.log(`${cyan("→")} ${dim("--dry-run : rien n'a été supprimé.")}\n`);
+        return;
+    }
+    if (!(await confirm(`Supprimer ces ${rows.length} commandes ?`))) {
+        console.log(`${dim("Annulé, rien n'a été supprimé.")}\n`);
+        return;
+    }
+
+    const deleted = await deleteOrders(rows.map((o) => o.id));
+    console.log(`\n${green("✓")} ${deleted.length} commande${deleted.length > 1 ? "s" : ""} supprimée${deleted.length > 1 ? "s" : ""}.\n`);
+}
+
 // --- Aide -----------------------------------------------------------------
 
 function cmdHelp() {
@@ -377,6 +472,10 @@ ${bold("Écriture")} ${dim("(SUPABASE_SERVICE_ROLE_KEY requise)")}
   describe <plat> --fr <texte> [--en <text>]
   photo <plat> <url|none>            Photo (URL absolue)
   feature <plat> on|off              Mise en avant sur l'accueil
+
+${bold("Commandes clients")} ${dim("(SUPABASE_SERVICE_ROLE_KEY requise)")}
+  orders [--today] [--status <s>] [--table <t>] [--limit <n>]
+  orders:delete --ids <id1,id2> | --table <TABLE>
 
 ${bold("Options globales")}
   --dry-run                          Montre l'effet sans rien modifier
@@ -415,6 +514,8 @@ const COMMANDS = {
     describe: cmdDescribe,
     photo: cmdPhoto,
     feature: cmdFeature,
+    orders: cmdOrders,
+    "orders:delete": cmdOrdersDelete,
 };
 
 if (!command || flags.help || command === "help") {
