@@ -15,6 +15,7 @@ import { UpsellSection, type UpsellItem } from "@/components/client/cart/UpsellS
 import { useCartUpsell } from "@/components/client/cart/useCartUpsell";
 import { Price } from "@/components/client/Price";
 import ConfirmModal from "@/components/ConfirmModal";
+import { TablePrompt } from "@/components/client/TablePrompt";
 import { readOrderHistory, writeOrderHistory, type HistoryOrder } from "@/lib/order-history";
 
 /** Deux commandes identiques envoyées coup sur coup sont presque toujours un
@@ -84,6 +85,7 @@ export default function CartPage() {
     const [customTipInput, setCustomTipInput] = useState("");
     const [notesOpen, setNotesOpen] = useState(false);
     const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+    const [tablePromptOpen, setTablePromptOpen] = useState(false);
 
     const { upsellItems, recommendation } = useCartUpsell(items, currentRestaurantId);
 
@@ -124,26 +126,37 @@ export default function CartPage() {
         toast.success(lang === "fr" ? "Ajouté au panier" : "Added to cart");
     };
 
-    const handleSubmit = async () => {
-        // La table vient du QR ; sans elle on ne bloque pas le convive, on marque
-        // la commande pour que le service la rattache manuellement.
+    /**
+     * @param forcedTable table saisie dans la demande, `null` si le convive a
+     *   explicitement choisi d'envoyer sans, `undefined` pour l'envoi normal.
+     */
+    const handleSubmit = async (forcedTable?: string | null) => {
         const rawTable = (
-            tableNumber.trim() ||
-            localStorage.getItem("saved_table") ||
-            localStorage.getItem("table_number") ||
+            forcedTable ??
+            tableNumber.trim() ??
             ""
         )
+            .toString()
             .trim()
             .toUpperCase();
 
-        // Le numéro vient de l'URL (`?table=`) : il est entièrement contrôlé par
-        // l'appelant et finit stocké en base puis affiché aux équipes. On le
-        // valide donc systématiquement — aucune valeur n'échappe au filtre — et
-        // ce qui ne passe pas retombe sur le marqueur AUTO, que le service
-        // rattachera à la main.
-        const cleanedTableNumber = TABLE_PATTERN.test(rawTable)
+        // Le numéro vient de l'URL (`?table=`) : entièrement contrôlé par
+        // l'appelant, il finit en base puis sur les écrans du personnel. On le
+        // valide donc systématiquement, sans exception.
+        const validTable = TABLE_PATTERN.test(rawTable)
             ? rawTable
-            : rawTable.replace(/[^A-Z0-9-]/g, "").slice(0, 15) || AUTO_TABLE;
+            : rawTable.replace(/[^A-Z0-9-]/g, "").slice(0, 15);
+
+        // Sans table exploitable, on demande plutôt que d'envoyer « AUTO-01 » en
+        // silence : sur juillet, 37 % des commandes arrivaient en cuisine sans
+        // qu'on sache où les servir. Le convive peut toujours passer outre, mais
+        // c'est alors un choix explicite (forcedTable === null).
+        if (!validTable && forcedTable !== null) {
+            setTablePromptOpen(true);
+            return;
+        }
+
+        const cleanedTableNumber = validTable || AUTO_TABLE;
 
         const lastOrderTime = localStorage.getItem("last_order_time");
         const now = Date.now();
@@ -375,7 +388,7 @@ export default function CartPage() {
             >
                 <button
                     type="button"
-                    onClick={handleSubmit}
+                    onClick={() => handleSubmit()}
                     disabled={isSubmitting}
                     className="flex h-[54px] w-full items-center justify-between rounded-full bg-[var(--color-brand)] px-5 text-[15px] font-semibold text-white transition-transform duration-150 active:scale-[0.98] disabled:opacity-60"
                 >
@@ -390,6 +403,17 @@ export default function CartPage() {
                     />
                 </button>
             </div>
+
+            <TablePrompt
+                isOpen={tablePromptOpen}
+                lang={lang}
+                onClose={() => setTablePromptOpen(false)}
+                onConfirm={(table) => {
+                    setTablePromptOpen(false);
+                    if (table) setTableNumber(table);
+                    void handleSubmit(table);
+                }}
+            />
 
             <ConfirmModal
                 isOpen={clearConfirmOpen}

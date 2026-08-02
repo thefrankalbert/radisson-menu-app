@@ -1,11 +1,14 @@
 # Migrations
 
-## À appliquer : `20260730_cap_order_quantity_and_tip.sql`
+## Appliquée : `20260730_cap_order_quantity_and_tip.sql`
 
-**Pas encore appliquée.** Tant qu'elle ne l'est pas, `create_order` — exécutable
+**Appliquée le 2026-08-01 et vérifiée en production** : 61 lignes → `too_many_lines`,
+quantité 999 999 ramenée à 30, pourboire 99 999 999 ramené à 500 000.
+
+Avant elle, `create_order` — exécutable
 par le rôle `anon`, dont la clé est publique et embarquée dans le navigateur —
-n'a **aucune borne haute** sur la quantité ni sur le pourboire. Un appel direct
-à l'API peut donc injecter en cuisine une commande à un million d'unités, ou
+n'avait **aucune borne haute** sur la quantité ni sur le pourboire. Un appel direct
+à l'API pouvait donc injecter en cuisine une commande à un million d'unités, ou
 enchaîner les envois sans limite.
 
 Les garde-fous actuels (30 articles par ligne, 30 secondes entre deux commandes)
