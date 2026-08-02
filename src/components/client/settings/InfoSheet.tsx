@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -38,32 +38,28 @@ export function InfoSheet({
         };
     }, [isOpen, onClose]);
 
+    if (!isOpen) return null;
+
+    // Pas d'AnimatePresence ni d'exit : une feuille avec exit y:"100%" restait
+    // montée hors écran après fermeture (nœud résiduel, focus piégé). Sans exit,
+    // la fermeture est un simple démontage — fiable. L'entrée reste animée par
+    // motion (initial → animate), qui n'a pas besoin d'AnimatePresence.
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
+        <>
                     <motion.div
-                        key="backdrop"
                         className="fixed inset-0 z-[60] bg-[rgba(20,24,29,0.5)]"
                         onClick={onClose}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
                         transition={{ duration: 0.25 }}
                     />
                     <motion.div
-                        key="sheet"
                         role="dialog"
                         aria-modal="true"
                         aria-label={title}
                         className="fixed inset-x-0 bottom-0 top-[46px] z-[61] mx-auto flex max-w-lg flex-col overflow-hidden rounded-t-[var(--radius-modal)] bg-white shadow-[0_20px_25px_-5px_rgba(20,24,29,0.10)]"
                         initial={{ y: shouldReduceMotion ? 0 : "100%", opacity: shouldReduceMotion ? 0 : 1 }}
                         animate={{ y: 0, opacity: 1 }}
-                        exit={{
-                            y: shouldReduceMotion ? 0 : "100%",
-                            opacity: shouldReduceMotion ? 0 : 1,
-                            transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] },
-                        }}
                         transition={
                             shouldReduceMotion
                                 ? { duration: 0.15 }
@@ -87,8 +83,6 @@ export function InfoSheet({
                             {children}
                         </div>
                     </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+        </>
     );
 }
