@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { MapPin, QrCode, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { normalizeTableNumber } from "@/lib/venue-routing";
@@ -60,32 +60,29 @@ export function TablePrompt({ isOpen, lang, onClose, onConfirm }: Props) {
 
     return (
         <>
-            <AnimatePresence>
-                {isOpen && (
-                    <>
+            {/* Pas d'AnimatePresence ni d'animation de sortie : une feuille avec
+                exit y:"100%" restait montée hors écran après fermeture (le nœud
+                traînait dans le DOM, piégeant le focus). Sans exit, la fermeture
+                est un simple démontage — instantané et fiable. L'entrée reste
+                animée par motion (initial → animate), qui n'a pas besoin
+                d'AnimatePresence. */}
+            {isOpen && (
+                    <div className="fixed inset-0 z-[70]">
                         <motion.div
-                            key="backdrop"
-                            className="fixed inset-0 z-[70] bg-[rgba(20,24,29,0.5)]"
+                            className="absolute inset-0 bg-[rgba(20,24,29,0.5)]"
                             onClick={onClose}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
                         />
                         <motion.div
-                            key="sheet"
                             role="dialog"
                             aria-modal="true"
                             aria-label={say("title")}
-                            className="fixed inset-x-0 bottom-0 z-[71] mx-auto max-w-lg rounded-t-[var(--radius-modal)] bg-white px-5 pt-5 shadow-[0_-8px_24px_-8px_rgba(20,24,29,0.18)]"
+                            className="absolute inset-x-0 bottom-0 z-[1] mx-auto max-w-lg rounded-t-[var(--radius-modal)] bg-white px-5 pt-5 shadow-[0_-8px_24px_-8px_rgba(20,24,29,0.18)]"
                             style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}
                             initial={{ y: shouldReduceMotion ? 0 : "100%", opacity: shouldReduceMotion ? 0 : 1 }}
                             animate={{ y: 0, opacity: 1 }}
-                            exit={{
-                                y: shouldReduceMotion ? 0 : "100%",
-                                opacity: shouldReduceMotion ? 0 : 1,
-                                transition: { duration: 0.18, ease: [0.32, 0.72, 0, 1] },
-                            }}
                             transition={
                                 shouldReduceMotion
                                     ? { duration: 0.15 }
@@ -156,9 +153,8 @@ export function TablePrompt({ isOpen, lang, onClose, onConfirm }: Props) {
                                 {say("skip")}
                             </button>
                         </motion.div>
-                    </>
+                    </div>
                 )}
-            </AnimatePresence>
 
             {scannerOpen && <QRScanner isOpen={scannerOpen} onClose={() => setScannerOpen(false)} />}
         </>
