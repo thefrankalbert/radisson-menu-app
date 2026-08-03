@@ -42,8 +42,8 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            echo "→ dépendances"
-            npm ci
+            echo "→ dépendances (install, tolère les écarts de lock du VPS)"
+            npm install --no-audit --no-fund
 
             echo "→ build"
             npm run build
