@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, Camera, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { normalizeTableNumber, resolveVenueSlug } from "@/lib/venue-routing";
 
 declare global {
   interface Window {
@@ -42,34 +43,58 @@ export default function QRScanner({ isOpen, onClose }: QRScannerProps) {
   const processQRCode = useCallback((decodedText: string) => {
     const cleanText = decodedText.trim().replace(/\s+/g, '');
 
-    const processAndRedirect = (targetUrl: string) => {
+    // Navigation côté client : `window.location.href` rechargeait toute
+    // l'application (re-téléchargement, ré-hydratation, panier relu depuis le
+    // stockage) alors que les cartes sont désormais pré-générées. Le convive
+    // voyait un écran blanc de plusieurs secondes après le scan et croyait que
+    // ça n'avait pas marché.
+    const processAndRedirect = (target: string) => {
       onClose();
-      setTimeout(() => {
-        window.location.href = targetUrl;
-      }, 150); // Réduit de 300ms à 150ms
+      router.push(target);
+    };
+
+    // Le QR vient du monde extérieur : on n'en retient que ce qu'on sait lire
+    // (le lieu et la table) et on le rejoue toujours sur notre propre origine.
+    // Recopier tels quels les paramètres d'une URL scannée reviendrait à laisser
+    // n'importe quel code injecter des paramètres dans l'application.
+    // Le lieu est résolu ici plutôt que laissé au middleware : passer par
+    // `/?v=…` coûterait une redirection réseau supplémentaire avant d'atteindre
+    // la carte, juste après un scan où chaque seconde se voit.
+    const goTo = (rawPath: string, venue: string | null, table: string | null) => {
+      const slug = resolveVenueSlug(venue);
+      const path = slug ? `/menu/${slug}` : rawPath;
+      const query = table ? `?table=${encodeURIComponent(table)}` : '';
+      processAndRedirect(`${path}${query}`);
     };
 
     if (cleanText.startsWith('http://') || cleanText.startsWith('https://')) {
       try {
-        const scannedUrl = new URL(cleanText);
-        const newUrl = new URL('/', window.location.origin);
+        const scanned = new URL(cleanText);
+        const venue =
+          scanned.searchParams.get('v') ??
+          scanned.searchParams.get('venue') ??
+          scanned.searchParams.get('restaurant');
+        const table = normalizeTableNumber(scanned.searchParams.get('table'));
 
-        scannedUrl.searchParams.forEach((value, key) => {
-          if (key === 'v' || key === 'venue' || key === 'restaurant') {
-            newUrl.searchParams.set('v', value);
-          } else {
-            newUrl.searchParams.set(key, value);
-          }
-        });
-
-        processAndRedirect(newUrl.toString());
+        // Les QR d'origine pointent sur `/?v=…`, mais certains visent une carte
+        // directement (`/menu/<slug>`) : conserver ce chemin, sinon le convive
+        // retombe sur l'accueil au lieu de sa carte.
+        const path = /^\/menu\/[a-z0-9-]+\/?$/i.test(scanned.pathname) ? scanned.pathname : '/';
+        goTo(path, venue, table);
       } catch {
         onClose();
       }
+      return;
+    }
+
+    // QR sans URL : soit un numéro de table (il contient un chiffre), soit un
+    // identifiant de lieu. L'ancien code traitait tout comme un lieu, ce qui
+    // faisait perdre la table des codes qui n'encodent que « P05 ».
+    const bare = normalizeTableNumber(cleanText);
+    if (bare && /\d/.test(bare)) {
+      goTo('/', null, bare);
     } else {
-      const newUrl = new URL('/', window.location.origin);
-      newUrl.searchParams.set('v', cleanText);
-      processAndRedirect(newUrl.toString());
+      goTo('/', cleanText, null);
     }
   }, [onClose]);
 

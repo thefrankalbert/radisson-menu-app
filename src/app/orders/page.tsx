@@ -5,89 +5,30 @@ import { Package, Trash2, ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 import ConfirmModal from "@/components/ConfirmModal";
-import EmptyState from "@/components/EmptyState";
-import OrderReceiptCard from "@/components/OrderReceiptCard";
-
-interface HistoryItem {
-    id: string;
-    date: string;
-    items: { name: string; quantity: number; price: number }[];
-    totalPrice: number;
-    tableNumber: string;
-    status: string;
-}
-
-// Validation de la structure d'un item d'historique
-const isValidHistoryItem = (item: unknown): item is HistoryItem => {
-    if (!item || typeof item !== 'object') return false;
-
-    const obj = item as Record<string, unknown>;
-
-    return (
-        typeof obj.id === 'string' &&
-        typeof obj.date === 'string' &&
-        Array.isArray(obj.items) &&
-        obj.items.every((i: unknown) => {
-            if (!i || typeof i !== 'object') return false;
-            const orderItem = i as Record<string, unknown>;
-            return (
-                typeof orderItem.name === 'string' &&
-                typeof orderItem.quantity === 'number' &&
-                typeof orderItem.price === 'number'
-            );
-        }) &&
-        typeof obj.totalPrice === 'number' &&
-        typeof obj.tableNumber === 'string' &&
-        typeof obj.status === 'string'
-    );
-};
-
-// Parser sécurisé pour l'historique des commandes
-const parseOrderHistory = (jsonString: string): HistoryItem[] => {
-    try {
-        const parsed = JSON.parse(jsonString);
-
-        if (!Array.isArray(parsed)) {
-            console.warn("Order history is not an array, resetting...");
-            return [];
-        }
-
-        const validItems = parsed.filter(isValidHistoryItem);
-
-        if (validItems.length !== parsed.length) {
-            console.warn(`Filtered out ${parsed.length - validItems.length} invalid history items`);
-        }
-
-        return validItems;
-    } catch (e) {
-        console.error("Failed to parse order history:", e);
-        return [];
-    }
-};
+import { OrderCard } from "@/components/client/OrderCard";
+import {
+    readOrderHistory,
+    writeOrderHistory,
+    ORDER_HISTORY_KEY,
+    type HistoryOrder,
+} from "@/lib/order-history";
 
 export default function OrdersPage() {
     const router = useRouter();
     const { t, language } = useLanguage();
-    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [history, setHistory] = useState<HistoryOrder[]>([]);
     const [showClearModal, setShowClearModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
     useEffect(() => {
-        const savedHistory = localStorage.getItem('order_history');
-        if (savedHistory) {
-            const validHistory = parseOrderHistory(savedHistory);
-            setHistory(validHistory);
-
-            if (validHistory.length > 0) {
-                localStorage.setItem('order_history', JSON.stringify(validHistory));
-            }
-        }
+        setHistory(readOrderHistory());
     }, []);
 
     const clearHistory = () => {
-        localStorage.removeItem('order_history');
+        localStorage.removeItem(ORDER_HISTORY_KEY);
         setHistory([]);
         toast.success(language === 'fr'
             ? "Historique effacé avec succès !"
@@ -98,7 +39,7 @@ export default function OrdersPage() {
         if (!orderToDelete) return;
         const newHistory = history.filter(o => o.id !== orderToDelete);
         setHistory(newHistory);
-        localStorage.setItem('order_history', JSON.stringify(newHistory));
+        writeOrderHistory(newHistory);
         toast.success(language === 'fr'
             ? "Commande supprimée !"
             : "Order deleted!");
@@ -112,7 +53,7 @@ export default function OrdersPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#F7F7F7] pb-24 animate-fade-in pt-4">
+        <main className="min-h-full bg-[var(--color-surface-alt)] pb-24">
             {/* Clear History Modal */}
             <ConfirmModal
                 isOpen={showClearModal}
@@ -144,68 +85,70 @@ export default function OrdersPage() {
                 variant="danger"
             />
 
-            <div className="max-w-md mx-auto px-4">
-                {/* Header */}
-                <div className="mt-6 mb-6 relative flex items-center justify-center">
+            <div className="sticky top-0 z-40 border-b border-[var(--color-divider)] bg-white">
+                <div className="flex items-center gap-2.5 px-[14px] py-3">
                     <button
+                        type="button"
                         onClick={() => router.back()}
-                        className="absolute left-0 p-2 -ml-2 text-gray-400 hover:text-gray-900 transition-colors"
+                        aria-label={language === 'fr' ? "Retour" : "Go back"}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-alt)] transition-transform duration-150 active:scale-95"
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft className="h-5 w-5 text-[var(--color-ink)]" />
                     </button>
-                    <h1 className="text-lg font-bold text-gray-900 uppercase tracking-widest">
-                        {t('my_orders') || "Mes Commandes"}
+                    <h1 className="min-w-0 flex-1 truncate text-[16px] font-semibold leading-[1.15] tracking-[-0.4px] text-[var(--color-ink)]">
+                        {language === 'fr' ? "Mes commandes" : "My orders"}
                     </h1>
-                </div>
-
-                {/* Clear All Button */}
-                {history.length > 0 && (
-                    <div className="flex justify-end mb-4">
+                    {history.length > 0 && (
                         <button
                             type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setShowClearModal(true);
-                            }}
-                            className="text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-600 transition-colors flex items-center gap-1.5"
+                            onClick={() => setShowClearModal(true)}
+                            aria-label={language === 'fr' ? "Tout effacer" : "Clear all"}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform duration-150 active:scale-95"
                         >
-                            <Trash2 size={12} />
-                            {language === 'fr' ? "Tout effacer" : "Clear all"}
+                            <Trash2 className="h-[18px] w-[18px] text-[var(--color-ink-muted)]" strokeWidth={2} />
                         </button>
-                    </div>
-                )}
-
-                {/* Empty State */}
-                {history.length === 0 ? (
-                    <EmptyState
-                        icon={Package}
-                        title={language === 'fr' ? 'Aucune commande' : 'No orders yet'}
-                        subtitle={language === 'fr'
-                            ? "Découvrez notre menu et commencez votre commande !"
-                            : "Explore our menu and start your order!"}
-                        actionLabel={language === 'fr' ? 'Commander' : 'Place order'}
-                        actionHref="/"
-                    />
-                ) : (
-                    <div className="space-y-4">
-                        {history.map((order, index) => (
-                            <OrderReceiptCard
-                                key={order.id}
-                                id={order.id}
-                                tableNumber={order.tableNumber}
-                                items={order.items}
-                                totalPrice={order.totalPrice}
-                                date={order.date}
-                                status="sent"
-                                showDeleteButton={true}
-                                onDelete={() => openDeleteModal(order.id)}
-                                animationDelay={index * 50}
-                            />
-                        ))}
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
+
+            {history.length === 0 ? (
+                <div className="flex flex-col items-center px-8 py-24 text-center">
+                    <div className="mb-5 flex h-[76px] w-[76px] items-center justify-center rounded-[var(--radius-modal)] border border-[var(--color-divider)] bg-[var(--color-surface-alt)]">
+                        <Package className="h-8 w-8 text-[var(--color-ink-soft)]" strokeWidth={1.6} />
+                    </div>
+                    <h2 className="text-[18px] font-semibold tracking-[-0.4px] text-[var(--color-ink)]">
+                        {language === 'fr' ? "Aucune commande" : "No orders yet"}
+                    </h2>
+                    <p className="mt-1.5 max-w-[260px] text-[13px] text-[var(--color-ink-muted)]">
+                        {language === 'fr'
+                            ? "Vos commandes passées depuis cet appareil s'afficheront ici."
+                            : "Orders placed from this device will show up here."}
+                    </p>
+                    <Link
+                        href="/"
+                        className="mt-6 inline-flex h-11 items-center rounded-full bg-[var(--color-brand)] px-6 text-[14px] font-semibold text-white transition-transform duration-150 active:scale-[0.98]"
+                    >
+                        {language === 'fr' ? "Voir la carte" : "Browse the menu"}
+                    </Link>
+                </div>
+            ) : (
+                <div className="space-y-3 px-4 pt-4">
+                    {history.map((order) => (
+                        <OrderCard
+                            key={order.id}
+                            order={order}
+                            lang={language === 'en' ? 'en' : 'fr'}
+                            onDelete={() => openDeleteModal(order.id)}
+                            labels={{
+                                table: language === 'fr' ? "Table" : "Table",
+                                sent: language === 'fr' ? "Envoyée" : "Sent",
+                                cancelled: language === 'fr' ? "Annulée" : "Cancelled",
+                                delete: language === 'fr' ? "Supprimer la commande" : "Delete order",
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
         </main>
     );
 }

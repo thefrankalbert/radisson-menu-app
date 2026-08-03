@@ -5,31 +5,39 @@ const withPWA = withPWAInit({
     disable: process.env.NODE_ENV === 'development',
     skipWaiting: true,           // Force new SW to activate immediately
     clientsClaim: true,          // Take control of all clients immediately
-    reloadOnOnline: true,        // Reload when back online
+    // `reloadOnOnline` est volontairement désactivé : sur le wifi de l'hôtel la
+    // connexion vacille souvent, et chaque retour en ligne rechargeait la page.
+    // Le convive perdait sa position dans la carte et avait l'impression que
+    // l'application redémarrait et lui redemandait de scanner.
+    reloadOnOnline: false,
     fallbacks: {
         document: '/offline.html',
     },
-    // Use NetworkFirst for CSS/JS to always fetch fresh content
     runtimeCaching: [
+        // Les fichiers `_next/static` portent un hash de contenu dans leur nom :
+        // une nouvelle version produit de nouvelles URL, ils ne peuvent donc pas
+        // devenir périmés. En NetworkFirst, chaque navigation attendait pourtant
+        // le réseau avant d'afficher quoi que ce soit — la cause principale de
+        // la lenteur ressentie à l'ouverture des pages.
         {
             urlPattern: /\/_next\/static\/css\/.*/i,
-            handler: 'NetworkFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
                 cacheName: 'css-cache',
                 expiration: {
-                    maxEntries: 32,
-                    maxAgeSeconds: 60 * 60, // 1 hour
+                    maxEntries: 48,
+                    maxAgeSeconds: 7 * 24 * 60 * 60,
                 },
             },
         },
         {
             urlPattern: /\/_next\/static\/chunks\/.*/i,
-            handler: 'NetworkFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
                 cacheName: 'js-cache',
                 expiration: {
-                    maxEntries: 64,
-                    maxAgeSeconds: 60 * 60, // 1 hour
+                    maxEntries: 96,
+                    maxAgeSeconds: 7 * 24 * 60 * 60,
                 },
             },
         },

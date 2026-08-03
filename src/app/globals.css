@@ -15,6 +15,77 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ===== CLIENT (CONVIVE) UI TOKENS =====
+   Scoped to .client-ui on the convive shell. Food-ordering surfaces stay
+   light-mode only (photography reads better on white); the admin dashboard
+   keeps the shadcn light/dark theme above. Brand is Radisson navy, with the
+   house gold reserved for ratings and premium accents. */
+.client-ui,
+.dark .client-ui {
+  /* Brand */
+  --color-brand: #003058;
+  --color-brand-dark: #002545;
+  --color-brand-light: #eaf1f7;
+
+  /* Surfaces */
+  --color-bg: #ffffff;
+  --color-surface-alt: #f6f7f9;
+  --color-divider: #e9ecef;
+
+  /* Text — four levels */
+  --color-ink: #14181d;
+  --color-ink-2: #3d444d;
+  --color-ink-muted: #6f7780;
+  --color-ink-soft: #adb3ba;
+
+  /* Status */
+  --color-rating: #c5a065;
+  --color-promo: #c0392b;
+  --color-success: #1c7c54;
+
+  /* Warning / empty-photo canvas */
+  --color-warning-bg: #fbf3e3;
+  --color-warning-border: #f0dfba;
+  --color-warning-fg: #7a5a1e;
+  --color-ivory: #f7f4ee;
+  --color-ivory-fg: #a3937a;
+
+  /* Radius scale */
+  --radius-tag: 8px;
+  --radius-search: 10px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --radius-pill: 24px;
+  --radius-button-round: 50px;
+
+  color-scheme: light;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  .client-ui {
+    color-scheme: light;
+    background-color: #ffffff;
+    color: #14181d;
+  }
+}
+
+.client-ui h1,
+.client-ui h2,
+.client-ui h3 {
+  text-wrap: balance;
+}
+
+.client-ui p {
+  text-wrap: pretty;
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 @layer components {
   /* Removed custom shadow definitions for Flat Design */
 

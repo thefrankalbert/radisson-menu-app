@@ -1,10 +1,29 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { resolveVenueSlug, normalizeTableNumber } from '@/lib/venue-routing'
 
 export async function middleware(request: NextRequest) {
+    const { pathname, searchParams } = request.nextUrl
+
+    // Les QR posés sur les tables encodent `/?v=<venue>&table=<n>`. La
+    // redirection se fait ici, en périphérie, et non dans la page : lire les
+    // paramètres depuis le composant serveur forcerait un rendu dynamique de
+    // l'accueil à chaque visite, alors que la carte est identique pour tous.
+    if (pathname === '/') {
+        const venue =
+            searchParams.get('v') ?? searchParams.get('venue') ?? searchParams.get('restaurant')
+        const slug = resolveVenueSlug(venue)
+        if (slug) {
+            const target = new URL(`/menu/${slug}`, request.url)
+            const table = normalizeTableNumber(searchParams.get('table'))
+            if (table) target.searchParams.set('table', table)
+            return NextResponse.redirect(target)
+        }
+    }
+
     // Seulement vérifier l'auth pour les routes /admin
     // Les autres routes passent directement sans appel Supabase (évite les 503)
-    if (!request.nextUrl.pathname.startsWith('/admin')) {
+    if (!pathname.startsWith('/admin')) {
         return NextResponse.next();
     }
 

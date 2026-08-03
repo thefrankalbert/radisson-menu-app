@@ -2,10 +2,31 @@
 import { useState, useEffect } from "react";
 import { Share, X, Download, Plus } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/context/LanguageContext";
 import Image from "next/image";
+
+/** Le bandeau apparaît par-dessus une interface traduite : il doit suivre la
+ *  langue choisie, sinon le convive anglophone lit du français. */
+const COPY = {
+    title: { fr: "Installer Blu Table", en: "Install Blu Table" },
+    subtitle: {
+        fr: "Accès rapide depuis l'écran d'accueil",
+        en: "Quick access from your home screen",
+    },
+    install: { fr: "Installer", en: "Install" },
+    installAria: { fr: "Installer l'application", en: "Install the app" },
+    how: { fr: "Comment ?", en: "How?" },
+    close: { fr: "Fermer", en: "Close" },
+    howAria: {
+        fr: "Voir les instructions d'installation",
+        en: "See the installation steps",
+    },
+} as const;
 
 export default function InstallPrompt() {
     const pathname = usePathname();
+    const { language } = useLanguage();
+    const say = (k: keyof typeof COPY) => COPY[k][language === "en" ? "en" : "fr"];
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isIOS, setIsIOS] = useState(false);
     const [show, setShow] = useState(false);
@@ -86,33 +107,33 @@ export default function InstallPrompt() {
                     className="object-contain rounded-lg flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                    <h3 id="install-prompt-title" className="font-bold text-xs truncate">Installer Blu Table</h3>
-                    <p className="text-[10px] text-white/70 truncate">Accès rapide depuis l&apos;écran d&apos;accueil</p>
+                    <h3 id="install-prompt-title" className="font-bold text-xs truncate">{say("title")}</h3>
+                    <p className="text-[10px] text-white/70 truncate">{say("subtitle")}</p>
                 </div>
 
                 {isIOS ? (
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         aria-expanded={isExpanded}
-                        aria-label="Voir les instructions d'installation"
+                        aria-label={say("howAria")}
                         className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold transition-colors flex-shrink-0"
                     >
-                        {isExpanded ? 'Fermer' : 'Comment ?'}
+                        {isExpanded ? say("close") : say("how")}
                     </button>
                 ) : (
                     <button
                         onClick={handleInstallClick}
-                        aria-label="Installer l'application"
+                        aria-label={say("installAria")}
                         className="px-3 py-1.5 bg-white text-[#003366] rounded-lg text-[10px] font-bold active:scale-95 transition-transform flex items-center gap-1 flex-shrink-0"
                     >
                         <Download size={12} aria-hidden="true" />
-                        Installer
+                        {say("install")}
                     </button>
                 )}
 
                 <button
                     onClick={handleDismiss}
-                    aria-label="Fermer"
+                    aria-label={say("close")}
                     className="text-white/50 hover:text-white p-1 flex-shrink-0"
                 >
                     <X size={14} aria-hidden="true" />
