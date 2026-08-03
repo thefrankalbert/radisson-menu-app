@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Définition des types
@@ -152,9 +152,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         if (savedNotes) setNotes(savedNotes);
     }, []);
 
-    // Sauvegarde automatique
+    // Sauvegarde automatique. On saute le tout premier passage (montage) :
+    // l'etat est encore a sa valeur initiale null/vide, pas encore hydrate par
+    // l'effet de chargement ci-dessus. Sans ce garde, ce premier passage ferait
+    // removeItem sur des cles (dont radisson_last_menu) et effacerait ce que le
+    // scan venait d'ecrire, juste avant que l'accueil ne le lise.
+    const hydrated = useRef(false);
     useEffect(() => {
-        localStorage.setItem('cart', JSON.stringify(items));
+        if (!hydrated.current) { hydrated.current = true; return; }
+        localStorage.setItem("cart", JSON.stringify(items));
         if (currentRestaurantId) {
             localStorage.setItem('cart_restaurant_id', currentRestaurantId);
         } else {

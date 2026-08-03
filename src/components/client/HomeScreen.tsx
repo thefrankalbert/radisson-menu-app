@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import { HomeHeaderClient } from "./HomeHeaderClient";
 import { HomeHero } from "./HomeHero";
 import { HomeItemsSection } from "./HomeItemsSection";
@@ -13,7 +13,9 @@ import { MenuItemCard, type ClientMenuItem } from "./MenuItemCard";
 import { hasDietaryFlag } from "./dietary";
 import { useLanguage } from "@/context/LanguageContext";
 import { getTranslatedContent } from "@/utils/translation";
+import { venueGroupSlugs, slugFromMenuUrl } from "@/lib/venue-routing";
 import type { MenuItem, Category, Restaurant } from "@/types/admin";
+
 
 const COPY = {
     greetingMorning: { fr: "Bonjour", en: "Good morning" },
@@ -55,14 +57,48 @@ interface Props {
 export function HomeScreen({
     venueName,
     venueNameEn,
-    restaurants,
-    categories,
-    items,
+    restaurants: allRestaurants,
+    categories: allCategories,
+    items: allItems,
     hour,
 }: Props) {
     const { language } = useLanguage();
     const lang = language === "en" ? "en" : "fr";
     const say = (k: keyof typeof COPY) => COPY[k][lang];
+
+    // Le convive arrivé par le QR d'une table Panorama ne doit voir que Panorama
+    // + les Boissons, pas les cartes Lobby/Pool où il n'est pas assis. On déduit
+    // le lieu de la dernière carte visitée (posée juste avant par le scan).
+    // Lu après le montage (la page d'accueil est statique, pré-rendue au build :
+    // localStorage n'existe qu'au client).
+    const [lastMenuUrl, setLastMenuUrl] = useState<string | null>(null);
+    useEffect(() => {
+        try {
+            setLastMenuUrl(localStorage.getItem("radisson_last_menu"));
+        } catch {
+            // stockage indisponible : on montre toutes les cartes
+        }
+    }, []);
+
+    const allowedSlugs = useMemo(
+        () => venueGroupSlugs(slugFromMenuUrl(lastMenuUrl)),
+        [lastMenuUrl],
+    );
+
+    const restaurants = useMemo(
+        () => (allowedSlugs ? allRestaurants.filter((r) => allowedSlugs.includes(r.slug)) : allRestaurants),
+        [allRestaurants, allowedSlugs],
+    );
+    const allowedRestaurantIds = useMemo(() => new Set(restaurants.map((r) => r.id)), [restaurants]);
+    const categories = useMemo(
+        () => (allowedSlugs ? allCategories.filter((c) => allowedRestaurantIds.has(c.restaurant_id)) : allCategories),
+        [allCategories, allowedSlugs, allowedRestaurantIds],
+    );
+    const categoryIds = useMemo(() => new Set(categories.map((c) => c.id)), [categories]);
+    const items = useMemo(
+        () => (allowedSlugs ? allItems.filter((i) => categoryIds.has(i.category_id)) : allItems),
+        [allItems, allowedSlugs, categoryIds],
+    );
 
     // Un plat appartient à une catégorie, qui appartient à une carte : c'est la
     // carte qui porte l'id restaurant attendu par le panier.
