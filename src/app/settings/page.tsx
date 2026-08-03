@@ -30,6 +30,10 @@ const COPY = {
     ratesLoading: { fr: "Mise à jour des taux…", en: "Updating rates…" },
     notifications: { fr: "Notifications", en: "Notifications" },
     orderUpdates: { fr: "Suivi de commande", en: "Order updates" },
+    orderUpdatesToggle: {
+        fr: "Activer le suivi de commande",
+        en: "Enable order updates",
+    },
     unsupported: { fr: "Non pris en charge", en: "Not supported" },
     about: { fr: "À propos", en: "About" },
     privacy: { fr: "Confidentialité", en: "Privacy" },
@@ -164,7 +168,7 @@ export default function SettingsPage() {
                                 checked={notificationsEnabled}
                                 onChange={toggleNotifications}
                                 disabled={!notificationsSupported}
-                                ariaLabel={say("orderUpdates")}
+                                ariaLabel={say("orderUpdatesToggle")}
                             />
                         }
                     />

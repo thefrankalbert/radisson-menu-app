@@ -322,12 +322,35 @@ async function cmdPhoto() {
     if (!url) exitWith("Indiquez une URL, ou `none` pour retirer la photo.");
 
     const clearing = ["none", "aucune"].includes(normalise(url));
-    if (!clearing && !/^https?:\/\//i.test(url)) {
-        exitWith(
-            "L'URL doit être absolue (https://…).",
-            "Les chemins relatifs comme /images/x.jpg ne sont pas servis par l'application :",
-            "c'est exactement ce qui laissait tous les plats sans photo.",
-        );
+    if (!clearing) {
+        if (!/^https?:\/\//i.test(url)) {
+            exitWith(
+                "L'URL doit être absolue (https://…).",
+                "Les chemins relatifs comme /images/x.jpg ne sont pas servis par l'application :",
+                "c'est exactement ce qui laissait tous les plats sans photo.",
+            );
+        }
+        // next/Image n'optimise que les hôtes déclarés dans next.config.mjs
+        // (remotePatterns). Une URL d'un autre domaine casse le rendu de l'image
+        // en production. On bloque ici plutôt que de laisser un plat s'afficher
+        // cassé une fois publié.
+        let host;
+        try {
+            host = new URL(url).hostname;
+        } catch {
+            exitWith("URL invalide.");
+        }
+        const allowed = host.endsWith(".supabase.co") || host === "images.unsplash.com";
+        if (!allowed) {
+            exitWith(
+                `Hôte non autorisé : ${host}`,
+                "next/Image n'affiche que les images de *.supabase.co (Supabase Storage)",
+                "et images.unsplash.com. Hébergez la photo dans Supabase Storage et",
+                "utilisez son URL publique.",
+                "",
+                "Pour ajouter un autre hôte : next.config.mjs → images.remotePatterns.",
+            );
+        }
     }
 
     await applyChange({
