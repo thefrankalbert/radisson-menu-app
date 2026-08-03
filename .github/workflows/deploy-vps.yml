@@ -46,7 +46,7 @@ jobs:
             npm install --no-audit --no-fund
 
             echo "→ build"
-            npm run build
+            NODE_OPTIONS=--max-old-space-size=1536 npm run build
 
             echo "→ redémarrage PM2"
             pm2 restart radisson-menu-app --update-env || pm2 start ecosystem.config.js
