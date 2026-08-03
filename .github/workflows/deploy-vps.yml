@@ -1,0 +1,55 @@
+name: Deploy to VPS
+
+# Déploie automatiquement sur le VPS Hostinger à chaque push sur main.
+# Peut aussi être lancé à la main depuis l'onglet Actions (workflow_dispatch).
+#
+# Secrets requis (Settings → Secrets and variables → Actions) :
+#   VPS_HOST     148.230.115.224
+#   VPS_USER     l'utilisateur SSH (ex. theblutable)
+#   VPS_SSH_KEY  la clé privée de déploiement (contenu de ~/.ssh/blutable_deploy)
+#   VPS_APP_DIR  chemin de l'app (ex. /home/theblutable/htdocs/www.theblutable.com)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Déploiement SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # La build Next peut être longue ; on laisse de la marge.
+          command_timeout: 20m
+          script: |
+            set -e
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            nvm use 18 || nvm use --lts || true
+
+            cd "${{ secrets.VPS_APP_DIR }}"
+
+            echo "→ git pull"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "→ dépendances"
+            npm ci
+
+            echo "→ build"
+            npm run build
+
+            echo "→ redémarrage PM2"
+            pm2 restart radisson-menu-app --update-env || pm2 start ecosystem.config.js
+            pm2 save
+
+            echo "✓ déploiement terminé"
