@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
-import { ChevronLeft, Bell, Shield, Info, LifeBuoy, MapPin } from "lucide-react";
+import { ChevronLeft, Shield, Info, LifeBuoy, MapPin } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
     SettingsSection,
     SettingsRow,
     SettingsChoice,
-    SettingsSwitch,
 } from "@/components/client/settings/SettingsPrimitives";
 import { InfoSheet } from "@/components/client/settings/InfoSheet";
 import { APP_CONFIG } from "@/lib/constants";
@@ -28,13 +26,6 @@ const COPY = {
     language: { fr: "Langue", en: "Language" },
     currency: { fr: "Devise", en: "Currency" },
     ratesLoading: { fr: "Mise à jour des taux…", en: "Updating rates…" },
-    notifications: { fr: "Notifications", en: "Notifications" },
-    orderUpdates: { fr: "Suivi de commande", en: "Order updates" },
-    orderUpdatesToggle: {
-        fr: "Activer le suivi de commande",
-        en: "Enable order updates",
-    },
-    unsupported: { fr: "Non pris en charge", en: "Not supported" },
     about: { fr: "À propos", en: "About" },
     privacy: { fr: "Confidentialité", en: "Privacy" },
     help: { fr: "Aide", en: "Help" },
@@ -59,57 +50,16 @@ export default function SettingsPage() {
     const lang = language === "en" ? "en" : "fr";
     const say = (k: keyof typeof COPY) => COPY[k][lang];
 
-    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-    const [notificationsSupported, setNotificationsSupported] = useState(false);
     const [tableNumber, setTableNumber] = useState<string | null>(null);
     const [sheet, setSheet] = useState<Sheet>(null);
 
     useEffect(() => {
-        const supported = typeof window !== "undefined" && "Notification" in window;
-        setNotificationsSupported(supported);
-        if (supported) setNotificationsEnabled(Notification.permission === "granted");
         try {
             setTableNumber(localStorage.getItem("saved_table"));
         } catch {
             // stockage indisponible (navigation privée)
         }
     }, []);
-
-    const toggleNotifications = async () => {
-        if (!notificationsSupported) {
-            toast.error(lang === "fr" ? "Notifications non prises en charge" : "Notifications not supported");
-            return;
-        }
-
-        if (notificationsEnabled) {
-            // Le navigateur ne permet pas de révoquer une permission par script :
-            // on ne coupe que l'affichage côté app, et on le dit.
-            setNotificationsEnabled(false);
-            toast.success(lang === "fr" ? "Notifications désactivées" : "Notifications disabled");
-            return;
-        }
-
-        const isSecureContext =
-            window.isSecureContext ||
-            window.location.protocol === "https:" ||
-            window.location.hostname === "localhost";
-        if (!isSecureContext) {
-            toast.error(lang === "fr" ? "Requiert une connexion HTTPS" : "Requires an HTTPS connection");
-            return;
-        }
-
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                setNotificationsEnabled(true);
-                toast.success(lang === "fr" ? "Notifications activées" : "Notifications enabled");
-            } else {
-                toast.error(lang === "fr" ? "Permission refusée" : "Permission denied");
-            }
-        } catch {
-            toast.error(lang === "fr" ? "Impossible d'activer les notifications" : "Could not enable notifications");
-        }
-    };
 
     return (
         <div className="bg-[var(--color-surface-alt)] pb-24">
@@ -155,22 +105,6 @@ export default function SettingsPage() {
                         active={currency}
                         onSelect={setCurrency}
                         ariaLabel={say("currency")}
-                    />
-                </SettingsSection>
-
-                <SettingsSection title={say("notifications")}>
-                    <SettingsRow
-                        icon={<Bell className="h-4 w-4" />}
-                        label={say("orderUpdates")}
-                        value={notificationsSupported ? undefined : say("unsupported")}
-                        trailing={
-                            <SettingsSwitch
-                                checked={notificationsEnabled}
-                                onChange={toggleNotifications}
-                                disabled={!notificationsSupported}
-                                ariaLabel={say("orderUpdatesToggle")}
-                            />
-                        }
                     />
                 </SettingsSection>
 

@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { ChevronLeft, ShoppingBag, Trash2, NotebookPen } from "lucide-react";
+import { ChevronLeft, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/lib/supabase";
 import { CartItemsList } from "@/components/client/cart/CartItemsList";
 import { OrderSummary } from "@/components/client/cart/OrderSummary";
-import { TipSection, type TipPreset } from "@/components/client/cart/TipSection";
 import { UpsellSection, type UpsellItem } from "@/components/client/cart/UpsellSection";
 import { useCartUpsell } from "@/components/client/cart/useCartUpsell";
 import { Price } from "@/components/client/Price";
@@ -42,16 +41,7 @@ const COPY = {
         en: "Browse the menu and add your favourite dishes.",
     },
     browse: { fr: "Voir la carte", en: "Browse the menu" },
-    notes: { fr: "Note pour la cuisine", en: "Note for the kitchen" },
-    notesPlaceholder: {
-        fr: "Allergies, cuisson, sans oignon…",
-        en: "Allergies, cooking, no onion…",
-    },
     subtotal: { fr: "Sous-total", en: "Subtotal" },
-    tip: { fr: "Pourboire", en: "Tip" },
-    tipNone: { fr: "Aucun", en: "None" },
-    tipCustom: { fr: "Autre", en: "Other" },
-    tipCustomPlaceholder: { fr: "Montant", en: "Amount" },
     total: { fr: "Total", en: "Total" },
     submit: { fr: "Envoyer la commande", en: "Send order" },
     submitting: { fr: "Envoi…", en: "Sending…" },
@@ -70,8 +60,6 @@ export default function CartPage() {
         totalPrice,
         currentRestaurantId,
         addToCart,
-        notes,
-        setNotes,
     } = useCart();
     const { t, language } = useLanguage();
     const router = useRouter();
@@ -80,10 +68,6 @@ export default function CartPage() {
 
     const [tableNumber, setTableNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [tipOpen, setTipOpen] = useState(false);
-    const [tipPreset, setTipPreset] = useState<TipPreset>(0);
-    const [customTipInput, setCustomTipInput] = useState("");
-    const [notesOpen, setNotesOpen] = useState(false);
     const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
     const [tablePromptOpen, setTablePromptOpen] = useState(false);
 
@@ -98,16 +82,6 @@ export default function CartPage() {
             "";
         if (savedTable) setTableNumber(savedTable);
     }, []);
-
-    const tipAmount = useMemo(() => {
-        if (tipPreset === "custom") {
-            const parsed = Number.parseFloat(customTipInput);
-            return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
-        }
-        return tipPreset;
-    }, [tipPreset, customTipInput]);
-
-    const finalTotal = totalPrice + tipAmount;
 
     const handleAddUpsellItem = async (item: UpsellItem) => {
         if (!currentRestaurantId) return;
@@ -181,16 +155,14 @@ export default function CartPage() {
             // Création via RPC : chaque prix est confronté au prix réel de
             // l'article et le total est recalculé côté serveur — le client ne
             // peut pas imposer un montant.
-            // En revanche, la quantité et le pourboire ne sont PAS plafonnés
-            // côté serveur, et le délai de 30s ci-dessus vit dans localStorage :
-            // ce sont des garde-fous d'interface, pas des protections. Voir
+            // En revanche, la quantité n'est PAS plafonnée côté serveur, et le
+            // délai de 30s ci-dessus vit dans localStorage : ce sont des
+            // garde-fous d'interface, pas des protections. Voir
             // supabase/migrations/20260730_cap_order_quantity_and_tip.sql.
             const { data: rpcData, error: rpcError } = await supabase.rpc("create_order", {
                 p_restaurant_id: currentRestaurantId,
                 p_table_number: cleanedTableNumber,
                 p_payment_method: "cash",
-                p_tip_amount: tipAmount > 0 ? tipAmount : 0,
-                p_notes: notes || null,
                 p_items: items.map((item) => ({
                     menu_item_id: item.id,
                     quantity: item.quantity,
@@ -222,7 +194,7 @@ export default function CartPage() {
                 // Le total qui fait foi est celui recalculé par la RPC, pas la
                 // somme côté client : afficher un autre montant dans l'historique
                 // que celui réellement enregistré serait trompeur.
-                totalPrice: (rpcData.total_price as number) ?? finalTotal,
+                totalPrice: (rpcData.total_price as number) ?? totalPrice,
                 tableNumber: cleanedTableNumber,
                 status: "sent",
             };
@@ -323,62 +295,9 @@ export default function CartPage() {
                     />
                 )}
 
-                <section className="rounded-[var(--radius-card)] border border-[var(--color-divider)] bg-white px-4">
-                    {!notesOpen && !notes ? (
-                        <button
-                            type="button"
-                            onClick={() => setNotesOpen(true)}
-                            className="flex w-full items-center gap-2 py-3.5 text-[14px] font-semibold text-[var(--color-ink)]"
-                        >
-                            <NotebookPen className="h-4 w-4" />
-                            {say("notes")}
-                        </button>
-                    ) : (
-                        <div className="py-3.5">
-                            <label
-                                htmlFor="cart-notes"
-                                className="mb-2 block font-mono text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--color-ink-muted)]"
-                            >
-                                {say("notes")}
-                            </label>
-                            <textarea
-                                id="cart-notes"
-                                rows={2}
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                placeholder={say("notesPlaceholder")}
-                                /* 16px : en dessous, iOS zoome sur le champ au focus. */
-                                className="w-full resize-none rounded-[var(--radius-search)] border border-[var(--color-divider)] bg-[var(--color-surface-alt)] px-3.5 py-3 text-[16px] leading-[1.4] text-[var(--color-ink)] outline-none md:text-[13px]"
-                            />
-                        </div>
-                    )}
-                </section>
-
-                <div className="rounded-[var(--radius-card)] border border-[var(--color-divider)] bg-white px-4">
-                    <TipSection
-                        open={tipOpen}
-                        setOpen={setTipOpen}
-                        preset={tipPreset}
-                        setPreset={setTipPreset}
-                        customInput={customTipInput}
-                        setCustomInput={setCustomTipInput}
-                        tipAmount={tipAmount}
-                        labels={{
-                            tip: say("tip"),
-                            none: say("tipNone"),
-                            custom: say("tipCustom"),
-                            customPlaceholder: say("tipCustomPlaceholder"),
-                            close: say("close"),
-                        }}
-                    />
-                    <div className="pb-3" />
-                </div>
-
                 <OrderSummary
                     subtotal={totalPrice}
-                    tipAmount={tipAmount}
-                    finalTotal={finalTotal}
-                    labels={{ subtotal: say("subtotal"), tip: say("tip"), total: say("total") }}
+                    labels={{ subtotal: say("subtotal"), total: say("total") }}
                 />
             </div>
 
@@ -396,7 +315,7 @@ export default function CartPage() {
                         {isSubmitting ? say("submitting") : say("submit")}
                     </span>
                     <Price
-                        value={finalTotal}
+                        value={totalPrice}
                         size={15}
                         className="shrink-0 text-white"
                         unitClassName="text-white/60"
