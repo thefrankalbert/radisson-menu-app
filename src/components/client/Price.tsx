@@ -24,6 +24,12 @@ export function Price({
     unitClassName = "text-[var(--color-ink-muted)]",
 }: PriceProps) {
     const { formatPriceParts } = useCurrency();
+
+    // Un plat sans prix (0 ou absent — ex. certains accompagnements) ne doit
+    // afficher AUCUN prix, pas « 0 FCFA » : sur une carte de restaurant, « 0 »
+    // fait bon marché et pas sérieux. On n'affiche rien du tout.
+    if (!Number.isFinite(value) || value <= 0) return null;
+
     const { amount, unit } = formatPriceParts(value);
 
     return (
